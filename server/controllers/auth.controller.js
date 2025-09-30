@@ -1,16 +1,47 @@
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 
-// cookie options
-const cookieOptions = {
-  httpOnly: true,
-  // secure: process.env.NODE_ENV === "production",
-  // sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  secure: false, // ❌ set false for local Postman testing
-  sameSite: "lax", // avoid strict cross-site cookie rules
+import { getRandomNumber } from "../utils/helpers.js";
+
+import {
+  emailVerificationMailgenContent,
+  forgotPasswordMailgenContent,
+  sendEmail,
+} from "../utils/mail.js";
+
+// Constants (can be imported from a constants file if preferred)
+const USER_ACTIVITY_TYPES = {
+  USER_REGISTRATION: "user_registration",
+  USER_LOGIN: "user_login",
+  USER_LOGOUT: "user_logout",
+  EMAIL_VERIFICATION: "email_verification",
+  FORGOT_PASSWORD_REQUEST: "forgot_password_request",
+  RESET_PASSWORD: "reset_password",
 };
 
-const generateTokens = async (userId) => {
+const UserLoginType = {
+  EMAIL_PASSWORD: "EMAIL_PASSWORD",
+};
+
+const UserRolesEnum = {
+  STUDENT: "student",
+  FACULTY: "faculty",
+  ADMIN: "admin",
+};
+
+// Cookie options
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+};
+
+// Helper function to generate access and refresh tokens
+const generateAccessAndRefreshTokens = async (userId) => {
   const user = await User.findById(userId);
+  if (!user) throw new Error("User not found for token generation");
+
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
@@ -20,50 +51,87 @@ const generateTokens = async (userId) => {
   return { accessToken, refreshToken };
 };
 
-// Register
-export const registerUser = async (req, res) => {
+// Register new user
+const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { username, email, password, role } = req.body;
 
-    const existedUser = await User.findOne({ email });
+    const existedUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existedUser) {
-      return res
-        .status(409)
-        .json({ message: "User with this email already exists" });
+      return res.status(409).json({ message: "User with email or username already exists" });
     }
 
-    const user = await User.create({ name, email, password, role });
-    const { accessToken, refreshToken } = await generateTokens(user._id);
+    const user = await User.create({
+      email,
+      password,
+      username,
+      isEmailVerified: false,
+      avatar: {
+        url: "",
+        localPath: `/images/default/avatar_toy-${getRandomNumber(17)}.jpg`,
+      },
+      role: role || UserRolesEnum.STUDENT,
+    });
 
-    const safeUser = await User.findById(user._id).select(
-      "-password -refreshToken"
+    const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpiry = tokenExpiry;
+    await user.save({ validateBeforeSave: false });
+
+    await sendEmail({
+      email: user.email,
+      subject: "Please verify your email",
+      mailgenContent: emailVerificationMailgenContent(
+        user.username,
+        `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`
+      ),
+    });
+
+    const createdUser = await User.findById(user._id).select(
+      "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
     );
 
-    res
-      .status(201)
-      .cookie("accessToken", accessToken, cookieOptions)
-      .cookie("refreshToken", refreshToken, cookieOptions)
-      .json({ user: safeUser, message: "User registered successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(201).json({
+      statusCode: 200,
+      data: { user: createdUser },
+      message: "Users registered successfully and verification email has been sent on your email.",
+      activityType: USER_ACTIVITY_TYPES.USER_REGISTRATION,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message || "Internal Server Error" });
   }
 };
 
-// Login
-export const loginUser = async (req, res) => {
+// Login user
+const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Please provide username or email" });
+    }
 
     const user = await User.findOne({ email }).select("+password");
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    const isValid = await user.isPasswordCorrect(password);
-    if (!isValid)
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (user.loginType !== UserLoginType.EMAIL_PASSWORD) {
+      return res.status(400).json({
+        message: `You have previously registered using ${user.loginType?.toLowerCase()}. Please use the ${user.loginType?.toLowerCase()} login option to access your account.`,
+      });
+    }
 
-    const { accessToken, refreshToken } = await generateTokens(user._id);
-    const safeUser = await User.findById(user._id).select(
-      "-password -refreshToken"
+    const isPasswordValid = await user.isPasswordCorrect(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid user credentials" });
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+
+    const loggedInUser = await User.findById(user._id).select(
+      "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
     );
 
     res
@@ -71,32 +139,224 @@ export const loginUser = async (req, res) => {
       .cookie("accessToken", accessToken, cookieOptions)
       .cookie("refreshToken", refreshToken, cookieOptions)
       .json({
-        user: safeUser,
-        accessToken,
-        refreshToken,
-        message: "Login successful",
+        statusCode: 200,
+        data: { user: loggedInUser, accessToken, refreshToken },
+        message: "User logged in successfully",
+        activityType: USER_ACTIVITY_TYPES.USER_LOGIN,
       });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message || "Internal Server Error" });
   }
 };
 
-// Logout
-export const logoutUser = async (req, res) => {
+// Verify Email
+const verifyEmail = async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user._id, { refreshToken: undefined });
+    const { verificationToken } = req.params;
+    if (!verificationToken) {
+      return res.status(400).json({ message: "Email verification token is missing" });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
+
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(489).json({ message: "Token is invalid or expired" });
+    }
+
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiry = undefined;
+    user.isEmailVerified = true;
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      statusCode: 200,
+      data: { isEmailVerified: true },
+      message: "Email is verified",
+      activityType: USER_ACTIVITY_TYPES.EMAIL_VERIFICATION,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message || "Internal Server Error" });
+  }
+};
+
+// Resend email verification mail
+const resendEmailVerification = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User does not exist" });
+    }
+    if (user.isEmailVerified) {
+      return res.status(409).json({ message: "Email is already verified!" });
+    }
+
+    const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpiry = tokenExpiry;
+    await user.save({ validateBeforeSave: false });
+
+    await sendEmail({
+      email: user.email,
+      subject: "Please verify your email",
+      mailgenContent: emailVerificationMailgenContent(
+        user.username,
+        `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`
+      ),
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      data: { token: unHashedToken },
+      message: "Mail has been sent to your mail ID",
+      activityType: USER_ACTIVITY_TYPES.EMAIL_VERIFICATION,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message || "Internal Server Error" });
+  }
+};
+
+// Logout user
+const logoutUser = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, { $set: { refreshToken: undefined } }, { new: true });
 
     res
       .status(200)
       .clearCookie("accessToken", cookieOptions)
       .clearCookie("refreshToken", cookieOptions)
-      .json({ message: "Logged out successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+      .json({
+        statusCode: 200,
+        data: {},
+        message: "User logged out successfully",
+        activityType: USER_ACTIVITY_TYPES.USER_LOGOUT,
+      });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message || "Internal Server Error" });
   }
 };
 
-// Current user
-export const getCurrentUser = async (req, res) => {
-  res.status(200).json({ user: req.user });
+// Refresh access token
+const refreshAccessToken = async (req, res) => {
+  try {
+    const incomingRefreshToken = req?.cookies?.refreshToken || req?.body?.refreshToken;
+    if (!incomingRefreshToken) {
+      return res.status(401).json({ message: "Unauthorized request" });
+    }
+
+    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decodedToken?._id);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    if (incomingRefreshToken !== user.refreshToken) {
+      return res.status(401).json({ message: "Refresh token is expired or used" });
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id);
+
+    res
+      .status(200)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", newRefreshToken, cookieOptions)
+      .json({
+        statusCode: 200,
+        data: { accessToken, refreshToken: newRefreshToken },
+        message: "Access token refreshed",
+        activityType: USER_ACTIVITY_TYPES.USER_LOGIN,
+      });
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({ message: error.message || "Invalid refresh token" });
+  }
+};
+
+// Forgot password request
+const forgotPasswordRequest = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User does not exist" });
+    }
+
+    const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+
+    user.forgotPasswordToken = hashedToken;
+    user.forgotPasswordExpiry = tokenExpiry;
+    await user.save({ validateBeforeSave: false });
+
+    await sendEmail({
+      email: user.email,
+      subject: "Password reset request",
+      mailgenContent: forgotPasswordMailgenContent(
+        user.username,
+        `${req.protocol}://${req.get("host")}/api/v1/auth/reset-password/${unHashedToken}`
+      ),
+    });
+
+    res.status(200).json({
+      statusCode: 200,
+      data: { token: unHashedToken },
+      message: "Password reset mail has been sent on your mail id",
+      activityType: USER_ACTIVITY_TYPES.FORGOT_PASSWORD_REQUEST,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message || "Internal Server Error" });
+  }
+};
+
+// Reset forgotten password
+const resetForgottenPassword = async (req, res) => {
+  try {
+    const { resetToken } = req.params;
+    const { newPassword } = req.body;
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    const user = await User.findOne({
+      forgotPasswordToken: hashedToken,
+      forgotPasswordExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(489).json({ message: "Token is invalid or expired" });
+    }
+
+    user.forgotPasswordToken = undefined;
+    user.forgotPasswordExpiry = undefined;
+    user.password = newPassword;
+
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      statusCode: 200,
+      data: { pass: newPassword },
+      message: "Password reset successfully",
+      activityType: USER_ACTIVITY_TYPES.RESET_PASSWORD,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message || "Internal Server Error" });
+  }
+};
+
+export {
+  registerUser,
+  loginUser,
+  verifyEmail,
+  resendEmailVerification,
+  logoutUser,
+  refreshAccessToken,
+  forgotPasswordRequest,
+  resetForgottenPassword,
 };

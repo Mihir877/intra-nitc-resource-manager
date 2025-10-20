@@ -13,7 +13,9 @@ export const verifyJWT = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-    const user = await User.findById(decoded?._id).select("-password -refreshToken");
+    const user = await User.findById(decoded?._id).select(
+      "-password -refreshToken"
+    );
     if (!user) {
       return res.status(401).json({ message: "Unauthorized, user not found" });
     }
@@ -23,4 +25,12 @@ export const verifyJWT = async (req, res, next) => {
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
+};
+
+// RBAC helpers
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role === "admin") return next();
+  return res
+    .status(403)
+    .json({ message: "Access denied. This action is restricted to admins." });
 };

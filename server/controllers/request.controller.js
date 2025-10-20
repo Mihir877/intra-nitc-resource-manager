@@ -88,7 +88,7 @@ export const getRequests = async (req, res) => {
 export const decisionRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, rejectionReason } = req.body;
+    const { status, remarks } = req.body;
 
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
@@ -115,7 +115,12 @@ export const decisionRequest = async (req, res) => {
       request.approvedAt = new Date();
     } else {
       request.status = "rejected";
-      request.rejectionReason = rejectionReason || "Not specified";
+      if (!remarks || !remarks.trim()) {
+        return res
+          .status(400)
+          .json({ message: "Remarks are required for rejection" });
+      }
+      request.remarks = remarks;
       request.approvedBy = req.user._id;
       request.approvedAt = new Date();
     }
@@ -151,8 +156,17 @@ export const cancelRequest = async (req, res) => {
         .json({ message: "Not authorized to cancel this request" });
     }
 
+    if (req.user.role === "admin") {
+      if (!req.body.remarks || !req.body.remarks.trim()) {
+        return res
+          .status(400)
+          .json({ message: "Cancellation reason is required for admins" });
+      }
+    }
+
     request.status = "cancelled";
-    request.remarks = req.body.remarks || "Cancelled by user/admin";
+    request.remarks = req.body.remarks || "Cancelled by user";
+
     await request.save();
 
     res.status(200).json({

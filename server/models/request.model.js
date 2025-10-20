@@ -43,11 +43,6 @@ const requestSchema = new Schema(
       type: Date,
     },
 
-    rejectionReason: {
-      type: String,
-      trim: true,
-    },
-
     remarks: {
       type: String,
       trim: true,

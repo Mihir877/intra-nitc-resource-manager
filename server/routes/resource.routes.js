@@ -28,20 +28,23 @@ router.get("/:id", verifyJWT, getResourceById);
 /**
  * ADMIN-ONLY ROUTES
  * --------------------
- * Protected by verifyJWT middleware, but actual admin role check
- * can be done inside middleware or controller if you add verifyAdmin()
+ * All routes below this point require:
+ * 1. Authentication via verifyJWT middleware
+ * 2. Admin role verification via requireAdmin middleware
  */
-
+router.use(verifyJWT);
+router.use(requireAdmin);
+  
 // Create a new resource
-router.post("/", verifyJWT, createResource);
+router.post("/", createResource);
 
 // Update resource details
-router.patch("/:id", verifyJWT, updateResource);
+router.patch("/:id", updateResource);
 
 // Set resource status
-router.patch("/:id/status", verifyJWT, setResourceStatus);
+router.patch("/:id/status", setResourceStatus);
 
 // Soft delete resource
-router.delete("/:id", verifyJWT, deleteResource);
+router.delete("/:id", deleteResource);
 
 export default router;

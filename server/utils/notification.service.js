@@ -2,7 +2,7 @@ import { sendEmail } from "../utils/mail.js";
 import { Notification } from "../models/notification.model.js";
 
 export const createNotification = async ({
-  userId,
+  user,
   title,
   message,
   type = "info", // info | success | warning | error
@@ -13,7 +13,7 @@ export const createNotification = async ({
   try {
     // 1️⃣ Save in-app notification
     const notification = await Notification.create({
-      userId,
+      userId: user._id,
       title,
       message,
       type,
@@ -22,7 +22,11 @@ export const createNotification = async ({
     });
 
     // 2️⃣ If email channel is selected → send email
-    if (channels.includes("email") && emailPayload?.email) {
+    if (
+      channels.includes("email") &&
+      user.isEmailVerified &&
+      emailPayload?.email
+    ) {
       try {
         await sendEmail(emailPayload);
         notification.status = "sent";

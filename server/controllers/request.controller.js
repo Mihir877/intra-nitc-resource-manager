@@ -155,7 +155,7 @@ export const decisionRequest = async (req, res) => {
 
     // --- Send Notification ---
     await createNotification({
-      userId: user._id,
+      user,
       title: isApproved ? "Booking Approved" : "Booking Rejected",
       message: isApproved
         ? `Your booking for ${resource.name} on ${timeSlot} has been approved.`
@@ -247,7 +247,7 @@ export const cancelRequest = async (req, res) => {
       };
 
       await createNotification({
-        userId: user._id,
+        user,
         title: "Booking Cancelled",
         message: `Your booking for ${resource.name} on ${timeSlot} was cancelled by an admin. Reason: ${request.remarks}`,
         type: "error",

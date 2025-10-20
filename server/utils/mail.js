@@ -1,30 +1,39 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
+
 /**
- *
- * @param {{email: string; subject: string; mailgenContent: Mailgen.Content; }} options
+ * ------------------------------------------------------------------
+ *  Core Email Utility for Intra NITC Resource Management System (IRMS)
+ * ------------------------------------------------------------------
+ *  Supports:
+ *   - User account verification & password reset
+ *   - Booking approval / rejection / cancellation notifications
+ * ------------------------------------------------------------------
+ */
+
+/**
+ * Sends an email using Mailgen + Nodemailer
+ * @param {{email: string; subject: string; mailgenContent: Mailgen.Content}} options
  */
 const sendEmail = async (options) => {
-  // Initialize mailgen instance with default theme and brand configuration
+  // Initialize Mailgen with IRMS branding
   const mailGenerator = new Mailgen({
     theme: "default",
     product: {
-      name: "FreeAPI",
-      link: "https://freeapi.app",
+      name: "Intra NITC Resource Management (IRMS)",
+      link: "http://localhost:3000", // Replace with actual domain or localhost
+      // logo: "http://localhost:8080/public/logos/nitc_logo.png",
+      logoHeight: "60px",
     },
   });
 
-  // For more info on how mailgen content work visit https://github.com/eladnava/mailgen#readme
-  // Generate the plaintext version of the e-mail (for clients that do not support HTML)
+  // Generate text + HTML content
   const emailTextual = mailGenerator.generatePlaintext(options.mailgenContent);
-
-  // Generate an HTML email with the provided contents
   const emailHtml = mailGenerator.generate(options.mailgenContent);
 
-  // Create a nodemailer transporter instance which is responsible to send a mail
+  // Configure Nodemailer transporter (Mailtrap or production SMTP)
   const transporter = nodemailer.createTransport({
-    host: process.env.MAILTRAP_SMTP_HOST,
-    port: process.env.MAILTRAP_SMTP_PORT,
+  service: "gmail",
     auth: {
       user: process.env.MAILTRAP_SMTP_USER,
       pass: process.env.MAILTRAP_SMTP_PASS,
@@ -32,89 +41,117 @@ const sendEmail = async (options) => {
   });
 
   const mail = {
-    from: "mail.freeapi@gmail.com", // We can name this anything. The mail will go to your Mailtrap inbox
-    to: options.email, // receiver's mail
-    subject: options.subject, // mail subject
-    text: emailTextual, // mailgen content textual variant
-    html: emailHtml, // mailgen content html variant
+    from: "NITC Resource Management",
+    to: options.email,
+    subject: options.subject,
+    text: emailTextual,
+    html: emailHtml,
   };
 
   try {
     await transporter.sendMail(mail);
+    console.log(`✅ Email sent successfully to ${options.email}`);
   } catch (error) {
-    // As sending email is not strongly coupled to the business logic it is not worth to raise an error when email sending fails
-    // So it's better to fail silently rather than breaking the app
-    console.log(
-      "Email service failed silently. Make sure you have provided your MAILTRAP credentials in the .env file"
-    );
-    console.log("Error: ", error);
+    console.log("⚠️ Email service failed silently.");
+    console.log("Error details:", error.message);
   }
 };
 
-/**
- *
- * @param {string} username
- * @param {string} verificationUrl
- * @returns {Mailgen.Content}
- * @description It designs the email verification mail
- */
-const emailVerificationMailgenContent = (username, verificationUrl) => {
-  return {
-    body: {
-      name: username,
-      intro: "Welcome to our app! We're very excited to have you on board.",
-      action: {
-        instructions:
-          "To verify your email please click on the following button:",
-        button: {
-          color: "#22BC66", // Optional action button color
-          text: "Verify your email",
-          link: verificationUrl,
-        },
-      },
-      outro:
-        "Need help, or have questions? Just reply to this email, we'd love to help.",
-    },
-  };
-};
+//
+// -------------------------------------------------------------
+//  Mail Template Functions
+// -------------------------------------------------------------
+//
 
 /**
- *
- * @param {string} username
- * @param {string} verificationUrl
- * @returns {Mailgen.Content}
- * @description It designs the forgot password mail
+ * Email verification mail (for registration)
  */
-const forgotPasswordMailgenContent = (username, passwordResetUrl) => {
-  return {
-    body: {
-      name: username,
-      intro: "We got a request to reset the password of our account",
-      action: {
-        instructions:
-          "To reset your password click on the following button or link:",
-        button: {
-          color: "#22BC66", // Optional action button color
-          text: "Reset password",
-          link: passwordResetUrl,
-        },
+const emailVerificationMailgenContent = (username, verificationUrl) => ({
+  body: {
+    name: username,
+    intro: "Welcome to the Intra NITC Resource Management System!",
+    action: {
+      instructions:
+        "To verify your IRMS account, please click the button below:",
+      button: {
+        color: "#0b5ed7",
+        text: "Verify My Email",
+        link: verificationUrl,
       },
-      outro:
-        "Need help, or have questions? Just reply to this email, we'd love to help.",
     },
-  };
-};
+    outro: "If you did not initiate this, please ignore this message.",
+  },
+});
 
 /**
- *
- * @param {string} username
- * @param {{_id: string, product: Product, quantity: number}[]} items
- * @param {number} totalCost
- * @returns {Mailgen.Content}
- * @description It designs the order creation invoice mail
+ * Forgot password mail
  */
+const forgotPasswordMailgenContent = (username, passwordResetUrl) => ({
+  body: {
+    name: username,
+    intro: "We received a request to reset your IRMS account password.",
+    action: {
+      instructions: "Click the button below to reset your password:",
+      button: {
+        color: "#dc3545",
+        text: "Reset Password",
+        link: passwordResetUrl,
+      },
+    },
+    outro:
+      "If you didn’t request a password reset, no action is needed. Your account remains secure.",
+  },
+});
+
+/**
+ * Booking approval notification
+ */
+const bookingApprovedMail = (username, resourceName, bookingTime) => ({
+  body: {
+    name: username,
+    intro: `Good news! Your booking request for **${resourceName}** has been approved.`,
+    table: {
+      data: [{ Resource: resourceName, "Approved Time Slot": bookingTime }],
+    },
+    outro: "You can view details in your IRMS dashboard.",
+  },
+});
+
+/**
+ * Booking rejection notification
+ */
+const bookingRejectedMail = (username, resourceName, reason) => ({
+  body: {
+    name: username,
+    intro: `Your booking request for **${resourceName}** was rejected.`,
+    dictionary: { Reason: reason },
+    outro:
+      "Please check other available time slots or contact your department admin for clarification.",
+  },
+});
+
+/**
+ * Booking cancellation (admin-initiated)
+ */
+const bookingCancelledMail = (username, resourceName, reason) => ({
+  body: {
+    name: username,
+    intro: `Your approved booking for **${resourceName}** has been cancelled by the admin.`,
+    dictionary: { Reason: reason },
+    outro:
+      "We regret the inconvenience. You may rebook another available slot from your dashboard.",
+  },
+});
+
+//
+// -------------------------------------------------------------
+//  Module Exports
+// -------------------------------------------------------------
 export {
   sendEmail,
   emailVerificationMailgenContent,
   forgotPasswordMailgenContent,
+  bookingApprovedMail,
+  bookingRejectedMail,
+  bookingCancelledMail,
 };

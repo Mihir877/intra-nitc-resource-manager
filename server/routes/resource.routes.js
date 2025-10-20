@@ -8,7 +8,7 @@ import {
   deleteResource,
 } from "../controllers/resource.controller.js";
 
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { requireAdmin, verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

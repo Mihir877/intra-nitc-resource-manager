@@ -33,7 +33,7 @@ const sendEmail = async (options) => {
 
   // Configure Nodemailer transporter (Mailtrap or production SMTP)
   const transporter = nodemailer.createTransport({
-  service: "gmail",
+    service: "gmail",
     auth: {
       user: process.env.MAILTRAP_SMTP_USER,
       pass: process.env.MAILTRAP_SMTP_PASS,
@@ -41,7 +41,7 @@ const sendEmail = async (options) => {
   });
 
   const mail = {
-    from: "NITC Resource Management",
+    from: `"NITC Resources" <nitc.irms@gmail.com>`,
     to: options.email,
     subject: options.subject,
     text: emailTextual,

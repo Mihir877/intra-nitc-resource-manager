@@ -1,6 +1,7 @@
 import { Request } from "../models/request.model.js";
 import { Resource } from "../models/resource.model.js";
 import mongoose from "mongoose";
+import { createNotification } from "../utils/notification.service.js";
 
 /**
  * @desc    Submit a new resource request
@@ -89,43 +90,81 @@ export const decisionRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, remarks } = req.body;
+    const validStatuses = ["approved", "rejected"];
 
-    if (!["approved", "rejected"].includes(status)) {
+    if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
-    const request = await Request.findById(id);
+    const request = await Request.findById(id)
+      .populate("userId", "email username")
+      .populate("resourceId", "name");
+
     if (!request) return res.status(404).json({ message: "Request not found" });
 
-    if (status === "approved") {
-      // Check conflict again before approval
-      const conflict = await Request.findOne({
-        resourceId: request.resourceId,
-        status: "approved",
-        $or: [
-          { startTime: { $lt: request.endTime, $gte: request.startTime } },
-          { endTime: { $gt: request.startTime, $lte: request.endTime } },
-        ],
-      });
-      if (conflict) {
-        return res.status(409).json({ message: "Time slot already booked" });
-      }
-      request.status = "approved";
-      request.approvedBy = req.user._id;
-      request.approvedAt = new Date();
-    } else {
-      request.status = "rejected";
-      if (!remarks || !remarks.trim()) {
+    const now = new Date();
+
+    // --- Update Request ---
+    request.status = status;
+    request.approvedBy = req.user._id;
+    request.approvedAt = now;
+
+    if (status === "rejected") {
+      if (!remarks?.trim()) {
         return res
           .status(400)
           .json({ message: "Remarks are required for rejection" });
       }
       request.remarks = remarks;
-      request.approvedBy = req.user._id;
-      request.approvedAt = new Date();
     }
 
     await request.save();
+
+    // --- Prepare Notification ---
+    const { userId: user, resourceId: resource, startTime, endTime } = request;
+    const timeSlot = `${new Date(startTime).toLocaleString()} - ${new Date(
+      endTime
+    ).toLocaleString()}`;
+
+    const isApproved = status === "approved";
+
+    const emailPayload = {
+      email: user.email,
+      subject: `${
+        isApproved ? "✅ Booking Approved" : "❌ Booking Rejected"
+      }: ${resource.name}`,
+      mailgenContent: {
+        body: {
+          name: user.username,
+          intro: isApproved
+            ? `Your booking for ${resource.name} has been approved!`
+            : `Your booking for ${resource.name} has been rejected.`,
+          table: {
+            data: [
+              { Resource: resource.name },
+              { "Time Slot": timeSlot },
+              ...(!isApproved ? [{ Remarks: remarks }] : []),
+            ],
+          },
+          outro: isApproved
+            ? "You can now access the resource during your booked slot."
+            : "Please try booking another time slot from the portal.",
+        },
+      },
+    };
+
+    // --- Send Notification ---
+    await createNotification({
+      userId: user._id,
+      title: isApproved ? "Booking Approved" : "Booking Rejected",
+      message: isApproved
+        ? `Your booking for ${resource.name} on ${timeSlot} has been approved.`
+        : `Your booking for ${resource.name} was rejected. Reason: ${remarks}`,
+      type: isApproved ? "success" : "error",
+      relatedRequestId: request._id,
+      channels: ["in-app", "email"],
+      emailPayload,
+    });
 
     res.status(200).json({
       statusCode: 200,
@@ -146,28 +185,77 @@ export const decisionRequest = async (req, res) => {
 export const cancelRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const request = await Request.findById(id);
+    const { remarks } = req.body;
+
+    const request = await Request.findById(id)
+      .populate("userId", "email username")
+      .populate("resourceId", "name");
 
     if (!request) return res.status(404).json({ message: "Request not found" });
 
-    if (req.user.role !== "admin" && !request.userId.equals(req.user._id)) {
+    const isAdmin = req.user.role === "admin";
+    const isOwner = request.userId.equals(req.user._id);
+
+    if (!isAdmin && !isOwner) {
       return res
         .status(403)
         .json({ message: "Not authorized to cancel this request" });
     }
 
-    if (req.user.role === "admin") {
-      if (!req.body.remarks || !req.body.remarks.trim()) {
-        return res
-          .status(400)
-          .json({ message: "Cancellation reason is required for admins" });
-      }
+    // Admin must provide a reason
+    if (isAdmin && (!remarks || !remarks.trim())) {
+      return res
+        .status(400)
+        .json({ message: "Cancellation reason is required for admins" });
     }
 
     request.status = "cancelled";
-    request.remarks = req.body.remarks || "Cancelled by user";
+    request.remarks =
+      remarks?.trim() || (isAdmin ? "Cancelled by admin" : "Cancelled by user");
 
     await request.save();
+
+    // --- Notify user if admin cancels ---
+    if (isAdmin) {
+      const {
+        userId: user,
+        resourceId: resource,
+        startTime,
+        endTime,
+      } = request;
+      const timeSlot = `${new Date(startTime).toLocaleString()} - ${new Date(
+        endTime
+      ).toLocaleString()}`;
+
+      const emailPayload = {
+        email: user.email,
+        subject: `❌ Booking Cancelled: ${resource.name}`,
+        mailgenContent: {
+          body: {
+            name: user.username,
+            intro: `Your booking for ${resource.name} has been cancelled by an admin.`,
+            table: {
+              data: [
+                { Resource: resource.name },
+                { "Time Slot": timeSlot },
+                { Remarks: request.remarks },
+              ],
+            },
+            outro: "Please try booking another time slot from the portal.",
+          },
+        },
+      };
+
+      await createNotification({
+        userId: user._id,
+        title: "Booking Cancelled",
+        message: `Your booking for ${resource.name} on ${timeSlot} was cancelled by an admin. Reason: ${request.remarks}`,
+        type: "error",
+        relatedRequestId: request._id,
+        channels: ["in-app", "email"],
+        emailPayload,
+      });
+    }
 
     res.status(200).json({
       statusCode: 200,

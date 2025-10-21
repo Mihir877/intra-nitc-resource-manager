@@ -1,9 +1,19 @@
 import httpServer from "./app.js";
 import connectDB from "./db.js";
+import { initSocket } from "./socket.js";
 
 const startServer = () => {
-  httpServer.listen(process.env.PORT || 8080, () => {
-    console.log(`⚙️  Server is  running on port : ${process.env.PORT || 8080}\n`);
+  const PORT = process.env.PORT || 8080;
+
+  // Initialize Socket.IO
+  const { io, onlineUsers } = initSocket(httpServer);
+
+  // Expose globally to use it in controllers
+  global._io = io;
+  global._onlineUsers = onlineUsers;
+
+  httpServer.listen(PORT, () => {
+    console.log(`⚙️  Server running on port: ${PORT}`);
   });
 };
 
@@ -11,5 +21,5 @@ try {
   await connectDB();
   startServer();
 } catch (error) {
-  console.log("Mongo db connect error: ", err);
+  console.error("❌ MongoDB connection error:", error);
 }

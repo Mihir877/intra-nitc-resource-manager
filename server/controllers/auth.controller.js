@@ -58,7 +58,10 @@ const registerUser = async (req, res) => {
 
     const existedUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existedUser) {
-      return res.status(409).json({ message: "User with email or username already exists" });
+      return res.status(409).json({
+        success: false,
+        message: "User with email or username already exists",
+      });
     }
 
     const user = await User.create({
@@ -73,7 +76,8 @@ const registerUser = async (req, res) => {
       role: role || UserRolesEnum.STUDENT,
     });
 
-    const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+    const { unHashedToken, hashedToken, tokenExpiry } =
+      user.generateTemporaryToken();
 
     user.emailVerificationToken = hashedToken;
     user.emailVerificationExpiry = tokenExpiry;
@@ -84,7 +88,9 @@ const registerUser = async (req, res) => {
       subject: "Please verify your email",
       mailgenContent: emailVerificationMailgenContent(
         user.username,
-        `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`
+        `${req.protocol}://${req.get(
+          "host"
+        )}/api/v1/auth/verify-email/${unHashedToken}`
       ),
     });
 
@@ -93,14 +99,21 @@ const registerUser = async (req, res) => {
     );
 
     res.status(201).json({
-      statusCode: 200,
-      data: { user: createdUser },
-      message: "Users registered successfully and verification email has been sent on your email.",
+      success: true,
+      statusCode: 201,
+      user: createdUser,
+      message:
+        "User registered successfully and verification email has been sent.",
       activityType: USER_ACTIVITY_TYPES.USER_REGISTRATION,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -109,26 +122,35 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email) {
-      return res.status(400).json({ message: "Please provide username or email" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Please provide username or email" });
     }
 
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     if (user.loginType !== UserLoginType.EMAIL_PASSWORD) {
       return res.status(400).json({
-        message: `You have previously registered using ${user.loginType?.toLowerCase()}. Please use the ${user.loginType?.toLowerCase()} login option to access your account.`,
+        success: false,
+        message: `You have previously registered using ${user.loginType?.toLowerCase()}. Please use the ${user.loginType?.toLowerCase()} login option.`,
       });
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid user credentials" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid user credentials" });
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+      user._id
+    );
 
     const loggedInUser = await User.findById(user._id).select(
       "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
@@ -139,14 +161,22 @@ const loginUser = async (req, res) => {
       .cookie("accessToken", accessToken, cookieOptions)
       .cookie("refreshToken", refreshToken, cookieOptions)
       .json({
+        success: true,
         statusCode: 200,
-        data: { user: loggedInUser, accessToken, refreshToken },
+        user: loggedInUser,
+        accessToken,
+        refreshToken,
         message: "User logged in successfully",
         activityType: USER_ACTIVITY_TYPES.USER_LOGIN,
       });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -155,10 +185,18 @@ const verifyEmail = async (req, res) => {
   try {
     const { verificationToken } = req.params;
     if (!verificationToken) {
-      return res.status(400).json({ message: "Email verification token is missing" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Email verification token is missing",
+        });
     }
 
-    const hashedToken = crypto.createHash("sha256").update(verificationToken).digest("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(verificationToken)
+      .digest("hex");
 
     const user = await User.findOne({
       emailVerificationToken: hashedToken,
@@ -166,7 +204,9 @@ const verifyEmail = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(489).json({ message: "Token is invalid or expired" });
+      return res
+        .status(489)
+        .json({ success: false, message: "Token is invalid or expired" });
     }
 
     user.emailVerificationToken = undefined;
@@ -175,14 +215,20 @@ const verifyEmail = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: { isEmailVerified: true },
+      isEmailVerified: true,
       message: "Email is verified",
       activityType: USER_ACTIVITY_TYPES.EMAIL_VERIFICATION,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -191,13 +237,18 @@ const resendEmailVerification = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) {
-      return res.status(404).json({ message: "User does not exist" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exist" });
     }
     if (user.isEmailVerified) {
-      return res.status(409).json({ message: "Email is already verified!" });
+      return res
+        .status(409)
+        .json({ success: false, message: "Email is already verified!" });
     }
 
-    const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+    const { unHashedToken, hashedToken, tokenExpiry } =
+      user.generateTemporaryToken();
     user.emailVerificationToken = hashedToken;
     user.emailVerificationExpiry = tokenExpiry;
     await user.save({ validateBeforeSave: false });
@@ -207,76 +258,111 @@ const resendEmailVerification = async (req, res) => {
       subject: "Please verify your email",
       mailgenContent: emailVerificationMailgenContent(
         user.username,
-        `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unHashedToken}`
+        `${req.protocol}://${req.get(
+          "host"
+        )}/api/v1/auth/verify-email/${unHashedToken}`
       ),
     });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: { token: unHashedToken },
+      token: unHashedToken,
       message: "Mail has been sent to your mail ID",
       activityType: USER_ACTIVITY_TYPES.EMAIL_VERIFICATION,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
 // Logout user
 const logoutUser = async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user._id, { $set: { refreshToken: undefined } }, { new: true });
+    await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { refreshToken: undefined } },
+      { new: true }
+    );
 
     res
       .status(200)
       .clearCookie("accessToken", cookieOptions)
       .clearCookie("refreshToken", cookieOptions)
       .json({
+        success: true,
         statusCode: 200,
-        data: {},
         message: "User logged out successfully",
         activityType: USER_ACTIVITY_TYPES.USER_LOGOUT,
       });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
 // Refresh access token
 const refreshAccessToken = async (req, res) => {
   try {
-    const incomingRefreshToken = req?.cookies?.refreshToken || req?.body?.refreshToken;
+    const incomingRefreshToken =
+      req?.cookies?.refreshToken || req?.body?.refreshToken;
     if (!incomingRefreshToken) {
-      return res.status(401).json({ message: "Unauthorized request" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Unauthorized request" });
     }
 
-    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
     const user = await User.findById(decodedToken?._id);
     if (!user) {
-      return res.status(401).json({ message: "Invalid refresh token" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid refresh token" });
     }
 
     if (incomingRefreshToken !== user.refreshToken) {
-      return res.status(401).json({ message: "Refresh token is expired or used" });
+      return res
+        .status(401)
+        .json({ success: false, message: "Refresh token is expired or used" });
     }
 
-    const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id);
+    const { accessToken, refreshToken: newRefreshToken } =
+      await generateAccessAndRefreshTokens(user._id);
 
     res
       .status(200)
       .cookie("accessToken", accessToken, cookieOptions)
       .cookie("refreshToken", newRefreshToken, cookieOptions)
       .json({
+        success: true,
         statusCode: 200,
-        data: { accessToken, refreshToken: newRefreshToken },
+        accessToken,
+        refreshToken: newRefreshToken,
         message: "Access token refreshed",
         activityType: USER_ACTIVITY_TYPES.USER_LOGIN,
       });
   } catch (error) {
     console.error(error);
-    res.status(401).json({ message: error.message || "Invalid refresh token" });
+    res
+      .status(401)
+      .json({
+        success: false,
+        message: error.message || "Invalid refresh token",
+      });
   }
 };
 
@@ -286,10 +372,13 @@ const forgotPasswordRequest = async (req, res) => {
     const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "User does not exist" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exist" });
     }
 
-    const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
+    const { unHashedToken, hashedToken, tokenExpiry } =
+      user.generateTemporaryToken();
 
     user.forgotPasswordToken = hashedToken;
     user.forgotPasswordExpiry = tokenExpiry;
@@ -300,19 +389,27 @@ const forgotPasswordRequest = async (req, res) => {
       subject: "Password reset request",
       mailgenContent: forgotPasswordMailgenContent(
         user.username,
-        `${req.protocol}://${req.get("host")}/api/v1/auth/reset-password/${unHashedToken}`
+        `${req.protocol}://${req.get(
+          "host"
+        )}/api/v1/auth/reset-password/${unHashedToken}`
       ),
     });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: { token: unHashedToken },
+      token: unHashedToken,
       message: "Password reset mail has been sent on your mail id",
       activityType: USER_ACTIVITY_TYPES.FORGOT_PASSWORD_REQUEST,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -321,7 +418,10 @@ const resetForgottenPassword = async (req, res) => {
   try {
     const { resetToken } = req.params;
     const { newPassword } = req.body;
-    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
 
     const user = await User.findOne({
       forgotPasswordToken: hashedToken,
@@ -329,24 +429,31 @@ const resetForgottenPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(489).json({ message: "Token is invalid or expired" });
+      return res
+        .status(489)
+        .json({ success: false, message: "Token is invalid or expired" });
     }
 
     user.forgotPasswordToken = undefined;
     user.forgotPasswordExpiry = undefined;
     user.password = newPassword;
-
     await user.save({ validateBeforeSave: false });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: { pass: newPassword },
+      pass: newPassword,
       message: "Password reset successfully",
       activityType: USER_ACTIVITY_TYPES.RESET_PASSWORD,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 

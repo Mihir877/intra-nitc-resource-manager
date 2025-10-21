@@ -15,7 +15,9 @@ export const createRequest = async (req, res) => {
     // Check if resource exists
     const resource = await Resource.findById(resourceId);
     if (!resource || !resource.isActive) {
-      return res.status(404).json({ message: "Resource not available" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Resource not available" });
     }
 
     // Check for scheduling conflicts
@@ -29,7 +31,9 @@ export const createRequest = async (req, res) => {
     });
 
     if (conflict) {
-      return res.status(409).json({ message: "Time slot already booked" });
+      return res
+        .status(409)
+        .json({ success: false, message: "Time slot already booked" });
     }
 
     const request = await Request.create({
@@ -44,13 +48,19 @@ export const createRequest = async (req, res) => {
     });
 
     res.status(201).json({
+      success: true,
       statusCode: 201,
-      data: request,
+      request,
       message: "Request submitted successfully",
     });
   } catch (error) {
     console.error("Error creating request:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -70,14 +80,20 @@ export const getRequests = async (req, res) => {
       .populate("resourceId", "name type location");
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
       count: requests.length,
-      data: requests,
+      requests,
       message: "Requests fetched successfully",
     });
   } catch (error) {
     console.error("Error fetching requests:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -93,14 +109,19 @@ export const decisionRequest = async (req, res) => {
     const validStatuses = ["approved", "rejected"];
 
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid status value" });
     }
 
     const request = await Request.findById(id)
       .populate("userId", "email username")
       .populate("resourceId", "name");
 
-    if (!request) return res.status(404).json({ message: "Request not found" });
+    if (!request)
+      return res
+        .status(404)
+        .json({ success: false, message: "Request not found" });
 
     const now = new Date();
 
@@ -113,7 +134,10 @@ export const decisionRequest = async (req, res) => {
       if (!remarks?.trim()) {
         return res
           .status(400)
-          .json({ message: "Remarks are required for rejection" });
+          .json({
+            success: false,
+            message: "Remarks are required for rejection",
+          });
       }
       request.remarks = remarks;
     }
@@ -167,13 +191,19 @@ export const decisionRequest = async (req, res) => {
     });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: request,
+      request,
       message: `Request has been ${status}`,
     });
   } catch (error) {
     console.error("Error updating request:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -191,7 +221,10 @@ export const cancelRequest = async (req, res) => {
       .populate("userId", "email username")
       .populate("resourceId", "name");
 
-    if (!request) return res.status(404).json({ message: "Request not found" });
+    if (!request)
+      return res
+        .status(404)
+        .json({ success: false, message: "Request not found" });
 
     const isAdmin = req.user.role === "admin";
     const isOwner = request.userId.equals(req.user._id);
@@ -199,14 +232,20 @@ export const cancelRequest = async (req, res) => {
     if (!isAdmin && !isOwner) {
       return res
         .status(403)
-        .json({ message: "Not authorized to cancel this request" });
+        .json({
+          success: false,
+          message: "Not authorized to cancel this request",
+        });
     }
 
     // Admin must provide a reason
     if (isAdmin && (!remarks || !remarks.trim())) {
       return res
         .status(400)
-        .json({ message: "Cancellation reason is required for admins" });
+        .json({
+          success: false,
+          message: "Cancellation reason is required for admins",
+        });
     }
 
     request.status = "cancelled";
@@ -258,13 +297,19 @@ export const cancelRequest = async (req, res) => {
     }
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: request,
+      request,
       message: "Request cancelled successfully",
     });
   } catch (error) {
     console.error("Error cancelling request:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -286,14 +331,20 @@ export const getRequestHistory = async (req, res) => {
       .populate("resourceId", "name type location");
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
       count: requests.length,
-      data: requests,
+      requests,
       message: "Request history fetched successfully",
     });
   } catch (error) {
     console.error("Error fetching request history:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -312,7 +363,9 @@ export const getScheduleForResource = async (req, res) => {
     // First get the resource details
     const resource = await Resource.findById(resourceId);
     if (!resource) {
-      return res.status(404).json({ message: "Resource not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Resource not found" });
     }
 
     const schedule = await Request.find({
@@ -326,15 +379,21 @@ export const getScheduleForResource = async (req, res) => {
       .populate("resourceId", "name type location isActive");
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
       count: schedule.length,
       resource: resource.toObject(),
-      data: schedule,
+      schedule,
       message: "Schedule fetched successfully for the next 14 days",
     });
   } catch (error) {
     console.error("Error fetching schedule:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -349,8 +408,11 @@ export const archiveOldRequests = async (req, res) => {
     yesterday.setDate(yesterday.getDate() - 1);
 
     const oldRequests = await Request.find({ endTime: { $lt: yesterday } });
-    if (!oldRequests.length)
-      return res.status(200).json({ message: "No old requests to archive" });
+    if (!oldRequests.length) {
+      return res
+        .status(200)
+        .json({ success: true, message: "No old requests to archive" });
+    }
 
     const archived = await mongoose.connection
       .collection("requests_archive")
@@ -359,12 +421,18 @@ export const archiveOldRequests = async (req, res) => {
     await Request.deleteMany({ endTime: { $lt: yesterday } });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
       count: archived.insertedCount,
       message: "Old requests archived successfully",
     });
   } catch (error) {
     console.error("Error archiving old requests:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };

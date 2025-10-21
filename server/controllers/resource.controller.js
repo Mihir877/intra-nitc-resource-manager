@@ -24,9 +24,7 @@ export const createResource = async (req, res) => {
     // Check if resource already exists
     const existing = await Resource.findOne({ name });
     if (existing) {
-      return res
-        .status(400)
-        .json({ message: "Resource with this name already exists" });
+      return res.status(400).json({ success: false, message: "Resource with this name already exists" });
     }
 
     const resource = await Resource.create({
@@ -45,13 +43,14 @@ export const createResource = async (req, res) => {
     });
 
     res.status(201).json({
+      success: true,
       statusCode: 201,
-      data: resource,
+      resource,
       message: "Resource created successfully",
     });
   } catch (error) {
     console.error("Error creating resource:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };
 
@@ -72,14 +71,15 @@ export const getAllResources = async (req, res) => {
     const resources = await Resource.find(filters).sort({ createdAt: -1 });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
       count: resources.length,
-      data: resources,
+      resources,
       message: "Resources fetched successfully",
     });
   } catch (error) {
     console.error("Error fetching resources:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };
 
@@ -94,17 +94,18 @@ export const getResourceById = async (req, res) => {
     const resource = await Resource.findById(id);
 
     if (!resource) {
-      return res.status(404).json({ message: "Resource not found" });
+      return res.status(404).json({ success: false, message: "Resource not found" });
     }
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: resource,
+      resource,
       message: "Resource details fetched successfully",
     });
   } catch (error) {
     console.error("Error fetching resource:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };
 
@@ -125,17 +126,18 @@ export const updateResource = async (req, res) => {
     );
 
     if (!updatedResource) {
-      return res.status(404).json({ message: "Resource not found" });
+      return res.status(404).json({ success: false, message: "Resource not found" });
     }
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: updatedResource,
+      resource: updatedResource,
       message: "Resource updated successfully",
     });
   } catch (error) {
     console.error("Error updating resource:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };
 
@@ -151,7 +153,7 @@ export const setResourceStatus = async (req, res) => {
 
     const resource = await Resource.findById(id);
     if (!resource) {
-      return res.status(404).json({ message: "Resource not found" });
+      return res.status(404).json({ success: false, message: "Resource not found" });
     }
 
     resource.status = status;
@@ -160,13 +162,14 @@ export const setResourceStatus = async (req, res) => {
     await resource.save();
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: resource,
+      resource,
       message: `Resource status set to ${status} successfully`,
     });
   } catch (error) {
     console.error("Error setting resource status:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };
 
@@ -181,7 +184,7 @@ export const deleteResource = async (req, res) => {
     const resource = await Resource.findById(id);
 
     if (!resource) {
-      return res.status(404).json({ message: "Resource not found" });
+      return res.status(404).json({ success: false, message: "Resource not found" });
     }
 
     resource.isActive = false;
@@ -189,11 +192,12 @@ export const deleteResource = async (req, res) => {
     await resource.save();
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
       message: "Resource has been disabled (soft deleted)",
     });
   } catch (error) {
     console.error("Error deleting resource:", error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };

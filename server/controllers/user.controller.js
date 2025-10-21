@@ -13,26 +13,35 @@ const changeCurrentPassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body;
     const user = await User.findById(req.user?._id).select("+password");
     if (!user) {
-      return res.status(404).json({ message: "User does not exist" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exist" });
     }
 
     const isPasswordValid = await user.isPasswordCorrect(oldPassword);
     if (!isPasswordValid) {
-      return res.status(400).json({ message: "Invalid old password" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid old password" });
     }
 
     user.password = newPassword;
     await user.save({ validateBeforeSave: false });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: {},
       message: "Password changed successfully",
       activityType: USER_ACTIVITY_TYPES.CHANGE_PASSWORD,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -44,21 +53,28 @@ const assignRole = async (req, res) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User does not exist" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User does not exist" });
     }
 
     user.role = role;
     await user.save({ validateBeforeSave: false });
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: {},
       message: "Role changed for the user",
       activityType: USER_ACTIVITY_TYPES.EDIT_PROFILE,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -66,14 +82,20 @@ const assignRole = async (req, res) => {
 const getCurrentUser = async (req, res) => {
   try {
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: req.user,
+      user: req.user,
       message: "Current user fetched successfully",
       activityType: USER_ACTIVITY_TYPES.RETRIEVE_DATA,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -86,14 +108,20 @@ const getAllUsers = async (req, res) => {
     );
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: users,
+      users,
       message: "List of all users",
       activityType: USER_ACTIVITY_TYPES.RETRIEVE_DATA,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -102,7 +130,15 @@ const updateUserProfile = async (req, res) => {
   try {
     const userId = req.user._id;
     // Whitelist fields that can be updated
-    const allowedUpdates = ['name', 'bio', 'phoneNumber', 'gender', 'address', 'dateOfBirth', 'avatar'];
+    const allowedUpdates = [
+      "name",
+      "bio",
+      "phoneNumber",
+      "gender",
+      "address",
+      "dateOfBirth",
+      "avatar",
+    ];
     const updates = {};
 
     // Copy only allowed fields from req.body
@@ -117,23 +153,38 @@ const updateUserProfile = async (req, res) => {
       userId,
       { $set: updates },
       { new: true, runValidators: true }
-    ).select('-password -refreshToken -emailVerificationToken -emailVerificationExpiry');
+    ).select(
+      "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+    );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.status(200).json({
+      success: true,
       statusCode: 200,
-      data: updatedUser,
+      user: updatedUser,
       message: "Profile updated successfully",
-      activityType: "edit_profile",
+      activityType: USER_ACTIVITY_TYPES.EDIT_PROFILE,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
-
-export { changeCurrentPassword, assignRole, getCurrentUser, getAllUsers, updateUserProfile };
+export {
+  changeCurrentPassword,
+  assignRole,
+  getCurrentUser,
+  getAllUsers,
+  updateUserProfile,
+};

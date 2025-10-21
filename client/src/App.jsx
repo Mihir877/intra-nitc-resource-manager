@@ -10,6 +10,8 @@ import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
 import PageNotFound from "./components/PageNotFound";
 import { Layout } from "./components/layout/Layout";
+import ResourceManager from "./components/ManageResources";
+import PendingRequests from "./components/PendingRequests";
 
 const PageTitle = ({ children }) => (
   <Layout>
@@ -44,11 +46,11 @@ const App = () => {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route
           path="/admin/resources"
-          element={<PageTitle>Manage Resources</PageTitle>}
+          element={<ResourceManager />}
         />
         <Route
           path="/admin/requests"
-          element={<PageTitle>Pending Requests</PageTitle>}
+          element={<PendingRequests/>}
         />
         <Route
           path="/admin/schedule"

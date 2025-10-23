@@ -11,13 +11,10 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "@/hooks/useSidebar";
+import useAuth from "@/hooks/useAuth";
 
 export function Header() {
-  const user = {
-    name: "Umang Patel",
-    email: "umang.patel@example.com",
-    role: "student",
-  };
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { setOpen } = useSidebar();
 
@@ -28,7 +25,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden cursor-pointer"
+            className="md:hidden"
             onClick={() => setOpen(true)}
             aria-label="Open sidebar"
           >
@@ -58,7 +55,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="icon"
-            className="relative cursor-pointer"
+            className="relative"
             aria-label="Notifications"
           >
             <Bell className="h-4 w-4" />
@@ -73,7 +70,7 @@ export function Header() {
               >
                 <Avatar className="h-9 w-9 cursor-pointer">
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user.name
+                    {user?.username
                       .split(" ")
                       .map((p) => p[0])
                       .join("")
@@ -81,12 +78,14 @@ export function Header() {
                       .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {/* <span className="hidden sm:inline text-sm">{user.name}</span> */}
+                {/* <span className="hidden sm:inline text-sm">{user.username}</span> */}
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <div className="flex flex-col space-y-1 p-2">
-                <p className="text-sm font-medium leading-none">{user?.name}</p>
+                <p className="text-sm font-medium leading-none">
+                  {user?.username}
+                </p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.email}
                 </p>
@@ -102,7 +101,7 @@ export function Header() {
                 <Settings className="mr-2 h-4 w-4" /> Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/logout")}>
+              <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" /> Logout
               </DropdownMenuItem>
             </DropdownMenuContent>

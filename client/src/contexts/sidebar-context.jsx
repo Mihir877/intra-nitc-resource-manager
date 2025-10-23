@@ -1,6 +1,6 @@
 import React, { createContext, useMemo, useState } from "react";
 
-export const SidebarContext = createContext(undefined);
+const SidebarContext = createContext(undefined);
 
 export const SidebarProvider = ({ children }) => {
   const [open, setOpen] = useState(false);
@@ -8,4 +8,6 @@ export const SidebarProvider = ({ children }) => {
   return (
     <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
   );
-}
+};
+
+export { SidebarContext };

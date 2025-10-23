@@ -1,37 +1,59 @@
-// RegisterPage.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import useAuth from "@/hooks/useAuth";
 
-const RegisterPage=()=>{
-  const [name, setName] = useState("");
+const RegisterPage = () => {
+  const { register, user } = useAuth();
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const isValidEmail = (email) =>
-    email.endsWith("@nitc.ac.in") && email.includes("@");
+  if (user) {
+    navigate(user.role === "admin" ? "/admin" : "/student");
+  }
 
-  const handleRegister = (e) => {
+  const isNitcEmail = (email) => {
+    // name part (at least 1 letter)
+    // rollnumber part: at least 2 letters + at least 2 numbers
+    const pattern = /^[a-zA-Z]+_([a-zA-Z0-9]+)@nitc\.ac\.in$/;
+    const match = email.trim().match(pattern);
+    if (!match) return false;
+    const roll = match[1];
+    // At least 2 letters and at least 2 digits
+    const hasTwoLetters = (roll.match(/[a-zA-Z]/g) || []).length >= 2;
+    const hasTwoDigits = (roll.match(/[0-9]/g) || []).length >= 2;
+    return hasTwoLetters && hasTwoDigits;
+  };
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError("Please enter your full name.");
-      return;
+    if (!username.trim()) return setError("Please enter your full username.");
+
+    if (!isNitcEmail(email)) {
+      return setError(
+        "Email must be in valid name_rollnumber@nitc.ac.in format."
+      );
     }
-    if (!isValidEmail(email)) {
-      setError("Please enter a valid @nitc.ac.in email address.");
-      return;
-    }
-    if (!password) {
-      setError("Please enter your password.");
-      return;
-    }
+
+    if (!password) return setError("Please enter your password.");
     setError("");
-    alert("Registration successful! Please login.");
-    navigate("/login");
+
+    try {
+      const res = await register(username, email, password);
+      if (res.success) {
+        navigate("/login");
+      } else {
+        setError(res.message || "Registration failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Server error. Please try again.");
+    }
   };
 
   return (
@@ -40,15 +62,15 @@ const RegisterPage=()=>{
         <h1 className="text-3xl font-bold mb-6 text-center">Register</h1>
         <form onSubmit={handleRegister} className="space-y-6">
           <div>
-            <label htmlFor="name" className="block font-medium mb-1">
+            <label htmlFor="username" className="block font-medium mb-1">
               Full Name
             </label>
             <Input
-              id="name"
+              id="username"
               type="text"
               placeholder="Your Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
@@ -92,6 +114,6 @@ const RegisterPage=()=>{
       </Card>
     </div>
   );
-}
+};
 
 export default RegisterPage;

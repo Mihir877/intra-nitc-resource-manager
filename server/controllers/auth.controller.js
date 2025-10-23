@@ -56,7 +56,7 @@ const registerUser = async (req, res) => {
   try {
     const { username, email, password, role } = req.body;
 
-    const existedUser = await User.findOne({ $or: [{ email }, { username }] });
+    const existedUser = await User.findOne({ email });
     if (existedUser) {
       return res.status(409).json({
         success: false,
@@ -108,12 +108,10 @@ const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -171,12 +169,10 @@ const loginUser = async (req, res) => {
       });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -185,12 +181,10 @@ const verifyEmail = async (req, res) => {
   try {
     const { verificationToken } = req.params;
     if (!verificationToken) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Email verification token is missing",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Email verification token is missing",
+      });
     }
 
     const hashedToken = crypto
@@ -223,12 +217,10 @@ const verifyEmail = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -273,12 +265,10 @@ const resendEmailVerification = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -303,12 +293,10 @@ const logoutUser = async (req, res) => {
       });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -357,12 +345,10 @@ const refreshAccessToken = async (req, res) => {
       });
   } catch (error) {
     console.error(error);
-    res
-      .status(401)
-      .json({
-        success: false,
-        message: error.message || "Invalid refresh token",
-      });
+    res.status(401).json({
+      success: false,
+      message: error.message || "Invalid refresh token",
+    });
   }
 };
 
@@ -404,12 +390,10 @@ const forgotPasswordRequest = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -448,12 +432,10 @@ const resetForgottenPassword = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 

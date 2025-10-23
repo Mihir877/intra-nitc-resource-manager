@@ -10,6 +10,7 @@ import {
   Users,
   Plus,
   FileCheck,
+  User,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
@@ -17,16 +18,18 @@ const studentNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Server, label: "Browse Resources", href: "/resources" },
   { icon: Calendar, label: "My Requests", href: "/requests" },
-  { icon: History, label: "Usage History", href: "/history" },
+  { icon: History, label: "History", href: "/history" },
+  { icon: Calendar, label: "Schedule", href: "/schedule" },
+  { icon: User, label: "Profile", href: "/profile" },
 ];
 
 const adminNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
   { icon: Server, label: "Manage Resources", href: "/admin/resources" },
   { icon: FileCheck, label: "Pending Requests", href: "/admin/requests" },
   { icon: Calendar, label: "Schedule", href: "/admin/schedule" },
   { icon: Users, label: "Users", href: "/admin/users" },
-  { icon: Settings, label: "Settings", href: "/admin/settings" },
+  // { icon: Settings, label: "Preferences", href: "/admin/preferences" },
 ];
 
 export function Navigation() {

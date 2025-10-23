@@ -1,5 +1,4 @@
 "use client";
-import { Layout } from "./layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +19,8 @@ export default function PendingRequests() {
       requester: "Mihir Patel",
       email: "mihir@nitc.ac.in",
       role: "Student",
-      purpose: "Deep Learning Model Training for Research Project on Computer Vision",
+      purpose:
+        "Deep Learning Model Training for Research Project on Computer Vision",
       duration: "2025-10-01 to 2025-10-05",
       time: "09:00 - 17:00",
       status: "Pending",
@@ -40,46 +40,44 @@ export default function PendingRequests() {
   ];
 
   return (
-    <Layout>
-      <div className="min-h-screen p-8 bg-white">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Pending Requests</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Review and manage resource allocation requests
-          </p>
-        </div>
-
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <Card className="p-4 shadow-sm border border-gray-200">
-            <div className="text-gray-500 text-sm mb-1">Pending Requests</div>
-            <div className="text-2xl font-bold text-gray-900">
-              {stats.pending}
-            </div>
-          </Card>
-          <Card className="p-4 shadow-sm border border-gray-200">
-            <div className="text-gray-500 text-sm mb-1">Approved Today</div>
-            <div className="text-2xl font-bold text-gray-900">
-              {stats.approved}
-            </div>
-          </Card>
-          <Card className="p-4 shadow-sm border border-gray-200">
-            <div className="text-gray-500 text-sm mb-1">Rejected Today</div>
-            <div className="text-2xl font-bold text-gray-900">
-              {stats.rejected}
-            </div>
-          </Card>
-        </div>
-
-        {/* Request Cards */}
-        <div className="flex flex-col gap-6">
-          {requests.map((req) => (
-            <RequestCard key={req.id} request={req} />
-          ))}
-        </div>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Pending Requests</h1>
+        <p className="text-gray-500 text-sm mt-1">
+          Review and manage resource allocation requests
+        </p>
       </div>
-    </Layout>
+
+      {/* Stats Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <Card className="p-4 shadow-sm border border-gray-200">
+          <div className="text-gray-500 text-sm mb-1">Pending Requests</div>
+          <div className="text-2xl font-bold text-gray-900">
+            {stats.pending}
+          </div>
+        </Card>
+        <Card className="p-4 shadow-sm border border-gray-200">
+          <div className="text-gray-500 text-sm mb-1">Approved Today</div>
+          <div className="text-2xl font-bold text-gray-900">
+            {stats.approved}
+          </div>
+        </Card>
+        <Card className="p-4 shadow-sm border border-gray-200">
+          <div className="text-gray-500 text-sm mb-1">Rejected Today</div>
+          <div className="text-2xl font-bold text-gray-900">
+            {stats.rejected}
+          </div>
+        </Card>
+      </div>
+
+      {/* Request Cards */}
+      <div className="flex flex-col gap-6">
+        {requests.map((req) => (
+          <RequestCard key={req.id} request={req} />
+        ))}
+      </div>
+    </div>
   );
 }
 

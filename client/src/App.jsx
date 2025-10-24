@@ -23,6 +23,7 @@ import History from "./components/student/History";
 import Users from "./components/admin/Users";
 import Profile from "./components/common/Profile";
 import Preferences from "./components/admin/Preferences";
+import ResourceDetailPage from "./components/common/ResourceDetailPage";
 
 const PageTitle = ({ children }) => (
   <h1 className="text-3xl font-bold text-gray-900">{children}</h1>
@@ -46,7 +47,7 @@ function AppRoutes() {
             { path: "resources", element: <BrowseResources /> },
             {
               path: "resources/:id",
-              element: <PageTitle>Resource Details</PageTitle>,
+              element: <ResourceDetailPage />,
             },
             {
               path: "resources/:id/book",

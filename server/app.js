@@ -33,4 +33,8 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/resources", resourceRoutes);
 app.use("/api/v1/requests", requestRoutes);
 
+// ❌ Developer only routes ❌
+import seederRoutes from "./seeder/seeder.routes.js";
+app.use("/api/v1/seeder", seederRoutes);
+
 export default httpServer;

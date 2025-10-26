@@ -1,129 +1,97 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-import api from "@/api/axios";
-import {
-  toISODate,
-  addDays,
-  addMinutes,
-  isBefore,
-  isAfterOrEqual,
-  startOfDay,
-  endOfDay,
-  clampTo14Days,
-  formatTime,
-  indexBookingsByDay,
-  cellBooked,
-  useTimeSlots,
-  useTwoWeekDays,
-} from "@/lib/scheduleHelpers";
+import { Button } from "@/components/ui/button";
+import { useSlotSelection } from "@/hooks/useSlotSelection";
+import { Clock } from "lucide-react";
 
-const slotMinutes = 60;
-const dayStartHour = 8;
-const dayEndHour = 20;
+const firstColPx = 80;
+const otherColPx = 100;
 
-const ResourceSchedule = ({ resourceId, onSelectSlot }) => {
-  const today = useMemo(() => new Date(), []);
-  const windowRange = useMemo(() => clampTo14Days(today), [today]);
+const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
+  const {
+    error,
+    scheduleData,
+    upcomingDays,
+    timeSlots,
+    selectedSlots,
+    handleSlotClick,
+    clearSelection,
+    getActualStartEnd,
+    calculateDuration,
+  } = useSlotSelection(resourceId);
 
-  const days = useTwoWeekDays(today, addDays, toISODate, (d) =>
-    d.toLocaleDateString(undefined, {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-    })
-  );
+  if (error) return <div>{error}</div>;
+  if (!scheduleData) return null;
 
-  const slots = useTimeSlots(slotMinutes, dayStartHour, dayEndHour);
+  if (error) {
+    return (
+      <div className="w-full max-w-screen-lg mx-auto">
+        <div className="border rounded-md overflow-hidden">
+          <div className="p-4 text-center text-sm text-red-600">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  // Changed variable names here for clarity
-  const [scheduleData, setScheduleData] = useState([]);
+  if (!scheduleData) {
+    return null;
+  }
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get(`requests/schedule/${resourceId}`);
-      const schedule = res?.data?.schedule;
-      setScheduleData(schedule);
-    } catch (e) {
-      setError(e.message || "Failed to load schedule");
-    } finally {
-      console.log("hello");
-      setLoading(false);
-    }
-  }, [resourceId]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const bookingsByDay = useMemo(
-    () =>
-      indexBookingsByDay(scheduleData, windowRange.from, windowRange.to, {
-        addDays,
-        isAfterOrEqual,
-        isBefore,
-        startOfDay,
-        endOfDay,
-        toISODate,
-      }),
-    [scheduleData, windowRange]
-  );
-
-  const canBook = useCallback(
-    (cellStart) => {
-      const now = new Date();
-      return (
-        isAfterOrEqual(cellStart, now) &&
-        isAfterOrEqual(cellStart, windowRange.from) &&
-        cellStart <= windowRange.to
-      );
-    },
-    [windowRange]
-  );
-
-  const handleCellClick = useCallback(
-    (dayDate, h, m) => {
-      const start = new Date(
-        dayDate.getFullYear(),
-        dayDate.getMonth(),
-        dayDate.getDate(),
-        h,
-        m
-      );
-      const end = addMinutes(start, slotMinutes);
-      const dayKey = toISODate(dayDate);
-      const overlap = cellBooked(bookingsByDay.get(dayKey), start, end);
-      if (!canBook(start) || overlap) return;
-      onSelectSlot?.({ start, end, resourceId });
-    },
-    [bookingsByDay, onSelectSlot, resourceId, canBook]
-  );
-
-  // Exact table format variables
-  const firstColPx = 80; // Time column width
-  const otherColPx = 100; // Day columns width
+  const { bookedSlots, unavailableSlots } = scheduleData;
+  const { actualStart, actualEnd } = getActualStartEnd();
+  const duration = calculateDuration();
 
   return (
-    <div className="w-full max-w-screen-lg mx-auto">
-      {error ? <div className="text-sm text-red-600">{error}</div> : null}
+    <div className="w-full max-w-screen-lg mx-auto space-y-4">
+      {/* Selection Info & Clear Button */}
+      <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-md">
+        <div
+          className="flex align-center text-sm font-medium  min-h-[32px]"
+          style={{ alignItems: "center" }}
+        >
+          {selectedSlots.size > 0 ? (
+            <span>
+              {selectedSlots.size} slot{selectedSlots.size !== 1 ? "s" : ""}{" "}
+              selected
+              {duration && (
+                <span className="ml-2 text-blue-600 font-semibold">
+                  {/* <Clock className="w-3 h-3" /> */}
+                  Duration: {duration.formatted}
+                </span>
+              )}
+              {actualStart && !actualEnd && (
+                <span className="text-muted-foreground ml-2">
+                  (Click to select end time)
+                </span>
+              )}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">
+              Select your booking time from the schedule below
+            </span>
+          )}
+        </div>
+        {selectedSlots.size > 0 && (
+          <div className="flex gap-2">
+            <Button onClick={clearSelection} variant="outline" size="sm">
+              Clear Selection
+            </Button>
+            <Button size="sm" onClick={() => {}}>
+              Confirm Booking
+            </Button>
+          </div>
+        )}
+      </div>
 
-      {/* Single horizontal scroller for header + body */}
+      {/* Schedule Grid */}
       <div className="border rounded-md overflow-hidden">
         <div className="overflow-x-auto">
-          {/* Inner track controls min width so X scroll appears when needed */}
-          <div className="" style={{ width: "max-content" }}>
-            {/* Header: sticky top, sticky first cell optional (left) */}
+          <div style={{ width: "max-content" }}>
+            {/* Header */}
             <div
               className="grid"
               style={{
                 gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
               }}
             >
-              {/* Sticky header first cell (left + top) */}
               <div
                 className="sticky left-0 top-0 z-30 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground border-b border-r"
                 style={{ width: firstColPx }}
@@ -131,120 +99,86 @@ const ResourceSchedule = ({ resourceId, onSelectSlot }) => {
                 Time
               </div>
 
-              {days.map((d) => (
+              {upcomingDays.map((d) => (
                 <div
                   key={d.key}
-                  role="columnheader"
                   className="sticky top-0 z-20 bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground text-center border-b"
                   style={{ width: otherColPx }}
-                  title={d.date.toDateString()}
                 >
                   {d.label}
                 </div>
               ))}
             </div>
 
-            {/* Body: vertical scroll only, shares same horizontal scroller */}
-            {loading ? (
-              <div className="p-2 space-y-1">
-                {Array.from({ length: 8 }).map((_, i) => (
+            {/* Body */}
+            <div>
+              {timeSlots.map((slot) => (
+                <div
+                  key={slot.h}
+                  className="grid items-stretch"
+                  style={{
+                    gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
+                  }}
+                >
                   <div
-                    key={i}
-                    className="grid items-center"
-                    style={{
-                      gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
-                    }}
+                    className="sticky left-0 z-20 bg-background px-3 py-2 text-xs border-r border-b"
+                    style={{ width: firstColPx }}
                   >
-                    <div className="sticky left-0 z-10 bg-background px-3">
-                      <Skeleton className="h-7 w-[80px]" />
-                    </div>
-                    {Array.from({ length: 14 }).map((__, j) => (
-                      <div key={j} className="px-2">
-                        <Skeleton className="h-7 w-full" />
-                      </div>
-                    ))}
+                    {slot.label}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="">
-                {slots.map((slot) => (
-                  <div
-                    key={`${slot.h}:${slot.m}`}
-                    role="row"
-                    className="grid items-stretch"
-                    style={{
-                      gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
-                    }}
-                  >
-                    {/* Sticky first column for each row (Time labels) */}
-                    <div
-                      className="sticky left-0 z-20 bg-background px-3 py-2 text-xs border-r border-b"
-                      style={{ width: firstColPx, contain: "paint" }}
-                    >
-                      {slot.label}
-                    </div>
 
-                    {days.map((d) => {
-                      const cellStart = new Date(
-                        d.date.getFullYear(),
-                        d.date.getMonth(),
-                        d.date.getDate(),
-                        slot.h,
-                        slot.m,
-                        0,
-                        0
-                      );
-                      const cellEnd = addMinutes(cellStart, slotMinutes);
-                      const dayKey = toISODate(d.date);
-                      const overlap = cellBooked(
-                        bookingsByDay.get(dayKey),
-                        cellStart,
-                        cellEnd
-                      );
-                      const disabled = !!overlap || !canBook(cellStart);
+                  {upcomingDays.map((d) => {
+                    const slotKey = `${d.key}_${slot.h}`;
+                    const isUnavailable = unavailableSlots[slotKey];
+                    const bookingInfo = bookedSlots[slotKey];
+                    const isSelected = selectedSlots.has(slotKey);
+                    const isActualStart = slotKey === actualStart;
+                    const isActualEnd = slotKey === actualEnd;
+                    const isAvailable = !isUnavailable && !bookingInfo;
+                    const isSingle = isActualStart && !actualEnd;
+
+                    if (isUnavailable) {
                       return (
-                        <button
-                          key={dayKey + `-${slot.h}-${slot.m}`}
-                          role="gridcell"
-                          aria-label={
-                            overlap
-                              ? `${d.date.toDateString()} ${
-                                  slot.label
-                                } booked ${formatTime(
-                                  overlap.start
-                                )} - ${formatTime(overlap.end)}`
-                              : `${d.date.toDateString()} ${
-                                  slot.label
-                                } available`
-                          }
-                          disabled={disabled}
-                          onClick={() =>
-                            handleCellClick(d.date, slot.h, slot.m)
-                          }
-                          className={cn(
-                            "h-9 rounded border border-green-500/20 text-xs transition-colors",
-                            disabled
-                              ? "bg-muted text-muted-foreground cursor-not-allowed border-gray-200"
-                              : "hover:bg-green-100",
-                            overlap ? "bg-red-100" : ""
-                          )}
-                          title={
-                            overlap
-                              ? `${overlap.title} (${formatTime(
-                                  overlap.start
-                                )} - ${formatTime(overlap.end)}`
-                              : undefined
-                          }
-                        >
-                          {overlap ? "Booked" : ""}
-                        </button>
+                        <div
+                          key={slotKey}
+                          className="h-9 bg-gray-50 border border-gray-100 cursor-not-allowed"
+                        />
                       );
-                    })}
-                  </div>
-                ))}
-              </div>
-            )}
+                    }
+
+                    return (
+                      <button
+                        key={slotKey}
+                        onClick={() => handleSlotClick(slotKey, isAvailable)}
+                        className={`h-9 border text-xs transition-colors select-none ${
+                          bookingInfo
+                            ? "bg-red-100 text-red-500/60 font-semibold cursor-not-allowed border-red-200 rounded"
+                            : isSelected
+                            ? isSingle
+                              ? "bg-blue-300 text-white border-blue-500 font-semibold border-2 rounded cursor-pointer"
+                              : isActualStart
+                              ? "bg-blue-300 text-white border-blue-400 border-b-0 border-l-4 border-l-blue-800 rounded-t-sm cursor-pointer"
+                              : isActualEnd
+                              ? "bg-blue-300 text-white border-blue-400 border-t-0 border-r-4 border-r-blue-800 rounded-b-sm cursor-pointer"
+                              : "bg-blue-300 text-white border-blue-400 border-y-0 cursor-pointer"
+                            : "border-green-500/20 hover:bg-green-100 cursor-pointer"
+                        }`}
+                        disabled={!isAvailable}
+                        title={
+                          bookingInfo
+                            ? `${bookingInfo.purpose} - ${bookingInfo.user}`
+                            : isSelected
+                            ? "Selected"
+                            : "Available"
+                        }
+                      >
+                        {bookingInfo ? "Booked" : isSelected ? "✓" : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

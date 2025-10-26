@@ -5,7 +5,6 @@ import {
   decisionRequest,
   cancelRequest,
   getRequestHistory,
-  getScheduleForResource,
   archiveOldRequests,
 } from "../controllers/request.controller.js";
 import { verifyJWT, requireAdmin } from "../middlewares/auth.middleware.js";
@@ -35,9 +34,6 @@ router.patch("/:id/cancel", cancelRequest);
 
 // Request history
 router.get("/history", getRequestHistory);
-
-// Schedule view for a resource (next 14 days)
-router.get("/schedule/:resourceId", getScheduleForResource);
 
 // Archive old requests (admin / cron)
 router.post("/archive", requireAdmin, archiveOldRequests);

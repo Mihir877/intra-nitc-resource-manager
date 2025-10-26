@@ -127,7 +127,9 @@ const ResourceHeader = ({ resourceId }) => {
             <Separator orientation="vertical" className="h-4" />
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="h-3 w-3" />
-              {resource.requiresApproval ? "Approval required" : "Auto-approve"}
+              {resource.requiresApproval
+                ? "Requires Approval"
+                : "Instant Booking"}
             </span>
             <Separator orientation="vertical" className="h-4" />
             {resource.maxBookingDuration != null ? (
@@ -149,7 +151,6 @@ const ResourceHeader = ({ resourceId }) => {
           <Button size="sm" variant="outline">
             View policy
           </Button>
-          <Button size="sm">Request booking</Button>
         </div>
       </CardFooter>
     </Card>

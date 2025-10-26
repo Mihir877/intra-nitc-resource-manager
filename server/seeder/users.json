@@ -1,0 +1,92 @@
+[
+    {
+        "username": "superadmin",
+        "email": "superadmin@nitc.ac.in",
+        "password": "Admin#12345",
+        "role": "admin"
+    },
+    {
+        "username": "admin2",
+        "email": "admin2@nitc.ac.in",
+        "password": "Admin#23456",
+        "role": "admin"
+    },
+    {
+        "username": "fac_alok",
+        "email": "alok.faculty@nitc.ac.in",
+        "password": "Fac#12345",
+        "role": "faculty"
+    },
+    {
+        "username": "fac_nisha",
+        "email": "nisha.faculty@nitc.ac.in",
+        "password": "Fac#22345",
+        "role": "faculty"
+    },
+    {
+        "username": "fac_ravi",
+        "email": "ravi.faculty@nitc.ac.in",
+        "password": "Fac#32345",
+        "role": "faculty"
+    },
+    {
+        "username": "stud_ananya",
+        "email": "ananya.s@nitc.ac.in",
+        "password": "Stud#12345",
+        "role": "student"
+    },
+    {
+        "username": "stud_arjun",
+        "email": "arjun.s@nitc.ac.in",
+        "password": "Stud#22345",
+        "role": "student"
+    },
+    {
+        "username": "stud_rahul",
+        "email": "rahul.s@nitc.ac.in",
+        "password": "Stud#32345",
+        "role": "student"
+    },
+    {
+        "username": "stud_meera",
+        "email": "meera.s@nitc.ac.in",
+        "password": "Stud#42345",
+        "role": "student"
+    },
+    {
+        "username": "stud_fathima",
+        "email": "fathima.s@nitc.ac.in",
+        "password": "Stud#52345",
+        "role": "student"
+    },
+    {
+        "username": "stud_jose",
+        "email": "jose.s@nitc.ac.in",
+        "password": "Stud#62345",
+        "role": "student"
+    },
+    {
+        "username": "stud_keerthana",
+        "email": "keerthana.s@nitc.ac.in",
+        "password": "Stud#72345",
+        "role": "student"
+    },
+    {
+        "username": "stud_nikhil",
+        "email": "nikhil.s@nitc.ac.in",
+        "password": "Stud#82345",
+        "role": "student"
+    },
+    {
+        "username": "stud_sneha",
+        "email": "sneha.s@nitc.ac.in",
+        "password": "Stud#92345",
+        "role": "student"
+    },
+    {
+        "username": "stud_vivek",
+        "email": "vivek.s@nitc.ac.in",
+        "password": "Stud#10345",
+        "role": "student"
+    }
+]

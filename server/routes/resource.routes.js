@@ -6,9 +6,11 @@ import {
   updateResource,
   setResourceStatus,
   deleteResource,
+  getMostBookedResource,
 } from "../controllers/resource.controller.js";
 
 import { requireAdmin, verifyJWT } from "../middlewares/auth.middleware.js";
+import { getScheduleForResource } from "../controllers/schedule.controller.js";
 
 const router = Router();
 
@@ -19,11 +21,19 @@ const router = Router();
  * - Admin can perform full CRUD
  */
 
+router.use(verifyJWT);
+
 // Fetch all resources (available to all authenticated users)
-router.get("/", verifyJWT, getAllResources);
+router.get("/", getAllResources);
+
+// routes/resource.routes.js (add this line)
+router.get("/most-booked", getMostBookedResource);
 
 // Get a single resource by ID
-router.get("/:id", verifyJWT, getResourceById);
+router.get("/:id", getResourceById);
+
+// Schedule view for a resource (next 14 days)
+router.get("/:id/schedule", getScheduleForResource);
 
 /**
  * ADMIN-ONLY ROUTES
@@ -32,9 +42,8 @@ router.get("/:id", verifyJWT, getResourceById);
  * 1. Authentication via verifyJWT middleware
  * 2. Admin role verification via requireAdmin middleware
  */
-router.use(verifyJWT);
 router.use(requireAdmin);
-  
+
 // Create a new resource
 router.post("/", createResource);
 

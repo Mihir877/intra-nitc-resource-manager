@@ -55,12 +55,10 @@ export const createRequest = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating request:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -88,12 +86,10 @@ export const getRequests = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching requests:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -132,12 +128,10 @@ export const decisionRequest = async (req, res) => {
 
     if (status === "rejected") {
       if (!remarks?.trim()) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Remarks are required for rejection",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Remarks are required for rejection",
+        });
       }
       request.remarks = remarks;
     }
@@ -198,12 +192,10 @@ export const decisionRequest = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating request:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -230,22 +222,18 @@ export const cancelRequest = async (req, res) => {
     const isOwner = request.userId.equals(req.user._id);
 
     if (!isAdmin && !isOwner) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Not authorized to cancel this request",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to cancel this request",
+      });
     }
 
     // Admin must provide a reason
     if (isAdmin && (!remarks || !remarks.trim())) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Cancellation reason is required for admins",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Cancellation reason is required for admins",
+      });
     }
 
     request.status = "cancelled";
@@ -304,12 +292,10 @@ export const cancelRequest = async (req, res) => {
     });
   } catch (error) {
     console.error("Error cancelling request:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -339,61 +325,10 @@ export const getRequestHistory = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching request history:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
-  }
-};
-
-/**
- * @desc    Get schedule view for a resource (next 14 days)
- * @route   GET /api/v1/requests/schedule/:resourceId
- * @access  Authenticated
- */
-export const getScheduleForResource = async (req, res) => {
-  try {
-    const { resourceId } = req.params;
-    const today = new Date();
-    const twoWeeksLater = new Date();
-    twoWeeksLater.setDate(today.getDate() + 14);
-
-    // First get the resource details
-    const resource = await Resource.findById(resourceId);
-    if (!resource) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Resource not found" });
-    }
-
-    const schedule = await Request.find({
-      resourceId,
-      status: "approved",
-      endTime: { $gte: today },
-      startTime: { $lte: twoWeeksLater },
-    })
-      .select("startTime endTime status userId")
-      .populate("userId", "username email")
-      .populate("resourceId", "name type location isActive");
-
-    res.status(200).json({
-      success: true,
-      statusCode: 200,
-      count: schedule.length,
-      resource: resource.toObject(),
-      schedule,
-      message: "Schedule fetched successfully for the next 14 days",
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
     });
-  } catch (error) {
-    console.error("Error fetching schedule:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
   }
 };
 
@@ -428,11 +363,9 @@ export const archiveOldRequests = async (req, res) => {
     });
   } catch (error) {
     console.error("Error archiving old requests:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };

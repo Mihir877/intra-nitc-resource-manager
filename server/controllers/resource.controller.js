@@ -1,4 +1,5 @@
 import { Resource } from "../models/resource.model.js";
+import { Request } from "../models/request.model.js";
 
 /**
  * @desc    Create a new resource
@@ -24,7 +25,12 @@ export const createResource = async (req, res) => {
     // Check if resource already exists
     const existing = await Resource.findOne({ name });
     if (existing) {
-      return res.status(400).json({ success: false, message: "Resource with this name already exists" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Resource with this name already exists",
+        });
     }
 
     const resource = await Resource.create({
@@ -50,7 +56,12 @@ export const createResource = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating resource:", error);
-    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -79,7 +90,12 @@ export const getAllResources = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching resources:", error);
-    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -94,7 +110,9 @@ export const getResourceById = async (req, res) => {
     const resource = await Resource.findById(id);
 
     if (!resource) {
-      return res.status(404).json({ success: false, message: "Resource not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Resource not found" });
     }
 
     res.status(200).json({
@@ -105,7 +123,12 @@ export const getResourceById = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching resource:", error);
-    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -126,7 +149,9 @@ export const updateResource = async (req, res) => {
     );
 
     if (!updatedResource) {
-      return res.status(404).json({ success: false, message: "Resource not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Resource not found" });
     }
 
     res.status(200).json({
@@ -137,7 +162,12 @@ export const updateResource = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating resource:", error);
-    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -153,7 +183,9 @@ export const setResourceStatus = async (req, res) => {
 
     const resource = await Resource.findById(id);
     if (!resource) {
-      return res.status(404).json({ success: false, message: "Resource not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Resource not found" });
     }
 
     resource.status = status;
@@ -169,7 +201,12 @@ export const setResourceStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Error setting resource status:", error);
-    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 
@@ -184,7 +221,9 @@ export const deleteResource = async (req, res) => {
     const resource = await Resource.findById(id);
 
     if (!resource) {
-      return res.status(404).json({ success: false, message: "Resource not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Resource not found" });
     }
 
     resource.isActive = false;
@@ -198,6 +237,62 @@ export const deleteResource = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting resource:", error);
-    res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
+  }
+};
+
+/**
+ * @desc    Get resource with highest booking count
+ * @route   GET /api/v1/resources/most-booked
+ * @access  Authenticated
+ */
+export const getMostBookedResource = async (req, res) => {
+  try {
+    const stats = await Request.aggregate([
+      { $group: { _id: "$resourceId", bookingCount: { $sum: 1 } } },
+      { $sort: { bookingCount: -1 } },
+      { $limit: 1 },
+    ]);
+
+    if (stats.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No bookings found",
+      });
+    }
+
+    const resourceId = stats[0]._id;
+    const bookingCount = stats[0].bookingCount;
+
+    const resource = await Resource.findById(resourceId).populate(
+      "createdBy",
+      "username email"
+    );
+
+    if (!resource) {
+      return res.status(404).json({
+        success: false,
+        message: "Resource not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      resource,
+      bookingCount,
+      message: "Most booked resource retrieved",
+    });
+  } catch (error) {
+    console.error("Get most booked resource error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };

@@ -9,6 +9,7 @@ import {
 } from "../controllers/user.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { getUserSchedule } from "../controllers/schedule.controller.js";
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.get("/get-all-users", getAllUsers);
 router.post("/assign-role/:userId", assignRole);
 router.patch("/update-profile", updateUserProfile);
 router.post("/change-password", changeCurrentPassword);
+router.get("/schedule", getUserSchedule);
 
 export default router;

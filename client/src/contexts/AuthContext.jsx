@@ -46,11 +46,21 @@ export const AuthProvider = ({ children }) => {
         throw new Error(res.data.message || "Invalid credentials");
       }
     } catch (error) {
-      console.error("Login failed:", error.message);
-      throw error;
+      // Improved error handling
+      if (error.response?.status === 404) {
+        throw new Error(
+          "Login endpoint not found. Please check API configuration."
+        );
+      }
+      console.error(
+        "Login failed:",
+        error.response?.data?.message || error.message
+      );
+      throw new Error(
+        error.response?.data?.message || "Login failed. Please try again."
+      );
     }
   };
-
   // 🔹 Register
   const register = async (username, email, password) => {
     try {

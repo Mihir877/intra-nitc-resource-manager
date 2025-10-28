@@ -17,10 +17,20 @@ const LoginPage = () => {
   }
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent form submission
+    setError(""); // Clear previous errors
+
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
     try {
       const user = await login(email, password);
-      navigate(user.role === "admin" ? "/admin" : "/");
+      console.log("Logged in user:", user);
+      // if (user) {
+      //   navigate(user.role === "admin" ? "/admin" : "/");
+      // }
     } catch (err) {
       setError(err.message || "Invalid credentials.");
     }

@@ -1,5 +1,5 @@
-// AdminDashboard.jsx
 "use client";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -12,10 +12,38 @@ import {
   XCircle,
   Plus,
 } from "lucide-react";
+import api from "@/api/axios"; // your axios instance
+import { timeAgo } from "@/utils/dateUtils";
+
 export default function AdminDashboard() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStats() {
+      setLoading(true);
+      try {
+        const res = await api.get("/dashboard/stats");
+        setStats(res.data);
+      } catch (err) {
+        console.error(err);
+        setStats(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  if (loading) return <div className="p-8">Loading...</div>;
+  if (!stats || !stats.success)
+    return <div className="p-8">Failed to load dashboard</div>;
+  const d = stats.stats;
+  const pendingList = stats.pendingRequests ?? [];
+  const activityList = stats.recentActivity ?? [];
+
   return (
     <div className="min-h-screen flex">
-      {/* Main Content */}
       <main className="flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
@@ -34,49 +62,50 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <DashboardCard
             title="Total Resources"
-            value="25"
+            value={d.totalResources}
             subtitle="Across all departments"
             icon={<Server className="w-5 h-5 text-gray-500" />}
           />
           <DashboardCard
             title="Available"
-            value="18"
+            value={d.availableResources}
             subtitle="Ready for booking"
             icon={<CheckCircle className="w-5 h-5 text-green-500" />}
           />
           <DashboardCard
             title="Pending Requests"
-            value="8"
+            value={d.pendingRequests}
             subtitle="Need review"
             icon={<AlertCircle className="w-5 h-5 text-yellow-500" />}
           />
           <DashboardCard
             title="Total Users"
-            value="156"
+            value={d.totalUsers}
             subtitle="Active accounts"
             icon={<Users className="w-5 h-5 text-gray-500" />}
           />
-          <Card className="">
+          {/*
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Utilization</CardTitle>
-              <TrendingUp className="h-4 w-4  text-orange-500" />
+              <TrendingUp className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
               <div className="font-semibold text-orange-500 text-2xl mb-2">
-                72%
+                {d.utilization}%
               </div>
-              <Progress value={72} className="h-2 bg-gray-200" />
+              <Progress value={d.utilization} className="h-2 bg-gray-200" />
             </CardContent>
           </Card>
+           */}
         </div>
 
-        {/* Main Cards: Pending & Activity */}
+        {/* Main Cards */}
         <div className="grid grid-cols-2 gap-6">
-          {/* Pending Requests */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-bold">
@@ -87,31 +116,24 @@ export default function AdminDashboard() {
               </p>
             </CardHeader>
             <CardContent>
-              <PendingRequest
-                name="John Doe"
-                resource="GPU Server 02"
-                date="2025-09-30"
-                duration="4h"
-              />
-              <PendingRequest
-                name="Jane Smith"
-                resource="3D Printer"
-                date="2025-10-01"
-                duration="2h"
-              />
-              <PendingRequest
-                name="Bob Wilson"
-                resource="Lab Room B"
-                date="2025-10-02"
-                duration="3h"
-              />
+              {pendingList.length === 0 && (
+                <div className="text-gray-500 py-2">No pending requests.</div>
+              )}
+              {pendingList.map((req, i) => (
+                <PendingRequest
+                  key={req._id || i}
+                  name={req.userId?.username || "Unknown"}
+                  resource={req.resourceId?.name || ""}
+                  date={req.startTime?.slice(0, 10)}
+                  duration={req.duration ? `${req.duration}h` : ""}
+                />
+              ))}
               <Button variant="link" className="px-0 mt-2 text-blue-600">
                 View All Requests
               </Button>
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-bold">
@@ -120,27 +142,24 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-500">Latest system activity</p>
             </CardHeader>
             <CardContent>
-              <ActivityItem
-                type="approved"
-                user="Alice Johnson"
-                action="Request approved"
-                detail="GPU Server 01"
-                ago="2 hours ago"
-              />
-              <ActivityItem
-                type="added"
-                user=""
-                action="New resource added"
-                detail="Projector 05"
-                ago="4 hours ago"
-              />
-              <ActivityItem
-                type="rejected"
-                user="Mark Brown"
-                action="Request rejected"
-                detail="Lab Room C"
-                ago="6 hours ago"
-              />
+              {activityList.map((act, i) => (
+                <ActivityItem
+                  key={act._id || i}
+                  type={act.status || ""}
+                  user={act.userId?.username || ""}
+                  action={
+                    act.status === "approved"
+                      ? "Request approved"
+                      : act.status === "pending"
+                      ? "Request created"
+                      : act.status === "rejected"
+                      ? "Request rejected"
+                      : "Activity"
+                  }
+                  detail={act.resourceId?.name || ""}
+                  ago={timeAgo(act.updatedAt)}
+                />
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -195,7 +214,10 @@ function ActivityItem({ type, action, user, detail, ago }) {
       ? "text-blue-500"
       : type === "added"
       ? "text-green-500"
-      : "text-red-500";
+      : type === "rejected"
+      ? "text-red-500"
+      : "text-gray-400";
+      console.log("detail: ", detail)
   return (
     <div className="border border-gray-200 rounded-md p-3 mb-3 last:mb-0 flex items-start gap-3 bg-white">
       <span

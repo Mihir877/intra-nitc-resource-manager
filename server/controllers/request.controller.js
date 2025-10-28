@@ -369,3 +369,93 @@ export const archiveOldRequests = async (req, res) => {
     });
   }
 };
+
+// ---- Get Only Pending Requests ----
+export const getPendingRequests = async (req, res) => {
+  try {
+    const pending = await Request.find({ status: "pending" })
+      .populate("userId", "username email role")
+      .populate("resourceId", "name type location");
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      data: pending,
+      count: pending.length,
+      message: "Pending requests fetched successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching pending requests:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
+// ---- Approve Shortcut ----
+export const quickApprove = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const request = await Request.findById(id)
+      .populate("userId", "email username")
+      .populate("resourceId", "name");
+
+    if (!request)
+      return res
+        .status(404)
+        .json({ success: false, message: "Request not found" });
+
+    request.status = "approved";
+    request.approvedBy = req.user._id;
+    request.approvedAt = new Date();
+
+    await request.save();
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      request,
+      message: "Request approved successfully",
+    });
+  } catch (error) {
+    console.error("Error approving request:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
+// ---- Reject Shortcut ----
+export const quickReject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const request = await Request.findById(id)
+      .populate("userId", "email username")
+      .populate("resourceId", "name");
+
+    if (!request)
+      return res
+        .status(404)
+        .json({ success: false, message: "Request not found" });
+
+    request.status = "rejected";
+    request.remarks = "Rejected by admin (quick action)";
+    request.approvedBy = req.user._id;
+    request.approvedAt = new Date();
+
+    await request.save();
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      request,
+      message: "Request rejected successfully",
+    });
+  } catch (error) {
+    console.error("Error rejecting request:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};

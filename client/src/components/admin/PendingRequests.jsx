@@ -1,43 +1,62 @@
 "use client";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, User } from "lucide-react";
+import api from "@/api/axios";
 
 export default function PendingRequests() {
-  const stats = {
-    pending: 2,
-    approved: 5,
-    rejected: 1,
-  };
+  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const requests = [
-    {
-      id: "REQ001",
-      resourceName: "GPU Server A1",
-      resourceType: "GPU Server",
-      requester: "Mihir Patel",
-      email: "mihir@nitc.ac.in",
-      role: "Student",
-      purpose:
-        "Deep Learning Model Training for Research Project on Computer Vision",
-      duration: "2025-10-01 to 2025-10-05",
-      time: "09:00 - 17:00",
-      status: "Pending",
-    },
-    {
-      id: "REQ002",
-      resourceName: "High-Performance Server",
-      resourceType: "Server",
-      requester: "Saurabh Tripathi",
-      email: "saurabh@nitc.ac.in",
-      role: "Faculty",
-      purpose: "Data Analysis for AI Research",
-      duration: "2025-10-10 to 2025-10-15",
-      time: "10:00 - 18:00",
-      status: "Pending",
-    },
-  ];
+  // Fetch requests and stats
+  useEffect(() => {
+    const fetchRequests = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get("/requests/pending");
+        const data = res.data.data || [];
+
+        setRequests(data);
+
+        // Compute counts
+        setStats({
+          pending: data.filter((r) => r.status?.toLowerCase() === "pending")
+            .length,
+          approved: data.filter((r) => r.status?.toLowerCase() === "approved")
+            .length,
+          rejected: data.filter((r) => r.status?.toLowerCase() === "rejected")
+            .length,
+        });
+      } catch (err) {
+        console.error("Error fetching requests:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRequests();
+  }, []);
+
+  // Handle approve/reject
+  const handleAction = async (id, action) => {
+    try {
+      await api.patch(`/requests/${id}/${action.toLowerCase()}`);
+      setRequests((prev) =>
+        prev.map((req) => (req._id === id ? { ...req, status: action } : req))
+      );
+
+      // Adjust stats accordingly
+      setStats((prev) => ({
+        ...prev,
+        pending: prev.pending - 1,
+        [action.toLowerCase()]: prev[action.toLowerCase()] + 1,
+      }));
+    } catch (err) {
+      console.error(`Failed to ${action} request ${id}`, err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -51,37 +70,45 @@ export default function PendingRequests() {
 
       {/* Stats Section */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <Card className="p-4 shadow-sm border border-gray-200">
-          <div className="text-gray-500 text-sm mb-1">Pending Requests</div>
-          <div className="text-2xl font-bold text-gray-900">
-            {stats.pending}
-          </div>
-        </Card>
-        <Card className="p-4 shadow-sm border border-gray-200">
-          <div className="text-gray-500 text-sm mb-1">Approved Today</div>
-          <div className="text-2xl font-bold text-gray-900">
-            {stats.approved}
-          </div>
-        </Card>
-        <Card className="p-4 shadow-sm border border-gray-200">
-          <div className="text-gray-500 text-sm mb-1">Rejected Today</div>
-          <div className="text-2xl font-bold text-gray-900">
-            {stats.rejected}
-          </div>
-        </Card>
+        <StatCard title="Pending Requests" value={stats.pending} />
+        <StatCard title="Approved" value={stats.approved} />
+        <StatCard title="Rejected" value={stats.rejected} />
       </div>
 
       {/* Request Cards */}
-      <div className="flex flex-col gap-6">
-        {requests.map((req) => (
-          <RequestCard key={req.id} request={req} />
-        ))}
-      </div>
+      {loading ? (
+        <p className="text-gray-500 text-sm">Loading requests...</p>
+      ) : requests.length > 0 ? (
+        <div className="flex flex-col gap-6">
+          {requests.map((req) => (
+            <RequestCard
+              key={req._id || req.id}
+              request={req}
+              onAction={handleAction}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-500 text-sm">No pending requests found.</p>
+      )}
     </div>
   );
 }
 
-function RequestCard({ request }) {
+// Small stat card component
+function StatCard({ title, value }) {
+  return (
+    <Card className="p-4 shadow-sm border border-gray-200">
+      <div className="text-gray-500 text-sm mb-1">{title}</div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+    </Card>
+  );
+}
+
+function RequestCard({ request, onAction }) {
+  const status =
+    request.status?.charAt(0).toUpperCase() + request.status?.slice(1);
+
   return (
     <Card className="border border-gray-200 shadow-sm">
       <CardContent className="p-6">
@@ -89,20 +116,29 @@ function RequestCard({ request }) {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              {request.resourceName}
+              {request.resourceId?.name || request.resourceName}
             </h2>
             <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-              {request.resourceType}
+              {request.resourceId?.type || request.resourceType}
             </Badge>
           </div>
-          <Badge className="bg-yellow-100 text-yellow-700">
-            {request.status}
+          <Badge
+            className={
+              status === "Pending"
+                ? "bg-yellow-100 text-yellow-700"
+                : status === "Approved"
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }
+          >
+            {status}
           </Badge>
         </div>
 
         {/* Request Info */}
         <p className="text-sm text-gray-600 mb-3">
-          <span className="font-medium">Request ID:</span> {request.id}
+          <span className="font-medium">Request ID:</span>{" "}
+          {request._id || request.id}
         </p>
 
         {/* Requested By */}
@@ -110,13 +146,22 @@ function RequestCard({ request }) {
           <div className="flex items-start gap-2">
             <User className="w-5 h-5 text-gray-500 mt-1" />
             <div>
-              <p className="font-medium text-gray-900">{request.requester}</p>
-              <p className="text-sm text-gray-500">{request.email}</p>
+              <p className="font-medium text-gray-900">
+                {request.userId?.username ||
+                  request.requester?.name ||
+                  "Unknown"}
+              </p>
+              <p className="text-sm text-gray-500">
+                {request.userId?.email || request.email}
+              </p>
               <Badge
                 variant="secondary"
                 className="bg-gray-100 text-gray-700 text-xs mt-1"
               >
-                {request.role}
+                {request.userId?.role ||
+                  request.role ||
+                  request.requester?.role ||
+                  "N/A"}
               </Badge>
             </div>
           </div>
@@ -126,13 +171,24 @@ function RequestCard({ request }) {
               <CalendarDays className="w-4 h-4 text-gray-500" />
               <span className="text-sm">
                 Duration:{" "}
-                <span className="font-medium">{request.duration}</span>
+                <span className="font-medium">
+                  {request.startTime
+                    ? `${new Date(
+                        request.startTime
+                      ).toLocaleDateString()} - ${new Date(
+                        request.endTime
+                      ).toLocaleDateString()}`
+                    : "N/A"}
+                </span>
               </span>
             </div>
             <div className="flex items-center gap-2 text-gray-700">
               <Clock className="w-4 h-4 text-gray-500" />
               <span className="text-sm">
-                Time: <span className="font-medium">{request.time}</span>
+                Time:{" "}
+                <span className="font-medium">
+                  {request.time || "09:00 - 17:00"}
+                </span>
               </span>
             </div>
           </div>
@@ -142,19 +198,27 @@ function RequestCard({ request }) {
         <div className="mb-5">
           <p className="text-sm text-gray-500 font-medium mb-1">Purpose</p>
           <div className="bg-gray-50 text-gray-800 p-3 rounded-md text-sm">
-            {request.purpose}
+            {request.purpose || "No purpose provided."}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button className="bg-blue-700 hover:bg-blue-800 flex-1">
-            ✓ Approve
-          </Button>
-          <Button className="bg-red-600 hover:bg-red-700 flex-1">
-            ✗ Reject
-          </Button>
-        </div>
+        {status === "Pending" && (
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              className="bg-blue-700 hover:bg-blue-800 flex-1"
+              onClick={() => onAction(request._id, "Approved")}
+            >
+              ✓ Approve
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 flex-1"
+              onClick={() => onAction(request._id, "Rejected")}
+            >
+              ✗ Reject
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

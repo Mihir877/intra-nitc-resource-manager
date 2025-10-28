@@ -6,6 +6,7 @@ import { faker } from "@faker-js/faker";
 import { User } from "../models/user.model.js";
 import { Resource } from "../models/resource.model.js";
 import { Request } from "../models/request.model.js";
+import bcrypt from "bcrypt";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,18 +37,22 @@ function getRandomInt(max) {
  */
 
 // POST /api/v1/seeder/users  Body: { fileName?: string, count?: number }
+
 export const seedUsersFromJson = async (req, res) => {
   try {
     const { count = 10 } = req.body || {};
-    const filePath = path.join(seedDir, "users.json");
+    const fileName = "users.json";
+    const filePath = path.join(seedDir, fileName);
 
     const raw = await fs.readFile(filePath, "utf-8");
     let users = JSON.parse(raw);
+
     if (!Array.isArray(users) || users.length === 0) {
       return res
         .status(400)
         .json({ success: false, message: "No users in JSON" });
     }
+
     if (Number.isFinite(count)) {
       users = users.slice(0, Math.max(0, count));
     }
@@ -60,16 +65,25 @@ export const seedUsersFromJson = async (req, res) => {
     );
     const existingSet = new Set(existing.map((u) => u.email.toLowerCase()));
 
-    const toInsert = users
-      .filter((u) => u.email && !existingSet.has(u.email.toLowerCase()))
-      .map((u) => ({
-        username: u.username || u.email.split("@")[0],
-        email: u.email,
-        password: u.password || faker.internet.password({ length: 12 }),
-        role: u.role || "student",
-        isEmailVerified: false,
-        avatar: u.avatar,
-      }));
+    // Manually hash passwords before insertMany
+    const toInsert = await Promise.all(
+      users
+        .filter((u) => u.email && !existingSet.has(u.email.toLowerCase()))
+        .map(async (u) => {
+          const hashedPwd = await bcrypt.hash(
+            u.password || faker.internet.password({ length: 12 }),
+            10
+          );
+          return {
+            username: u.username || u.email.split("@")[0],
+            email: u.email,
+            password: hashedPwd,
+            role: u.role || "student",
+            isEmailVerified: false,
+            avatar: u.avatar,
+          };
+        })
+    );
 
     if (toInsert.length === 0) {
       return res.status(200).json({
@@ -82,6 +96,7 @@ export const seedUsersFromJson = async (req, res) => {
     }
 
     const inserted = await User.insertMany(toInsert, { ordered: false });
+
     return res.status(201).json({
       success: true,
       statusCode: 201,

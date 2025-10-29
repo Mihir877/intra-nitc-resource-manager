@@ -114,35 +114,29 @@ function RequestCard({ request, onAction }) {
       <CardContent className="p-6">
         {/* Header Row */}
         <div className="flex items-center justify-between mb-4">
-          <div>
+          <div className="flex gap-3 items-center">
             <h2 className="text-lg font-semibold text-gray-900">
               {request.resourceId?.name || request.resourceName}
             </h2>
-            <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+            <Badge variant="outline" className="text-xs font-medium">
               {request.resourceId?.type || request.resourceType}
             </Badge>
           </div>
           <Badge
             className={
               status === "Pending"
-                ? "bg-yellow-100 text-yellow-700"
+                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
                 : status === "Approved"
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
+                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                : "bg-red-100 text-red-700 hover:bg-red-200"
             }
           >
             {status}
           </Badge>
         </div>
 
-        {/* Request Info */}
-        <p className="text-sm text-gray-600 mb-3">
-          <span className="font-medium">Request ID:</span>{" "}
-          {request._id || request.id}
-        </p>
-
         {/* Requested By */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-4 mb-4">
           <div className="flex items-start gap-2">
             <User className="w-5 h-5 text-gray-500 mt-1" />
             <div>
@@ -156,7 +150,7 @@ function RequestCard({ request, onAction }) {
               </p>
               <Badge
                 variant="secondary"
-                className="bg-gray-100 text-gray-700 text-xs mt-1"
+                className="bg-gray-100 text-gray-700 text-xs mt-1 -ml-2"
               >
                 {request.userId?.role ||
                   request.role ||
@@ -166,28 +160,48 @@ function RequestCard({ request, onAction }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 mt-3 sm:mt-0">
-            <div className="flex items-center gap-2 text-gray-700">
-              <CalendarDays className="w-4 h-4 text-gray-500" />
-              <span className="text-sm">
-                Duration:{" "}
+          <div className="flex flex-col items-end gap-1 mt-3 sm:mt-0 text-gray-700 text-sm">
+            <div className="flex items-center gap-2">
+              <span>
+                From:{" "}
                 <span className="font-medium">
                   {request.startTime
-                    ? `${new Date(
-                        request.startTime
-                      ).toLocaleDateString()} - ${new Date(
-                        request.endTime
-                      ).toLocaleDateString()}`
+                    ? `${new Date(request.startTime).toLocaleDateString(
+                        undefined,
+                        {
+                          dateStyle: "medium",
+                        }
+                      )} ${new Date(request.startTime).toLocaleTimeString(
+                        undefined,
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false, // optional: set to true for 12-hour format
+                        }
+                      )}`
                     : "N/A"}
                 </span>
               </span>
             </div>
-            <div className="flex items-center gap-2 text-gray-700">
-              <Clock className="w-4 h-4 text-gray-500" />
-              <span className="text-sm">
-                Time:{" "}
+            <div className="flex items-center gap-2">
+              <span>
+                To:{" "}
                 <span className="font-medium">
-                  {request.time || "09:00 - 17:00"}
+                  {request.endTime
+                    ? `${new Date(request.endTime).toLocaleDateString(
+                        undefined,
+                        {
+                          dateStyle: "medium",
+                        }
+                      )} ${new Date(request.endTime).toLocaleTimeString(
+                        undefined,
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        }
+                      )}`
+                    : "N/A"}
                 </span>
               </span>
             </div>
@@ -196,8 +210,8 @@ function RequestCard({ request, onAction }) {
 
         {/* Purpose */}
         <div className="mb-5">
-          <p className="text-sm text-gray-500 font-medium mb-1">Purpose</p>
-          <div className="bg-gray-50 text-gray-800 p-3 rounded-md text-sm">
+          <p className="text-sm text-gray-500 font-medium mb-1.5">Purpose</p>
+          <div className="bg-gray-50 text-gray-800 px-3 py-2 rounded-md text-sm">
             {request.purpose || "No purpose provided."}
           </div>
         </div>
@@ -206,13 +220,15 @@ function RequestCard({ request, onAction }) {
         {status === "Pending" && (
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              className="bg-blue-700 hover:bg-blue-800 flex-1"
+              variant="outline"
+              className="bg-blue-100 text-blue-700 border-blue-300 flex-1 hover:bg-blue-200"
               onClick={() => onAction(request._id, "Approved")}
             >
               ✓ Approve
             </Button>
             <Button
-              className="bg-red-600 hover:bg-red-700 flex-1"
+              variant="outline"
+              className="bg-red-100 text-red-700 border-red-300 flex-1 hover:bg-red-200"
               onClick={() => onAction(request._id, "Rejected")}
             >
               ✗ Reject

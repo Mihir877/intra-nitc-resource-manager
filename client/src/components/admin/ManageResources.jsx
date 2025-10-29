@@ -95,7 +95,7 @@ const ResourceItem = ({ resource }) => {
 
       <div className="flex items-center gap-2 mb-2">
         <Badge variant="secondary">{resource.type}</Badge>
-        <Badge
+        <Badge variant="secondary"
           className={
             resource.status?.toLowerCase() === "available"
               ? "bg-green-100 text-green-700"

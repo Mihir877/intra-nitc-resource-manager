@@ -217,11 +217,10 @@ function ActivityItem({ type, action, user, detail, ago }) {
       : type === "rejected"
       ? "text-red-500"
       : "text-gray-400";
-      console.log("detail: ", detail)
   return (
     <div className="border border-gray-200 rounded-md p-3 mb-3 last:mb-0 flex items-start gap-3 bg-white">
       <span
-        className={`w-2 h-2 rounded-full block ${iconColor} mt-[6px] flex-shrink-0`}
+        className={`w-2 h-2 rounded-full block ${iconColor} mt-1.5 shrink`}
       />
       <div className="flex flex-col gap-1">
         <span className="text-sm font-semibold text-gray-900">{action}</span>

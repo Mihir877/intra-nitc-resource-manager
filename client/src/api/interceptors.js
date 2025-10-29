@@ -39,8 +39,6 @@ export const setupInterceptors = () => {
     async (error) => {
       const originalRequest = error.config;
 
-      console.log("originalRequest: ", originalRequest.url);
-
       const isPublicEndpoint = NON_AUTH_ENDPOINTS.some((url) =>
         originalRequest.url?.includes(url)
       );

@@ -1,68 +1,33 @@
 "use client";
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
+import api from "@/api/axios";
+import React from "react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, Cpu, ChevronRight } from "lucide-react";
 
-const resourcesData = [
-  {
-    name: "Electron Microscope SEM-500",
-    type: "Lab Instrument",
-    specs:
-      "Scanning Electron Microscope, 10nm resolution, 30kV accelerating voltage",
-    location: "Advanced Materials Lab - Building B",
-    status: "Available",
-    slug: "electron-microscope-sem-500",
-  },
-  {
-    name: "FTIR Spectrometer",
-    type: "Lab Instrument",
-    specs:
-      "Fourier Transform Infrared, 4000–400 cm⁻¹ range, ATR module included",
-    location: "Chemistry Research Lab - Block A",
-    status: "In-Use",
-    availableDate: "2025-10-05 10:00",
-    slug: "ftir-spectrometer",
-  },
-  {
-    name: "NMR Spectrometer 400MHz",
-    type: "Lab Instrument",
-    specs: "Nuclear Magnetic Resonance, 400MHz, Liquid/Solid sample capability",
-    location: "Central Instrumentation Facility",
-    status: "Available",
-    slug: "nmr-spectrometer-400mhz",
-  },
-  {
-    name: "Digital Oscilloscope DSO-X",
-    type: "Lab Instrument",
-    specs: "500MHz bandwidth, 4 analog channels, high sampling rate",
-    location: "Electronics Lab - Room 204",
-    status: "Available",
-    slug: "digital-oscilloscope-dso-x",
-  },
-  {
-    name: "HPLC System",
-    type: "Lab Instrument",
-    specs: "High Performance Liquid Chromatography, UV/Vis detector included",
-    location: "Analytical Chemistry Lab - Block C",
-    status: "In-Use",
-    slug: "hplc-system",
-  },
-  {
-    name: "CNC Milling Machine",
-    type: "Workshop Equipment",
-    specs: "3-axis, precision up to 0.01mm, suitable for prototyping",
-    location: "Mechanical Workshop - Bay 2",
-    status: "Available",
-    slug: "cnc-milling-machine",
-  },
-];
-
 export default function BrowseResources() {
   const [filter, setFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [resourcesData, setResourcesData] = useState([]);
+
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const response = await api.get("/resources");
+        console.log("API response:", response.data);
+
+        // ✅ Extract only the array part from the response
+        setResourcesData(response.data.resources || []);
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+      }
+    };
+
+    fetchResources();
+  }, []);
 
   const filteredResources = resourcesData.filter((item) => {
     const matchesFilter =
@@ -71,7 +36,7 @@ export default function BrowseResources() {
     const matchesSearch =
       item.name.toLowerCase().includes(q) ||
       item.type.toLowerCase().includes(q) ||
-      item.specs.toLowerCase().includes(q) ||
+      item.specs?.toLowerCase().includes(q) || // use optional chaining for safety
       item.location.toLowerCase().includes(q);
     return matchesFilter && matchesSearch;
   });
@@ -123,10 +88,8 @@ export default function BrowseResources() {
       {/* Resource Cards */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 [grid-auto-rows:1fr]">
         {filteredResources.map((res, i) => {
-          const isAvailable = res.status === "Available";
-          const to = `/resources/${
-            res.slug ?? res.name.toLowerCase().replace(/\s+/g, "-")
-          }`;
+          const isAvailable = res.status === "available";
+          const to = `/resources/${res._id}`;
 
           return (
             <Link
@@ -143,7 +106,7 @@ export default function BrowseResources() {
                   "hover:scale-[1.01] active:scale-[0.995]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   "will-change-transform",
-                  "flex flex-col", 
+                  "flex flex-col",
                 ].join(" ")}
               >
                 <CardHeader className="pb-2 flex justify-between items-start">

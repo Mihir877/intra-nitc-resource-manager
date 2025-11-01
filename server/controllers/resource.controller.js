@@ -216,7 +216,7 @@ export const deleteResource = async (req, res) => {
 
     resource.isActive = false;
     resource.status = "disabled";
-    await resource.save();
+    await Resource.findByIdAndDelete(id);
 
     res.status(200).json({
       success: true,

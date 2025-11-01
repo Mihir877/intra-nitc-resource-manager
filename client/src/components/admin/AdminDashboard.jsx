@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { useNavigate } from "react-router-dom";
 import {
   Server,
   TrendingUp,
@@ -18,7 +19,7 @@ import { timeAgo } from "@/utils/dateUtils";
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const navigate = useNavigate();
   useEffect(() => {
     async function fetchStats() {
       setLoading(true);
@@ -55,11 +56,11 @@ export default function AdminDashboard() {
               Resource management and system overview
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <Button className="flex gap-2 items-center bg-orange-500 hover:bg-orange-600">
               <Plus className="w-4 h-4" /> Add Resource
             </Button>
-          </div>
+          </div> */}
         </div>
 
         {/* Stats */}
@@ -128,7 +129,11 @@ export default function AdminDashboard() {
                   duration={req.duration ? `${req.duration}h` : ""}
                 />
               ))}
-              <Button variant="link" className="px-0 mt-2 text-blue-600">
+              <Button
+                variant="link"
+                className="px-0 mt-2 text-blue-600"
+                onClick={() => navigate("/admin/requests")}
+              >
                 View All Requests
               </Button>
             </CardContent>

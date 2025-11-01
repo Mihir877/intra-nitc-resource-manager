@@ -25,6 +25,7 @@ const ResourceHeader = ({ resourceId }) => {
   const [resource, setResource] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!resourceId) return;
@@ -146,10 +147,17 @@ const ResourceHeader = ({ resourceId }) => {
 
       <CardFooter className="flex items-center justify-between">
         <div className="text-xs text-muted-foreground">
+          {expanded
+            ? resource.description
+            : `${resource.description?.slice(0, 100)}...`}
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline">
-            View policy
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? "Show Details" : "Hide Details"}
           </Button>
         </div>
       </CardFooter>

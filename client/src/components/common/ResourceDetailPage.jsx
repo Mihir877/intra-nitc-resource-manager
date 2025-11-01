@@ -16,7 +16,7 @@ export default function ResourceDetailPage() {
   };
 
   return (
-    <div className="max-w-screen-lg mx-auto ">
+    <div className="max-w-5xl mx-auto ">
       <ResourceHeader resourceId={resourceId} />
       <div className="mt-6">
         <ResourceSchedule

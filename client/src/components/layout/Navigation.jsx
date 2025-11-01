@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -42,10 +42,13 @@ export function Navigation() {
       <ul className="space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.href;
+          const isActive =
+            location.pathname === item.href ||
+            location.pathname.startsWith(item.href + "/");
+
           return (
             <li key={item.href}>
-              <Link
+              <NavLink
                 to={item.href}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
@@ -55,8 +58,8 @@ export function Navigation() {
                 )}
               >
                 <Icon className="h-4 w-4" />
-                <span className="truncate -mt-[1px]">{item.label}</span>
-              </Link>
+                <span className="truncate -mt-1px">{item.label}</span>
+              </NavLink>
             </li>
           );
         })}

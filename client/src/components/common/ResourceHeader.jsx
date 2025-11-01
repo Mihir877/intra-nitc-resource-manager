@@ -144,7 +144,7 @@ const ResourceHeader = ({ resourceId }) => {
         </div>
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between">
+      {/* <CardFooter className="flex items-center justify-between">
         <div className="text-xs text-muted-foreground">
         </div>
         <div className="flex gap-2">
@@ -152,7 +152,7 @@ const ResourceHeader = ({ resourceId }) => {
             View policy
           </Button>
         </div>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   );
 };

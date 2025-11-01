@@ -1,6 +1,31 @@
+// app/components/resource/ResourceSchedule.jsx
+"use client";
 import { Button } from "@/components/ui/button";
 import { useSlotSelection } from "@/hooks/useSlotSelection";
-import { Clock } from "lucide-react";
+import { useState } from "react";
+import { ConfirmBookingDialog } from "./ConfirmBookingDialog";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import api from "@/api/axios";
+import { notify } from "@/lib/notify";
+dayjs.extend(utc);
+
+const keyToIsoUtc = (key) => {
+  const [d, h] = key.split("_");
+  return dayjs.utc(`${d}T${String(h).padStart(2, "0")}:00:00Z`).toISOString();
+};
+const ensureEndPlus1h = (startKey, endKey) => {
+  if (!endKey)
+    return `${startKey.split("_")[0]}_${
+      parseInt(startKey.split("_")[1], 10) + 1
+    }`;
+  const [sd, sh] = startKey.split("_");
+  const [ed, eh] = endKey.split("_");
+  if (sd === ed && parseInt(eh, 10) === parseInt(sh, 10)) {
+    return `${ed}_${parseInt(eh, 10) + 1}`;
+  }
+  return endKey;
+};
 
 const firstColPx = 80;
 const otherColPx = 100;
@@ -9,6 +34,7 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
   const {
     error,
     scheduleData,
+    resource,
     upcomingDays,
     timeSlots,
     selectedSlots,
@@ -18,8 +44,9 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
     calculateDuration,
   } = useSlotSelection(resourceId);
 
-  if (error) return <div>{error}</div>;
-  if (!scheduleData) return null;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [purpose, setPurpose] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   if (error) {
     return (
@@ -30,18 +57,50 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
       </div>
     );
   }
-
-  if (!scheduleData) {
-    return null;
-  }
+  if (!scheduleData) return null;
 
   const { bookedSlots, unavailableSlots } = scheduleData;
   const { actualStart, actualEnd } = getActualStartEnd();
   const duration = calculateDuration();
 
+  const handleConfirmClick = () => setConfirmOpen(true);
+
+  const submitRequest = async () => {
+    if (!actualStart) return;
+    setSubmitting(true);
+    try {
+      const fixedEndKey = ensureEndPlus1h(actualStart, actualEnd);
+      const startTime = keyToIsoUtc(actualStart);
+      const endTime = keyToIsoUtc(fixedEndKey);
+
+      const payload = {
+        resourceId,
+        startTime,
+        endTime,
+        bookingDuration: duration?.hours || 0,
+        purpose: purpose.trim(),
+      };
+
+      const p = api.post("/requests", payload);
+
+      await notify.promise(p, {
+        loading: "Submitting request…",
+        success: "Request submitted",
+        error: "Submission failed",
+      });
+      notify.success("You’ll be notified", "Approval status will be emailed.");
+      setConfirmOpen(false);
+      clearSelection();
+      setPurpose("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-screen-lg mx-auto space-y-4">
-      {/* Selection Info & Clear Button */}
       <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-md">
         <div
           className="flex align-center text-sm font-medium  min-h-[32px]"
@@ -53,7 +112,6 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
               selected
               {duration && (
                 <span className="ml-2 text-blue-600 font-semibold">
-                  {/* <Clock className="w-3 h-3" /> */}
                   Duration: {duration.formatted}
                 </span>
               )}
@@ -74,18 +132,20 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
             <Button onClick={clearSelection} variant="outline" size="sm">
               Clear Selection
             </Button>
-            <Button size="sm" onClick={() => {}}>
+            <Button
+              size="sm"
+              onClick={handleConfirmClick}
+              disabled={!actualStart || !actualEnd}
+            >
               Confirm Booking
             </Button>
           </div>
         )}
       </div>
 
-      {/* Schedule Grid */}
       <div className="border rounded-md overflow-hidden">
         <div className="overflow-x-auto">
           <div style={{ width: "max-content" }}>
-            {/* Header */}
             <div
               className="grid"
               style={{
@@ -98,7 +158,6 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
               >
                 Time
               </div>
-
               {upcomingDays.map((d) => (
                 <div
                   key={d.key}
@@ -110,7 +169,6 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
               ))}
             </div>
 
-            {/* Body */}
             <div>
               {timeSlots.map((slot) => (
                 <div
@@ -182,6 +240,20 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
           </div>
         </div>
       </div>
+
+      <ConfirmBookingDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        resourceName={resource?.name ?? "Resource"}
+        actualStart={actualStart}
+        actualEnd={actualEnd}
+        duration={duration}
+        purpose={purpose}
+        onPurposeChange={setPurpose}
+        onSubmit={submitRequest}
+        submitting={submitting}
+        onChangeTime={() => setConfirmOpen(false)}
+      />
     </div>
   );
 };

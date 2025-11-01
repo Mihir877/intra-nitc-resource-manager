@@ -12,7 +12,6 @@ export const createRequest = async (req, res) => {
   try {
     const { resourceId, startTime, endTime, purpose } = req.body;
 
-    // Check if resource exists
     const resource = await Resource.findById(resourceId);
     if (!resource || !resource.isActive) {
       return res
@@ -20,16 +19,36 @@ export const createRequest = async (req, res) => {
         .json({ success: false, message: "Resource not available" });
     }
 
-    // Check for scheduling conflicts
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (isNaN(start) || isNaN(end) || end <= start) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid time range" });
+    }
+
+    // HOURS-ONLY CHECK
+    const durationHours = (end - start) / 36e5; // 1000*60*60
+    const maxHours = Number(resource.maxBookingDuration ?? 0);
+    if (maxHours > 0 && durationHours > maxHours) {
+      return res.status(400).json({
+        success: false,
+        message: `Requested duration (${durationHours.toFixed(
+          2
+        )}h) exceeds max allowed (${maxHours}h)`,
+      });
+    }
+
+    // conflict including containment
     const conflict = await Request.findOne({
       resourceId,
       status: { $in: ["pending", "approved"] },
       $or: [
-        { startTime: { $lt: new Date(endTime), $gte: new Date(startTime) } },
-        { endTime: { $gt: new Date(startTime), $lte: new Date(endTime) } },
+        { startTime: { $lt: end, $gte: start } },
+        { endTime: { $gt: start, $lte: end } },
+        { $and: [{ startTime: { $lte: start } }, { endTime: { $gte: end } }] },
       ],
     });
-
     if (conflict) {
       return res
         .status(409)
@@ -39,26 +58,30 @@ export const createRequest = async (req, res) => {
     const request = await Request.create({
       userId: req.user._id,
       resourceId,
-      startTime,
-      endTime,
+      startTime: start,
+      endTime: end,
       purpose,
       status: resource.requiresApproval ? "pending" : "approved",
       approvedBy: resource.requiresApproval ? null : req.user._id,
       approvedAt: resource.requiresApproval ? null : new Date(),
     });
 
-    res.status(201).json({
-      success: true,
-      statusCode: 201,
-      request,
-      message: "Request submitted successfully",
-    });
+    return res
+      .status(201)
+      .json({
+        success: true,
+        statusCode: 201,
+        request,
+        message: "Request submitted successfully",
+      });
   } catch (error) {
     console.error("Error creating request:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Internal Server Error",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal Server Error",
+      });
   }
 };
 

@@ -8,12 +8,14 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import api from "@/api/axios";
 import { notify } from "@/lib/notify";
+import { cn } from "@/lib/utils";
 dayjs.extend(utc);
 
 const keyToIsoUtc = (key) => {
   const [d, h] = key.split("_");
   return dayjs.utc(`${d}T${String(h).padStart(2, "0")}:00:00Z`).toISOString();
 };
+
 const ensureEndPlus1h = (startKey, endKey) => {
   if (!endKey)
     return `${startKey.split("_")[0]}_${
@@ -30,6 +32,143 @@ const ensureEndPlus1h = (startKey, endKey) => {
 const firstColPx = 80;
 const otherColPx = 100;
 
+// Status-based styling configuration
+const STATUS_STYLES = {
+  available: {
+    bg: "bg-white border-green-500/20 hover:bg-green-50",
+    text: "text-gray-600",
+    label: "",
+  },
+  booked: {
+    bg: "bg-red-50 border-red-200",
+    text: "text-red-600 font-semibold",
+    label: "Booked",
+  },
+  pendingMine: {
+    bg: "bg-amber-50 border-amber-300",
+    text: "text-amber-700 font-medium",
+    label: "Pending",
+  },
+  pendingOther: {
+    bg: "bg-yellow-50 border-yellow-300 hover:bg-yellow-100",
+    text: "text-yellow-700",
+    label: "Pending",
+  },
+  softBlocked: {
+    bg: "bg-slate-100 border-slate-300",
+    text: "text-slate-600 font-medium",
+    label: "Maint.",
+  },
+  cooldown: {
+    bg: "bg-blue-50 border-blue-200",
+    text: "text-blue-600",
+    label: "Cool",
+  },
+  unavailable: {
+    bg: "bg-gray-50 border-gray-100",
+    text: "text-gray-400",
+    label: "",
+  },
+};
+
+const getTooltipText = (entry) => {
+  if (!entry) return "Unavailable";
+
+  const tooltips = {
+    booked: `Booked${entry.purpose ? `: ${entry.purpose}` : ""}${
+      entry.user ? ` - ${entry.user}` : ""
+    }`,
+    pendingMine: "Your pending request",
+    pendingOther: "Requested by someone else",
+    softBlocked: "Maintenance",
+    cooldown: "Cooldown period",
+    available: "Available - Click to select",
+    unavailable: "Unavailable",
+  };
+
+  return tooltips[entry.status] || tooltips.unavailable;
+};
+
+const getSlotClassName = ({ isSelected, isStart, isEnd, isSingle, status }) => {
+  const base = "h-9 border text-xs transition-colors select-none";
+
+  // Selection variants first (highest priority)
+  if (isSelected) {
+    return cn(
+      base,
+      // shared selected styling
+      "bg-blue-300 text-white border-blue-500",
+      // specific shapes
+      isSingle &&
+        "bg-blue-400 font-semibold border-2 border-blue-600 rounded shadow-sm",
+      !isSingle && !isStart && !isEnd && "border-y-0",
+      isStart && "rounded-t border-b-0 border-l-4 border-l-blue-700",
+      isEnd && "rounded-b border-t-0 border-r-4 border-r-blue-700"
+    );
+  }
+
+  // Status-based variants
+  const s = STATUS_STYLES[status] ?? STATUS_STYLES.unavailable;
+
+  return cn(
+    base,
+    s.bg,
+    s.text,
+    s.border,
+    isStart && "rounded-t border-b-0",
+    isEnd && "rounded-b border-t-0",
+    isStart && isEnd && "border"
+  );
+};
+
+const SlotCell = ({
+  slotKey,
+  entry,
+  isSelected,
+  isActualStart,
+  isActualEnd,
+  actualEnd,
+  handleSlotClick,
+}) => {
+  if (!entry) {
+    return (
+      <div
+        key={slotKey}
+        className="h-9 bg-gray-50 border border-gray-100"
+        title="Unavailable"
+      />
+    );
+  }
+
+  const isSingle = isActualStart && !actualEnd;
+  const isRequestable = entry.isRequestable;
+  const statusStyle = STATUS_STYLES[entry.status] || STATUS_STYLES.unavailable;
+
+  const className = getSlotClassName({
+    isSelected,
+    isStart: isActualStart || entry.isStartSlot,
+    isEnd: isActualEnd || entry.isEndSlot,
+    isSingle,
+    status: entry.status,
+  });
+
+  const tooltip = getTooltipText(entry);
+  const label = isSelected ? "✓" : statusStyle.label;
+
+  return (
+    <button
+      key={slotKey}
+      onClick={() => handleSlotClick(slotKey, isRequestable)}
+      className={className}
+      disabled={!isRequestable}
+      title={tooltip}
+      style={{ cursor: isRequestable ? "pointer" : "not-allowed" }}
+    >
+      {label}
+    </button>
+  );
+};
+
 const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
   const {
     error,
@@ -42,6 +181,7 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
     clearSelection,
     getActualStartEnd,
     calculateDuration,
+    slotKeyToIso,
   } = useSlotSelection(resourceId);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -59,8 +199,9 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
   }
   if (!scheduleData) return null;
 
-  const { bookedSlots, unavailableSlots } = scheduleData;
+  const schedule = scheduleData.schedule || {};
   const { actualStart, actualEnd } = getActualStartEnd();
+  console.log("actualEnd: ", actualEnd);
   const duration = calculateDuration();
 
   const handleConfirmClick = () => setConfirmOpen(true);
@@ -81,19 +222,17 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
         purpose: purpose.trim(),
       };
 
-      const p = api.post("/requests", payload);
-
-      await notify.promise(p, {
-        loading: "Submitting request…",
-        success: "Request submitted",
-        error: "Submission failed",
-      });
-      notify.success("You’ll be notified", "Approval status will be emailed.");
+      await api.post("/requests", payload);
+      notify.success("Request submitted", "Approval status will be emailed.");
       setConfirmOpen(false);
       clearSelection();
       setPurpose("");
     } catch (e) {
       console.error(e);
+      notify.error(
+        "Submission failed",
+        e?.response?.data?.message || "Please try again later."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +242,7 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
     <div className="w-full max-w-screen-lg mx-auto space-y-4">
       <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-md">
         <div
-          className="flex align-center text-sm font-medium  min-h-[32px]"
+          className="flex align-center text-sm font-medium min-h-[32px]"
           style={{ alignItems: "center" }}
         >
           {selectedSlots.size > 0 ? (
@@ -187,51 +326,20 @@ const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
 
                   {upcomingDays.map((d) => {
                     const slotKey = `${d.key}_${slot.h}`;
-                    const isUnavailable = unavailableSlots[slotKey];
-                    const bookingInfo = bookedSlots[slotKey];
-                    const isSelected = selectedSlots.has(slotKey);
-                    const isActualStart = slotKey === actualStart;
-                    const isActualEnd = slotKey === actualEnd;
-                    const isAvailable = !isUnavailable && !bookingInfo;
-                    const isSingle = isActualStart && !actualEnd;
-
-                    if (isUnavailable) {
-                      return (
-                        <div
-                          key={slotKey}
-                          className="h-9 bg-gray-50 border border-gray-100 cursor-not-allowed"
-                        />
-                      );
-                    }
+                    const isoKey = slotKeyToIso(slotKey);
+                    const entry = schedule[isoKey];
 
                     return (
-                      <button
+                      <SlotCell
                         key={slotKey}
-                        onClick={() => handleSlotClick(slotKey, isAvailable)}
-                        className={`h-9 border text-xs transition-colors select-none ${
-                          bookingInfo
-                            ? "bg-red-100 text-red-500/60 font-semibold cursor-not-allowed border-red-200 rounded"
-                            : isSelected
-                            ? isSingle
-                              ? "bg-blue-300 text-white border-blue-500 font-semibold border-2 rounded cursor-pointer"
-                              : isActualStart
-                              ? "bg-blue-300 text-white border-blue-400 border-b-0 border-l-4 border-l-blue-800 rounded-t-sm cursor-pointer"
-                              : isActualEnd
-                              ? "bg-blue-300 text-white border-blue-400 border-t-0 border-r-4 border-r-blue-800 rounded-b-sm cursor-pointer"
-                              : "bg-blue-300 text-white border-blue-400 border-y-0 cursor-pointer"
-                            : "border-green-500/20 hover:bg-green-100 cursor-pointer"
-                        }`}
-                        disabled={!isAvailable}
-                        title={
-                          bookingInfo
-                            ? `${bookingInfo.purpose} - ${bookingInfo.user}`
-                            : isSelected
-                            ? "Selected"
-                            : "Available"
-                        }
-                      >
-                        {bookingInfo ? "Booked" : isSelected ? "✓" : ""}
-                      </button>
+                        slotKey={slotKey}
+                        entry={entry}
+                        isSelected={selectedSlots.has(slotKey)}
+                        isActualStart={slotKey === actualStart}
+                        isActualEnd={slotKey === actualEnd}
+                        actualEnd={actualEnd}
+                        handleSlotClick={handleSlotClick}
+                      />
                     );
                   })}
                 </div>

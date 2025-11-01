@@ -71,21 +71,6 @@ const DateChip = ({ label, d, h }) => {
   );
 };
 
-const DurationPill = ({ minutes }) => {
-  const hrs = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  const parts = [];
-  if (hrs) parts.push(`${hrs}h`);
-  if (mins) parts.push(`${mins}m`);
-  const label = parts.length ? parts.join(" ") : "1h";
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm">
-      <Clock className="h-4 w-4" />
-      <span className="font-medium">Duration: {label}</span>
-    </div>
-  );
-};
-
 export function ConfirmBookingDialog({
   open,
   onOpenChange,
@@ -135,7 +120,11 @@ export function ConfirmBookingDialog({
                   <DateChip label="End" d={end?.d} h={end?.h} />
                 </div>
                 <div className="flex items-center justify-between pt-1">
-                  <DurationPill minutes={minutes} />
+                  <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-medium">Duration: {duration?.formatted}</span>
+                  </div>
+
                   <Button
                     type="button"
                     variant="ghost"

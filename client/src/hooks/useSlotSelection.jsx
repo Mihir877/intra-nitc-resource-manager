@@ -20,7 +20,10 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
         const res = await api.get(`resources/${resourceId}/schedule`);
         if (!alive) return;
         setResource(res.data.resource);
-        setScheduleData(res.data.schedule);
+        // Convert ISO-hour keyed schedule to internal format
+        const isoSchedule = res.data.schedule || {};
+        const timeRange = res.data.timeRange || { startHour: 0, endHour: 24 };
+        setScheduleData({ schedule: isoSchedule, timeRange });
       } catch (err) {
         if (!alive) return;
         setError(err.message || "Failed to load schedule");
@@ -56,6 +59,12 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
     });
   }, [scheduleData]);
 
+  // Convert internal slotKey to ISO hour key for API lookup
+  const slotKeyToIso = useCallback((slotKey) => {
+    const [dayKey, hourStr] = slotKey.split("_");
+    return `${dayKey}T${String(hourStr).padStart(2, "0")}:00:00.000Z`;
+  }, []);
+
   const parseSlotKey = useCallback((slotKey) => {
     const [dayKey, hourStr] = slotKey.split("_");
     return { dayKey, hour: parseInt(hourStr) };
@@ -88,9 +97,9 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
           const isAfterStart = compareSlots(slotKey, startSlotKey) >= 0;
           const isBeforeEnd = compareSlots(slotKey, endSlotKey) <= 0;
           if (isAfterStart && isBeforeEnd) {
-            const isUnavailable = scheduleData.unavailableSlots?.[slotKey];
-            const bookingInfo = scheduleData.bookedSlots?.[slotKey];
-            if (!isUnavailable && !bookingInfo) {
+            const isoKey = slotKeyToIso(slotKey);
+            const entry = scheduleData.schedule[isoKey];
+            if (entry?.isRequestable) {
               slots.add(slotKey);
             }
           }
@@ -98,10 +107,9 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
       });
       return slots;
     },
-    [upcomingDays, timeSlots, scheduleData, compareSlots]
+    [upcomingDays, timeSlots, scheduleData, compareSlots, slotKeyToIso]
   );
 
-  // new helpers
   const maxHours = resource?.maxBookingDuration ?? null;
 
   const hasBlockedBetween = useCallback(
@@ -117,10 +125,9 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
             compareSlots(key, startKey) > 0 &&
             compareSlots(key, endKey) < 0
           ) {
-            if (
-              scheduleData.unavailableSlots?.[key] ||
-              scheduleData.bookedSlots?.[key]
-            ) {
+            const isoKey = slotKeyToIso(key);
+            const entry = scheduleData.schedule[isoKey];
+            if (entry && !entry.isRequestable) {
               return true;
             }
           }
@@ -128,7 +135,7 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
       }
       return false;
     },
-    [scheduleData, upcomingDays, timeSlots, compareSlots]
+    [scheduleData, upcomingDays, timeSlots, compareSlots, slotKeyToIso]
   );
 
   const hoursBetweenInclusive = useCallback(
@@ -147,8 +154,8 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
   );
 
   const handleSlotClick = useCallback(
-    (slotKey, isAvailable) => {
-      if (!isAvailable) return;
+    (slotKey, isRequestable) => {
+      if (!isRequestable) return;
 
       if (!startSlot) {
         setStartSlot(slotKey);
@@ -213,21 +220,33 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
       : { actualStart: endSlot, actualEnd: startSlot };
   }, [startSlot, endSlot, compareSlots]);
 
+  // Duration shown in UI and used for client-side checks.
+  // Interprets each slot as exactly 1 hour.
+  // Returns { hours: number, formatted: string } or null if no start.
   const calculateDuration = useCallback(() => {
     const { actualStart, actualEnd } = getActualStartEnd();
     if (!actualStart) return null;
+
+    // Single-slot selection (only start chosen) counts as 1 hour in UI.
     if (!actualEnd) return { hours: 1, formatted: "1h" };
-    const start = parseSlotKey(actualStart);
-    const end = parseSlotKey(actualEnd);
+
+    const start = parseSlotKey(actualStart); // { dayKey, hour }
+    const end = parseSlotKey(actualEnd); // { dayKey, hour }
+
     const startIdx = upcomingDays.findIndex((d) => d.key === start.dayKey);
     const endIdx = upcomingDays.findIndex((d) => d.key === end.dayKey);
     const diffDays = endIdx - startIdx;
+
+    // end − start in hours at 1h granularity, inclusive UI highlight.
+    // The +1 makes the UI "inclusive end slot" equal exclusive end instant at submit.
     const totalHours = diffDays * 24 + (end.hour + 1 - start.hour);
+
     const days = Math.floor(totalHours / 24);
     const hours = totalHours % 24;
+
     return {
       hours: totalHours,
-      formatted: `${days ? `${days}d ` : ""}${hours ? `${hours}h` : ""}`.trim(),
+      formatted: `${days ? `${days}d` : ""} ${hours ? `${hours}h` : ""}`.trim(),
     };
   }, [getActualStartEnd, parseSlotKey, upcomingDays]);
 
@@ -244,5 +263,6 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
     clearSelection,
     getActualStartEnd,
     calculateDuration,
+    slotKeyToIso,
   };
 };

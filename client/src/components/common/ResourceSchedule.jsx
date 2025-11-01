@@ -169,7 +169,7 @@ const SlotCell = ({
   );
 };
 
-const ResourceSchedule = ({ resourceId = "68f4675d69cf8e5719bc4cd8" }) => {
+const ResourceSchedule = ({ resourceId }) => {
   const {
     error,
     scheduleData,

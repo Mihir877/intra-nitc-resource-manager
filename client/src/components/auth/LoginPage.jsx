@@ -26,11 +26,7 @@ const LoginPage = () => {
     }
 
     try {
-      const user = await login(email, password);
-      console.log("Logged in user:", user);
-      // if (user) {
-      //   navigate(user.role === "admin" ? "/admin" : "/");
-      // }
+      await login(email, password);
     } catch (err) {
       setError(err.message || "Invalid credentials.");
     }

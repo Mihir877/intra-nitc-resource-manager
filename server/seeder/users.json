@@ -1,5 +1,17 @@
 [
     {
+        "username": "admin",
+        "email": "admin_m25@nitc.ac.in",
+        "password": "Admin@25",
+        "role": "admin"
+    },
+    {
+        "username": "student",
+        "email": "student_m25@nitc.ac.in",
+        "password": "Student@123",
+        "role": "student"
+    },
+    {
         "username": "superadmin",
         "email": "superadmin@nitc.ac.in",
         "password": "Admin#12345",

@@ -25,12 +25,10 @@ export const createResource = async (req, res) => {
     // Check if resource already exists
     const existing = await Resource.findOne({ name });
     if (existing) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Resource with this name already exists",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Resource with this name already exists",
+      });
     }
 
     const resource = await Resource.create({
@@ -56,12 +54,10 @@ export const createResource = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating resource:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -90,12 +86,10 @@ export const getAllResources = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching resources:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -123,12 +117,10 @@ export const getResourceById = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching resource:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -162,12 +154,10 @@ export const updateResource = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating resource:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -201,12 +191,10 @@ export const setResourceStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("Error setting resource status:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -237,12 +225,10 @@ export const deleteResource = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleting resource:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 

@@ -6,6 +6,13 @@ import api from "./axios";
 let isRefreshing = false;
 let refreshSubscribers = [];
 
+const NON_AUTH_ENDPOINTS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/refresh-token",
+  // add more as needed
+];
+
 const onRefreshed = (newToken) => {
   refreshSubscribers.forEach((cb) => cb(newToken));
   refreshSubscribers = [];
@@ -32,11 +39,15 @@ export const setupInterceptors = () => {
     async (error) => {
       const originalRequest = error.config;
 
-      // Only refresh on 401 and avoid infinite loops
+      const isPublicEndpoint = NON_AUTH_ENDPOINTS.some((url) =>
+        originalRequest.url?.includes(url)
+      );
+
       if (
         error.response &&
         error.response.status === 401 &&
-        !originalRequest._retry
+        !originalRequest._retry &&
+        !isPublicEndpoint
       ) {
         originalRequest._retry = true;
 
@@ -53,7 +64,7 @@ export const setupInterceptors = () => {
 
         try {
           const res = await axios.post(
-            import.meta.env.VITE_SERVER_BASE_URI + "/api/v1/refresh-token",
+            import.meta.env.VITE_SERVER_BASE_URI + "/api/v1/auth/refresh-token",
             {},
             { withCredentials: true }
           );
@@ -72,7 +83,7 @@ export const setupInterceptors = () => {
           console.error("Token refresh failed:", refreshErr);
           localStorage.removeItem("accessToken");
           isRefreshing = false;
-          window.location.href = "/login";
+          // window.location.href = "/login";
           return Promise.reject(refreshErr);
         }
       }

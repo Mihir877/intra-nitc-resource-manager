@@ -3,32 +3,65 @@ import { Resource } from "../models/resource.model.js";
 import mongoose from "mongoose";
 import { createNotification } from "../utils/notification.service.js";
 
-/**
- * @desc    Submit a new resource request
- * @route   POST /api/v1/requests
- * @access  Authenticated users (student/faculty)
- */
 export const createRequest = async (req, res) => {
   try {
     const { resourceId, startTime, endTime, purpose } = req.body;
 
-    // Check if resource exists
-    const resource = await Resource.findById(resourceId);
+    const resource = await Resource.findById(resourceId).lean();
     if (!resource || !resource.isActive) {
       return res
         .status(404)
         .json({ success: false, message: "Resource not available" });
     }
 
-    // Check for scheduling conflicts
+    // Enforce ISO inputs
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (isNaN(start) || isNaN(end) || end <= start) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid time range" });
+    }
+
+    // Domain guard: enforce hour alignment (optional but recommended)
+    const alignedStart =
+      start.getUTCMinutes() === 0 &&
+      start.getUTCSeconds() === 0 &&
+      start.getUTCMilliseconds() === 0;
+    const alignedEnd =
+      end.getUTCMinutes() === 0 &&
+      end.getUTCSeconds() === 0 &&
+      end.getUTCMilliseconds() === 0;
+
+    if (!alignedStart || !alignedEnd) {
+      return res.status(400).json({
+        success: false,
+        message: "Start/end must be aligned to the hour (UTC).",
+      });
+    }
+
+    // Duration limit
+    const durationHours = (end.getTime() - start.getTime()) / 36e5;
+    const maxHours = Number(resource.maxBookingDuration ?? 0);
+    if (maxHours > 0 && durationHours > maxHours) {
+      return res.status(400).json({
+        success: false,
+        message: `Requested duration (${durationHours.toFixed(
+          2
+        )}h) exceeds max allowed (${maxHours}h)`,
+      });
+    }
+
+    // Conflict check (pending + approved)
     const conflict = await Request.findOne({
       resourceId,
       status: { $in: ["pending", "approved"] },
       $or: [
-        { startTime: { $lt: new Date(endTime), $gte: new Date(startTime) } },
-        { endTime: { $gt: new Date(startTime), $lte: new Date(endTime) } },
+        { startTime: { $lt: end, $gte: start } },
+        { endTime: { $gt: start, $lte: end } },
+        { $and: [{ startTime: { $lte: start } }, { endTime: { $gte: end } }] },
       ],
-    });
+    }).lean();
 
     if (conflict) {
       return res
@@ -36,37 +69,33 @@ export const createRequest = async (req, res) => {
         .json({ success: false, message: "Time slot already booked" });
     }
 
-    const request = await Request.create({
+    const now = new Date();
+    const doc = await Request.create({
       userId: req.user._id,
       resourceId,
-      startTime,
-      endTime,
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
       purpose,
       status: resource.requiresApproval ? "pending" : "approved",
       approvedBy: resource.requiresApproval ? null : req.user._id,
-      approvedAt: resource.requiresApproval ? null : new Date(),
+      approvedAt: resource.requiresApproval ? null : now.toISOString(),
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       statusCode: 201,
-      request,
+      request: doc,
       message: "Request submitted successfully",
     });
   } catch (error) {
     console.error("Error creating request:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message || "Internal Server Error",
     });
   }
 };
 
-/**
- * @desc    Get all requests (for admin) or user's own requests
- * @route   GET /api/v1/requests
- * @access  Authenticated
- */
 export const getRequests = async (req, res) => {
   try {
     let filter = {};
@@ -76,7 +105,6 @@ export const getRequests = async (req, res) => {
     const requests = await Request.find(filter)
       .populate("userId", "username email role")
       .populate("resourceId", "name type location");
-
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -93,17 +121,11 @@ export const getRequests = async (req, res) => {
   }
 };
 
-/**
- * @desc    Approve or reject a request (Admin only)
- * @route   PATCH /api/v1/requests/:id/decision
- * @access  Admin
- */
 export const decisionRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, remarks } = req.body;
     const validStatuses = ["approved", "rejected"];
-
     if (!validStatuses.includes(status)) {
       return res
         .status(400)
@@ -112,56 +134,51 @@ export const decisionRequest = async (req, res) => {
 
     const request = await Request.findById(id)
       .populate("userId", "email username")
-      .populate("resourceId", "name");
+      .populate("resourceId", "name")
+      .lean();
 
     if (!request)
       return res
         .status(404)
         .json({ success: false, message: "Request not found" });
 
-    const now = new Date();
+    const now = new Date().toISOString();
 
-    // --- Update Request ---
-    request.status = status;
-    request.approvedBy = req.user._id;
-    request.approvedAt = now;
-
-    if (status === "rejected") {
-      if (!remarks?.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: "Remarks are required for rejection",
-        });
+    await Request.updateOne(
+      { _id: id },
+      {
+        $set: {
+          status,
+          approvedBy: req.user._id,
+          approvedAt: now,
+          ...(status === "rejected" ? { remarks: remarks?.trim() || "" } : {}),
+        },
       }
-      request.remarks = remarks;
-    }
+    );
 
-    await request.save();
-
-    // --- Prepare Notification ---
-    const { userId: user, resourceId: resource, startTime, endTime } = request;
-    const timeSlot = `${new Date(startTime).toLocaleString()} - ${new Date(
-      endTime
-    ).toLocaleString()}`;
+    const updated = await Request.findById(id)
+      .populate("userId", "email username")
+      .populate("resourceId", "name")
+      .lean();
 
     const isApproved = status === "approved";
-
     const emailPayload = {
-      email: user.email,
+      email: updated.userId.email,
       subject: `${
         isApproved ? "✅ Booking Approved" : "❌ Booking Rejected"
-      }: ${resource.name}`,
+      }: ${updated.resourceId.name}`,
       mailgenContent: {
         body: {
-          name: user.username,
+          name: updated.userId.username,
           intro: isApproved
-            ? `Your booking for ${resource.name} has been approved!`
-            : `Your booking for ${resource.name} has been rejected.`,
+            ? `Your booking for ${updated.resourceId.name} has been approved!`
+            : `Your booking for ${updated.resourceId.name} has been rejected.`,
           table: {
             data: [
-              { Resource: resource.name },
-              { "Time Slot": timeSlot },
-              ...(!isApproved ? [{ Remarks: remarks }] : []),
+              { Resource: updated.resourceId.name },
+              { "Start (UTC ISO)": new Date(updated.startTime).toISOString() },
+              { "End (UTC ISO)": new Date(updated.endTime).toISOString() },
+              ...(!isApproved ? [{ Remarks: updated.remarks || "" }] : []),
             ],
           },
           outro: isApproved
@@ -171,15 +188,16 @@ export const decisionRequest = async (req, res) => {
       },
     };
 
-    // --- Send Notification ---
     await createNotification({
-      user,
+      user: updated.userId,
       title: isApproved ? "Booking Approved" : "Booking Rejected",
       message: isApproved
-        ? `Your booking for ${resource.name} on ${timeSlot} has been approved.`
-        : `Your booking for ${resource.name} was rejected. Reason: ${remarks}`,
+        ? `Your booking for ${updated.resourceId.name} is approved.`
+        : `Your booking for ${updated.resourceId.name} was rejected. Reason: ${
+            updated.remarks || ""
+          }`,
       type: isApproved ? "success" : "error",
-      relatedRequestId: request._id,
+      relatedRequestId: updated._id,
       channels: ["in-app", "email"],
       emailPayload,
     });
@@ -187,7 +205,7 @@ export const decisionRequest = async (req, res) => {
     res.status(200).json({
       success: true,
       statusCode: 200,
-      request,
+      request: updated,
       message: `Request has been ${status}`,
     });
   } catch (error) {
@@ -199,20 +217,13 @@ export const decisionRequest = async (req, res) => {
   }
 };
 
-/**
- * @desc    Cancel a request (user or admin)
- * @route   PATCH /api/v1/requests/:id/cancel
- * @access  Authenticated
- */
 export const cancelRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const { remarks } = req.body;
-
     const request = await Request.findById(id)
       .populate("userId", "email username")
       .populate("resourceId", "name");
-
     if (!request)
       return res
         .status(404)
@@ -220,15 +231,12 @@ export const cancelRequest = async (req, res) => {
 
     const isAdmin = req.user.role === "admin";
     const isOwner = request.userId.equals(req.user._id);
-
     if (!isAdmin && !isOwner) {
       return res.status(403).json({
         success: false,
         message: "Not authorized to cancel this request",
       });
     }
-
-    // Admin must provide a reason
     if (isAdmin && (!remarks || !remarks.trim())) {
       return res.status(400).json({
         success: false,
@@ -239,10 +247,8 @@ export const cancelRequest = async (req, res) => {
     request.status = "cancelled";
     request.remarks =
       remarks?.trim() || (isAdmin ? "Cancelled by admin" : "Cancelled by user");
-
     await request.save();
 
-    // --- Notify user if admin cancels ---
     if (isAdmin) {
       const {
         userId: user,
@@ -250,9 +256,9 @@ export const cancelRequest = async (req, res) => {
         startTime,
         endTime,
       } = request;
-      const timeSlot = `${new Date(startTime).toLocaleString()} - ${new Date(
+      const timeSlot = `${new Date(startTime).toISOString()} - ${new Date(
         endTime
-      ).toLocaleString()}`;
+      ).toISOString()}`;
 
       const emailPayload = {
         email: user.email,
@@ -264,7 +270,7 @@ export const cancelRequest = async (req, res) => {
             table: {
               data: [
                 { Resource: resource.name },
-                { "Time Slot": timeSlot },
+                { "Time Slot (UTC ISO)": timeSlot },
                 { Remarks: request.remarks },
               ],
             },
@@ -299,23 +305,16 @@ export const cancelRequest = async (req, res) => {
   }
 };
 
-/**
- * @desc    Get request history (user or admin)
- * @route   GET /api/v1/requests/history
- * @access  Authenticated
- */
 export const getRequestHistory = async (req, res) => {
   try {
     let filter = {};
     if (req.user.role !== "admin") {
       filter.userId = req.user._id;
     }
-
     const requests = await Request.find(filter)
       .sort({ createdAt: -1 })
       .populate("userId", "username email role")
       .populate("resourceId", "name type location");
-
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -332,29 +331,20 @@ export const getRequestHistory = async (req, res) => {
   }
 };
 
-/**
- * @desc    Archive past requests older than yesterday
- * @route   POST /api/v1/requests/archive
- * @access  Admin (can be scheduled via CRON)
- */
 export const archiveOldRequests = async (req, res) => {
   try {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-
     const oldRequests = await Request.find({ endTime: { $lt: yesterday } });
     if (!oldRequests.length) {
       return res
         .status(200)
         .json({ success: true, message: "No old requests to archive" });
     }
-
     const archived = await mongoose.connection
       .collection("requests_archive")
       .insertMany(oldRequests.map((r) => r.toObject()));
-
     await Request.deleteMany({ endTime: { $lt: yesterday } });
-
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -370,13 +360,11 @@ export const archiveOldRequests = async (req, res) => {
   }
 };
 
-// ---- Get Only Pending Requests ----
 export const getPendingRequests = async (req, res) => {
   try {
     const pending = await Request.find({ status: "pending" })
       .populate("userId", "username email role")
       .populate("resourceId", "name type location");
-
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -393,23 +381,19 @@ export const getPendingRequests = async (req, res) => {
   }
 };
 
-// ---- Approve Shortcut ----
 export const quickApprove = async (req, res) => {
   try {
     const { id } = req.params;
     const request = await Request.findById(id)
       .populate("userId", "email username")
       .populate("resourceId", "name");
-
     if (!request)
       return res
         .status(404)
         .json({ success: false, message: "Request not found" });
-
     request.status = "approved";
     request.approvedBy = req.user._id;
     request.approvedAt = new Date();
-
     await request.save();
     res.status(200).json({
       success: true,
@@ -426,24 +410,20 @@ export const quickApprove = async (req, res) => {
   }
 };
 
-// ---- Reject Shortcut ----
 export const quickReject = async (req, res) => {
   try {
     const { id } = req.params;
     const request = await Request.findById(id)
       .populate("userId", "email username")
       .populate("resourceId", "name");
-
     if (!request)
       return res
         .status(404)
         .json({ success: false, message: "Request not found" });
-
     request.status = "rejected";
     request.remarks = "Rejected by admin (quick action)";
     request.approvedBy = req.user._id;
     request.approvedAt = new Date();
-
     await request.save();
     res.status(200).json({
       success: true,

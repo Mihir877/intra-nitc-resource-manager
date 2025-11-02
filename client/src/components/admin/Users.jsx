@@ -64,6 +64,31 @@ export default function UserManagement() {
     calculateStats(filtered);
   };
 
+  /* ---------------- Handle Delete User ---------------- */
+  const handleDeleteUser = async (userId) => {
+    console.log("deleteing user: ");
+    console.log(userId);
+    const confirmDelete = window.confirm("Are you sure you want to delete this user?");
+    if (!confirmDelete) return;
+
+    try {
+      const res = await api.delete(`/users/delete-account/${userId}`);
+
+      if (res.data.success) {
+        alert("User deleted successfully!");
+        const updated = users.filter((u) => u._id !== userId);
+        setUsers(updated);
+        setFilteredUsers(updated);
+        calculateStats(updated);
+      } else {
+        alert(res.data.message || "Failed to delete user.");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert(error.response?.data?.message || "An error occurred while deleting the user.");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header Section */}
@@ -108,13 +133,8 @@ export default function UserManagement() {
             filteredUsers.map((user) => (
               <UserItem
                 key={user._id}
-                initials={getInitials(user.username)}
-                name={user.username}
-                email={user.email}
-                role={user.role}
-                address={user.address || ""}
-                gender={user.gender || ""}
-                registered={formatDateTime(user.createdAt)}
+                user={user}
+                onDelete={handleDeleteUser}
               />
             ))
           )}
@@ -124,52 +144,10 @@ export default function UserManagement() {
   );
 }
 
-function formatDateTime(dateString) {
-  if (!dateString) return "—";
+/* ---------------- User Item ---------------- */
+function UserItem({ user, onDelete }) {
+  const { _id, username, email, role, createdAt } = user;
 
-  // Ensure we parse it correctly — some APIs send with +00:00 which needs normalization
-  const parsed = Date.parse(dateString);
-  if (isNaN(parsed)) return "—";
-
-  const date = new Date(parsed);
-
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12 || 12; // convert 0 → 12 for 12 AM
-
-  return `${day}-${month}-${year} ${String(hours).padStart(
-    2,
-    "0"
-  )}:${minutes} ${ampm}`;
-}
-
-/* ---------------- Components ---------------- */
-
-function StatsCard({ title, value }) {
-  return (
-    <Card className="border border-gray-200 shadow-sm">
-      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-        <div className="text-3xl font-semibold text-gray-900">{value}</div>
-        <div className="text-sm text-gray-600 mt-1">{title}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function UserItem({
-  initials,
-  name,
-  email,
-  role,
-  address,
-  gender,
-  registered,
-}) {
   const badgeColor =
     role === "student"
       ? "bg-green-100 text-green-700"
@@ -184,11 +162,11 @@ function UserItem({
       {/* Left section - user info */}
       <div className="flex items-center gap-4">
         <div className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-700 font-semibold">
-          {initials}
+          {getInitials(username)}
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900">{name}</span>
+            <span className="font-medium text-gray-900">{username}</span>
             <span
               className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${badgeColor}`}
             >
@@ -197,18 +175,20 @@ function UserItem({
           </div>
           <div className="text-sm text-gray-500">{email}</div>
           <div className="text-xs text-gray-500 mt-1">
-            Registered: {registered}
+            Registered: {formatDateTime(createdAt)}
           </div>
-          {/* <div className="text-xs text-gray-500 mt-1">Address: {address}</div> */}
         </div>
       </div>
 
       {/* Right section - actions */}
       <div className="flex gap-2">
-        {/* <Button size="icon" variant="outline" className="h-8 w-8">
-          <Edit className="w-4 h-4 text-gray-600" />
-        </Button> */}
-        <Button size="icon" variant="outline" className="h-8 w-8">
+        {/* Delete Button with onClick */}
+        <Button
+          size="icon"
+          variant="outline"
+          className="h-8 w-8"
+          onClick={() => onDelete(_id)}
+        >
           <Trash2 className="w-4 h-4 text-red-500" />
         </Button>
       </div>
@@ -216,9 +196,35 @@ function UserItem({
   );
 }
 
-/* ---------------- Helper ---------------- */
+/* ---------------- Helper Components ---------------- */
+function StatsCard({ title, value }) {
+  return (
+    <Card className="border border-gray-200 shadow-sm">
+      <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+        <div className="text-3xl font-semibold text-gray-900">{value}</div>
+        <div className="text-sm text-gray-600 mt-1">{title}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function getInitials(name = "") {
   const parts = name.split(" ");
   if (parts.length === 1) return parts[0][0]?.toUpperCase() || "U";
   return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function formatDateTime(dateString) {
+  if (!dateString) return "—";
+  const parsed = Date.parse(dateString);
+  if (isNaN(parsed)) return "—";
+  const date = new Date(parsed);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${day}-${month}-${year} ${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
 }

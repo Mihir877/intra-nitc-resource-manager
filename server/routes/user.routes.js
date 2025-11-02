@@ -29,6 +29,6 @@ router.post("/assign-role/:userId", assignRole);
 router.patch("/update-profile", updateUserProfile);
 router.post("/change-password", changeCurrentPassword);
 router.get("/schedule", getUserSchedule);
-router.delete("/delete-account", deleteUser);
+ router.delete("/delete-account/:id", deleteUser);
 
 export default router;

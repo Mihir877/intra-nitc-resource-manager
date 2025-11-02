@@ -331,6 +331,68 @@ export const getRequestHistory = async (req, res) => {
   }
 };
 
+export const countRequests = async (req, res) => {
+  try {
+    let filter = {};
+
+    // Non-admin users can only see their own requests
+    if (req.user.role !== "admin") {
+      filter.userId = req.user._id;
+    }
+
+    // Fetch all matching requests
+    const requests = await Request.find(filter);
+
+    // Calculate basic counts
+    const totalRequests = requests.length;
+    const approvedRequests = requests.filter(
+      (r) => r.status === "approved"
+    ).length;
+    const pendingRequests = requests.filter(
+      (r) => r.status === "pending"
+    ).length;
+    const rejectedRequests = requests.filter(
+      (r) => r.status === "rejected"
+    ).length;
+
+    // Calculate total hours for approved requests
+    // Assuming `startTime` and `endTime` are Date objects or ISO strings
+    let totalHours = 0;
+    requests
+      .filter((r) => r.status === "approved")
+      .forEach((r) => {
+        if (r.startTime && r.endTime) {
+          const durationMs = new Date(r.endTime) - new Date(r.startTime);
+          const durationHours = durationMs / (1000 * 60 * 60); // Convert ms → hours
+          totalHours += durationHours;
+        }
+      });
+
+    // Round total hours to 2 decimal places
+    totalHours = parseFloat(totalHours.toFixed(2));
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: "Request counts and total hours fetched successfully",
+      data: {
+        totalRequests,
+        approvedRequests,
+        pendingRequests,
+        rejectedRequests,
+        totalHours,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching request counts:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
 export const archiveOldRequests = async (req, res) => {
   try {
     const yesterday = new Date();

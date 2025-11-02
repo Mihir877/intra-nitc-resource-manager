@@ -1,11 +1,94 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, UserPlus, Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
+import api from "@/api/axios"; // axios instance for API calls
 
 export default function UserManagement() {
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    student: 0,
+    faculty: 0,
+    admin: 0,
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+
+  /* ---------------- Fetch users from backend ---------------- */
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await api.get("/users/get-all-users");
+        if (res.data.success) {
+          const userList = res.data.users;
+          setUsers(userList);
+          setFilteredUsers(userList);
+          calculateStats(userList);
+        }
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  /* ---------------- Count user roles ---------------- */
+  const calculateStats = (userList) => {
+    const total = userList.length;
+    const student = userList.filter((u) => u.role === "student").length;
+    const faculty = userList.filter((u) => u.role === "faculty").length;
+    const admin = userList.filter((u) => u.role === "admin").length;
+    setStats({ total, student, faculty, admin });
+  };
+
+  /* ---------------- Handle search ---------------- */
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    const lower = query.toLowerCase();
+
+    const filtered = users.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(lower) ||
+        u.username?.toLowerCase().includes(lower) ||
+        u.email?.toLowerCase().includes(lower) ||
+        u.address?.toLowerCase().includes(lower) ||
+        u.role?.toLowerCase().includes(lower) ||
+        u.gender?.toLowerCase().includes(lower)
+    );
+
+    setFilteredUsers(filtered);
+    calculateStats(filtered);
+  };
+
+  /* ---------------- Handle Delete User ---------------- */
+  const handleDeleteUser = async (userId) => {
+    console.log("deleteing user: ");
+    console.log(userId);
+    const confirmDelete = window.confirm("Are you sure you want to delete this user?");
+    if (!confirmDelete) return;
+
+    try {
+      const res = await api.delete(`/users/delete-account/${userId}`);
+
+      if (res.data.success) {
+        alert("User deleted successfully!");
+        const updated = users.filter((u) => u._id !== userId);
+        setUsers(updated);
+        setFilteredUsers(updated);
+        calculateStats(updated);
+      } else {
+        alert(res.data.message || "Failed to delete user.");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert(error.response?.data?.message || "An error occurred while deleting the user.");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header Section */}
@@ -16,23 +99,22 @@ export default function UserManagement() {
             Manage all system users and their access
           </p>
         </div>
-        <Button className="flex gap-2 items-center bg-blue-600 hover:bg-blue-700">
-          <UserPlus className="w-4 h-4" /> Add User
-        </Button>
       </div>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatsCard title="Total Users" value="4" />
-        <StatsCard title="Students" value="2" />
-        <StatsCard title="Faculty" value="1" />
-        <StatsCard title="Admins" value="1" />
+        <StatsCard title="Total Users" value={stats.total} />
+        <StatsCard title="Students" value={stats.student} />
+        <StatsCard title="Faculty" value={stats.faculty} />
+        <StatsCard title="Admins" value={stats.admin} />
       </div>
 
       {/* Search Bar */}
       <div className="mb-6">
         <Input
-          placeholder="Search users by name, email, or department..."
+          placeholder="Search users by name, email, address, or role..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
           className="w-full"
         />
       </div>
@@ -40,37 +122,81 @@ export default function UserManagement() {
       {/* Users List */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">All Users (4)</CardTitle>
+          <CardTitle className="text-lg font-semibold">
+            All Users ({filteredUsers.length})
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <UserItem
-            initials="MP"
-            name="Mihir Patel"
-            email="mihir@nitc.ac.in"
-            role="student"
-            dept="Computer Science"
-            registered="2025-01-15"
-            activeRequests={1}
-            totalUsage="42h"
-          />
-          <UserItem
-            initials="ST"
-            name="Saurabh Tripathi"
-            email="saurabh@nitc.ac.in"
-            role="faculty"
-            dept="Computer Science"
-            registered="2024-08-20"
-            activeRequests={2}
-            totalUsage="128h"
-          />
+          {filteredUsers.length === 0 ? (
+            <p className="text-sm text-gray-500">No users found.</p>
+          ) : (
+            filteredUsers.map((user) => (
+              <UserItem
+                key={user._id}
+                user={user}
+                onDelete={handleDeleteUser}
+              />
+            ))
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-/* ---------------- Components ---------------- */
+/* ---------------- User Item ---------------- */
+function UserItem({ user, onDelete }) {
+  const { _id, username, email, role, createdAt } = user;
 
+  const badgeColor =
+    role === "student"
+      ? "bg-green-100 text-green-700"
+      : role === "faculty"
+      ? "bg-blue-100 text-blue-700"
+      : role === "admin"
+      ? "bg-purple-100 text-purple-700"
+      : "bg-gray-100 text-gray-700";
+
+  return (
+    <div className="flex items-center justify-between border border-gray-200 rounded-lg p-4 hover:shadow-sm transition">
+      {/* Left section - user info */}
+      <div className="flex items-center gap-4">
+        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-700 font-semibold">
+          {getInitials(username)}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-900">{username}</span>
+            <span
+              className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${badgeColor}`}
+            >
+              {role}
+            </span>
+          </div>
+          <div className="text-sm text-gray-500">{email}</div>
+          <div className="text-xs text-gray-500 mt-1">
+            Registered: {formatDateTime(createdAt)}
+          </div>
+        </div>
+      </div>
+
+      {/* Right section - actions */}
+      <div className="flex gap-2">
+        {/* Delete Button with onClick */}
+        <Button
+          size="icon"
+          variant="outline"
+          className="h-8 w-8"
+          onClick={() => onDelete(_id)}
+        >
+          <Trash2 className="w-4 h-4 text-red-500" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Helper Components ---------------- */
 function StatsCard({ title, value }) {
   return (
     <Card className="border border-gray-200 shadow-sm">
@@ -82,56 +208,23 @@ function StatsCard({ title, value }) {
   );
 }
 
-function UserItem({
-  initials,
-  name,
-  email,
-  role,
-  dept,
-  registered,
-  activeRequests,
-  totalUsage,
-}) {
-  const badgeColor =
-    role === "student"
-      ? "bg-green-100 text-green-700"
-      : role === "faculty"
-      ? "bg-blue-100 text-blue-700"
-      : "bg-gray-100 text-gray-700";
+function getInitials(name = "") {
+  const parts = name.split(" ");
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "U";
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 
-  return (
-    <div className="flex items-center justify-between border border-gray-200 rounded-lg p-4 hover:shadow-sm transition">
-      {/* Left section - user info */}
-      <div className="flex items-center gap-4">
-        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-700 font-semibold">
-          {initials}
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900">{name}</span>
-            <span
-              className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${badgeColor}`}
-            >
-              {role}
-            </span>
-          </div>
-          <div className="text-sm text-gray-500">{email}</div>
-          <div className="text-xs text-gray-500 mt-1">
-            {dept} • Registered: {registered} • Active Requests:{" "}
-            {activeRequests} • Total Usage: {totalUsage}
-          </div>
-        </div>
-      </div>
-
-      {/* Right section - actions */}
-      <div className="flex gap-2">
-        <Button size="icon" variant="outline" className="h-8 w-8">
-          <Edit className="w-4 h-4 text-gray-600" />
-        </Button>
-        <Button size="icon" variant="outline" className="h-8 w-8">
-          <Trash2 className="w-4 h-4 text-red-500" />
-        </Button>
-      </div>
-    </div>
-  );
+function formatDateTime(dateString) {
+  if (!dateString) return "—";
+  const parsed = Date.parse(dateString);
+  if (isNaN(parsed)) return "—";
+  const date = new Date(parsed);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${day}-${month}-${year} ${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
 }

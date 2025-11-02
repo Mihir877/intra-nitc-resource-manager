@@ -36,12 +36,10 @@ const changeCurrentPassword = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -69,12 +67,10 @@ const assignRole = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -90,12 +86,10 @@ const getCurrentUser = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -104,7 +98,7 @@ const getAllUsers = async (req, res) => {
   try {
     const currentUserId = req.user._id;
     const users = await User.find({ _id: { $ne: currentUserId } }).select(
-      "avatar username email"
+      "avatar username email role createdAt name address gender"
     );
 
     res.status(200).json({
@@ -116,12 +110,10 @@ const getAllUsers = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: error.message || "Internal Server Error",
-      });
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -172,16 +164,55 @@ const updateUserProfile = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
+// Delete a user by ID
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent deleting self
+    if (req.user._id.toString() === id) {
+      return res.status(400).json({
         success: false,
-        message: error.message || "Internal Server Error",
+        message: "You cannot delete your own account",
       });
+    }
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: "User deleted successfully",
+      deletedUserId: id,
+      activityType: USER_ACTIVITY_TYPES.DELETE_DATA,
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
 export {
+  deleteUser,
   changeCurrentPassword,
   assignRole,
   getCurrentUser,

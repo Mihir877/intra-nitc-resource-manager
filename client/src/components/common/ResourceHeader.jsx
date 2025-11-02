@@ -145,7 +145,7 @@ const ResourceHeader = ({ resourceId }) => {
         </div>
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between">
+      {/* <CardFooter className="flex items-center justify-between">
         <div className="text-xs text-muted-foreground">
           {expanded
             ? resource.description
@@ -160,7 +160,7 @@ const ResourceHeader = ({ resourceId }) => {
             {expanded ? "Show Details" : "Hide Details"}
           </Button>
         </div>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   );
 };

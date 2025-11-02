@@ -18,7 +18,7 @@ const studentNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Server, label: "Browse Resources", href: "/resources" },
   { icon: Calendar, label: "My Requests", href: "/requests" },
-  { icon: History, label: "History", href: "/history" },
+  // { icon: History, label: "History", href: "/history" },
   { icon: Calendar, label: "Schedule", href: "/schedule" },
   { icon: User, label: "Profile", href: "/profile" },
 ];

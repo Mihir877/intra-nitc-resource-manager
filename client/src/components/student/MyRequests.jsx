@@ -4,53 +4,16 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  CalendarDays,
-  Clock,
-  FileText,
-  X,
-} from "lucide-react";
-
-const requestData = [
-  {
-    id: "REQ001",
-    resource: "GPU Server A1",
-    category: "GPU Server",
-    requestDate: "2025-09-28",
-    startTime: "09:00",
-    endTime: "17:00",
-    duration: "2025-10-01 to 2025-10-05",
-    purpose: "Deep Learning Model Training for Research Project",
-    status: "Pending",
-  },
-  {
-    id: "REQ002",
-    resource: "ML Workstation 1",
-    category: "Workstation",
-    requestDate: "2025-09-27",
-    startTime: "10:00",
-    endTime: "16:00",
-    duration: "2025-09-29",
-    purpose: "Computer Vision Algorithm Testing",
-    status: "Approved",
-    adminComment: "Approved. Please collect access card from admin office.",
-  },
-  {
-    id: "REQ003",
-    resource: "GPU Server A2",
-    category: "GPU Server",
-    requestDate: "2025-09-25",
-    startTime: "11:00",
-    endTime: "15:00",
-    duration: "2025-09-26",
-    purpose: "Model fine-tuning experiments",
-    status: "Completed",
-  },
-];
+import { CalendarDays, Clock, FileText, X } from "lucide-react";
+import AddRequestModal from "./AddRequestModal";
 
 export default function MyRequests() {
   const [filter, setFilter] = useState("All");
+  // const [openRequestModal, setOpenRequestModal] = useState(false);
+  // const [resources, setResources] = useState([]);
+  // const [requests, setRequests] = useState([]);
 
+  const requestData = [];
   const filteredRequests = requestData.filter(
     (req) => filter === "All" || req.status === filter
   );
@@ -67,7 +30,12 @@ export default function MyRequests() {
             Track and manage your resource requests
           </p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">New Request</Button>
+        {/* <Button
+          onClick={() => setOpenRequestModal(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          New Request
+        </Button> */}
       </div>
 
       {/* Filter Tabs */}
@@ -83,7 +51,12 @@ export default function MyRequests() {
             }`}
             onClick={() => setFilter(tab)}
           >
-            {tab} ({requestData.filter((r) => tab === "All" || r.status === tab).length})
+            {tab} (
+            {
+              requestData.filter((r) => tab === "All" || r.status === tab)
+                .length
+            }
+            )
           </Button>
         ))}
       </div>
@@ -179,6 +152,14 @@ export default function MyRequests() {
           </Card>
         ))}
       </div>
+      {/* {openRequestModal && (
+        <AddRequestModal
+          open={openRequestModal}
+          onClose={() => setOpenRequestModal(false)}
+          resources={resources}
+          onRequestCreated={(r) => setRequests((prev) => [...prev, r])}
+        />
+      )} */}
     </div>
   );
 }

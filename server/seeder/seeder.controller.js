@@ -187,7 +187,7 @@ export const seedResourcesFaker = async (req, res) => {
         location: `${faker.location.buildingNumber()} ${faker.location.street()}}`,
         status: "available",
         availability: availabilityTemplate,
-        maxBookingDuration: getRandomInt(15),
+        maxBookingDuration: faker.number.int({ min: 2, max: 60 }),
         requiresApproval,
         usageRules: faker.lorem.sentence(), // string, not array
         createdBy: owner._id,

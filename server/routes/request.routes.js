@@ -9,6 +9,7 @@ import {
   cancelRequest,
   getRequestHistory,
   archiveOldRequests,
+  countRequests,
 } from "../controllers/request.controller.js";
 
 import { verifyJWT, requireAdmin } from "../middlewares/auth.middleware.js";
@@ -23,6 +24,9 @@ router.get("/", getRequests);
 
 // ----- New: Get only pending requests -----
 router.get("/pending", requireAdmin, getPendingRequests);
+
+// ----- New: Get count of different requests -----
+router.get("/count", countRequests);
 
 // ----- Admin Approve/Reject -----
 router.patch("/:id/decision", requireAdmin, decisionRequest);

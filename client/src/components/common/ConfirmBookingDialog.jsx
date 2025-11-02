@@ -18,20 +18,51 @@ import { CircleCheck, Clock, Calendar, ArrowRight, Edit3 } from "lucide-react";
 
 const pad = (n) => String(n).padStart(2, "0");
 
+// Add 1 hour to a slot key to get the END boundary
+const addOneHour = (date, hour) => {
+  const nextHour = hour + 1;
+
+  if (nextHour >= 24) {
+    // Day rollover: 23:00 → next day 00:00
+    const d = new Date(`${date}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    const nextDate = d.toISOString().split("T")[0];
+    return { d: nextDate, h: 0 };
+  }
+
+  return { d: date, h: nextHour };
+};
+
 const computeDisplayRange = (startKey, endKey) => {
   if (!startKey) return { start: null, end: null, minutes: 0 };
+
   const [sd, shStr] = startKey.split("_");
   const sh = parseInt(shStr, 10);
-  let [ed, ehStr] = endKey ? endKey.split("_") : [sd, String(sh)];
-  let eh = parseInt(ehStr, 10);
-  if (!endKey || (sd === ed && eh === sh)) {
-    ed = sd;
-    eh = sh + 1;
+
+  // Determine the actual end slot
+  let endSlot;
+  if (!endKey) {
+    // Single slot selection: use start slot
+    endSlot = { d: sd, h: sh };
+  } else {
+    const [ed, ehStr] = endKey.split("_");
+    const eh = parseInt(ehStr, 10);
+    endSlot = { d: ed, h: eh };
   }
+
+  // CRITICAL: Add 1 hour to end slot to get the END BOUNDARY time
+  // Example: slot "16" (4pm-5pm) → display end time as 17:00 (5pm)
+  const endBoundary = addOneHour(endSlot.d, endSlot.h);
+
   const sDate = new Date(`${sd}T${pad(sh)}:00:00`);
-  const eDate = new Date(`${ed}T${pad(eh)}:00:00`);
+  const eDate = new Date(`${endBoundary.d}T${pad(endBoundary.h)}:00:00`);
   const minutes = Math.max(60, Math.round((eDate - sDate) / 60000));
-  return { start: { d: sd, h: sh }, end: { d: ed, h: eh }, minutes };
+
+  return {
+    start: { d: sd, h: sh },
+    end: endBoundary, // Use boundary time for display
+    minutes,
+  };
 };
 
 const fmtDate = (d) =>
@@ -77,14 +108,14 @@ export function ConfirmBookingDialog({
   resourceName,
   actualStart,
   actualEnd,
-  duration, // optional upstream
+  duration,
   purpose,
   onPurposeChange,
   onSubmit,
   onChangeTime,
   submitting = false,
 }) {
-  const { start, end, minutes } = useMemo(
+  const { start, end } = useMemo(
     () => computeDisplayRange(actualStart, actualEnd),
     [actualStart, actualEnd]
   );
@@ -122,7 +153,9 @@ export function ConfirmBookingDialog({
                 <div className="flex items-center justify-between pt-1">
                   <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-sm">
                     <Clock className="h-4 w-4" />
-                    <span className="font-medium">Duration: {duration?.formatted}</span>
+                    <span className="font-medium">
+                      Duration: {duration?.formatted}
+                    </span>
                   </div>
 
                   <Button
@@ -143,7 +176,10 @@ export function ConfirmBookingDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="purpose">Purpose</Label>
+              <Label htmlFor="purpose">
+                Purpose
+                <span className="text-red-500 ml-1">*</span>
+              </Label>
               <Textarea
                 id="purpose"
                 placeholder="Describe the purpose (e.g., Deep Learning training, Circuit Analysis)…"

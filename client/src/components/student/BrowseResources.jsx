@@ -85,7 +85,6 @@ export default function BrowseResources() {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -113,7 +112,7 @@ export default function BrowseResources() {
     return () => {
       active = false;
     };
-  }, [refreshKey]);
+  }, []);
 
   const filteredResources = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -202,7 +201,7 @@ export default function BrowseResources() {
       )}
 
       {loading && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 [grid-auto-rows:1fr]">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows:1fr">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card
               key={i}
@@ -238,7 +237,7 @@ export default function BrowseResources() {
       )}
 
       {!loading && filteredResources.length > 0 && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 [grid-auto-rows:1fr]">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 auto-rows:1fr">
           {filteredResources.map((res) => {
             const to = `/resources/${res.id}`; // use resource id for routing
             return (

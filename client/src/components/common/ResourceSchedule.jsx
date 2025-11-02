@@ -11,22 +11,24 @@ import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
 dayjs.extend(utc);
 
+// Convert slot key to ISO timestamp
 const keyToIsoUtc = (key) => {
   const [d, h] = key.split("_");
   return dayjs.utc(`${d}T${String(h).padStart(2, "0")}:00:00Z`).toISOString();
 };
 
-const ensureEndPlus1h = (startKey, endKey) => {
-  if (!endKey)
-    return `${startKey.split("_")[0]}_${
-      parseInt(startKey.split("_")[1], 10) + 1
-    }`;
-  const [sd, sh] = startKey.split("_");
-  const [ed, eh] = endKey.split("_");
-  if (sd === ed && parseInt(eh, 10) === parseInt(sh, 10)) {
-    return `${ed}_${parseInt(eh, 10) + 1}`;
+// Add 1 hour to a slot key to get the END boundary time
+const addOneHour = (slotKey) => {
+  const [date, hour] = slotKey.split("_");
+  const nextHour = parseInt(hour, 10) + 1;
+
+  // Handle day rollover (23:00 → next day 00:00)
+  if (nextHour >= 24) {
+    const nextDate = dayjs(date).add(1, "day").format("YYYY-MM-DD");
+    return `${nextDate}_0`;
   }
-  return endKey;
+
+  return `${date}_${nextHour}`;
 };
 
 const firstColPx = 80;
@@ -190,7 +192,7 @@ const ResourceSchedule = ({ resourceId }) => {
 
   if (error) {
     return (
-      <div className="w-full max-w-screen-lg mx-auto">
+      <div className="w-full max-w-5xl mx-auto">
         <div className="border rounded-md overflow-hidden">
           <div className="p-4 text-center text-sm text-red-600">{error}</div>
         </div>
@@ -201,7 +203,6 @@ const ResourceSchedule = ({ resourceId }) => {
 
   const schedule = scheduleData.schedule || {};
   const { actualStart, actualEnd } = getActualStartEnd();
-  console.log("actualEnd: ", actualEnd);
   const duration = calculateDuration();
 
   const handleConfirmClick = () => setConfirmOpen(true);
@@ -210,15 +211,19 @@ const ResourceSchedule = ({ resourceId }) => {
     if (!actualStart) return;
     setSubmitting(true);
     try {
-      const fixedEndKey = ensureEndPlus1h(actualStart, actualEnd);
+      // CRITICAL: End slot needs +1 hour to represent the END boundary
+      // Example: slot "16" (4pm) represents 4:00-5:00, so end time is 5:00
+      const endSlotKey = actualEnd || actualStart; // Single slot: use start as end
+      const endBoundaryKey = addOneHour(endSlotKey);
+
       const startTime = keyToIsoUtc(actualStart);
-      const endTime = keyToIsoUtc(fixedEndKey);
+      const endTime = keyToIsoUtc(endBoundaryKey);
 
       const payload = {
         resourceId,
         startTime,
         endTime,
-        bookingDuration: duration?.hours || 0,
+        bookingDuration: duration?.hours || 1, // Single slot = 1 hour
         purpose: purpose.trim(),
       };
 
@@ -239,10 +244,10 @@ const ResourceSchedule = ({ resourceId }) => {
   };
 
   return (
-    <div className="w-full max-w-screen-lg mx-auto space-y-4">
+    <div className="w-full max-w-5xl mx-auto space-y-4">
       <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-md">
         <div
-          className="flex align-center text-sm font-medium min-h-[32px]"
+          className="flex align-center text-sm font-medium min-h-8"
           style={{ alignItems: "center" }}
         >
           {selectedSlots.size > 0 ? (
@@ -274,7 +279,7 @@ const ResourceSchedule = ({ resourceId }) => {
             <Button
               size="sm"
               onClick={handleConfirmClick}
-              disabled={!actualStart || !actualEnd}
+              disabled={!actualStart}
             >
               Confirm Booking
             </Button>

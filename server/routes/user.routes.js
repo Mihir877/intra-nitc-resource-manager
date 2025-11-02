@@ -6,6 +6,7 @@ import {
   assignRole,
   getAllUsers,
   updateUserProfile,
+  deleteUser,
 } from "../controllers/user.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -28,5 +29,6 @@ router.post("/assign-role/:userId", assignRole);
 router.patch("/update-profile", updateUserProfile);
 router.post("/change-password", changeCurrentPassword);
 router.get("/schedule", getUserSchedule);
+router.delete("/delete-account", deleteUser);
 
 export default router;

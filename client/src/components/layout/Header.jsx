@@ -1,5 +1,6 @@
+// Header.jsx
 import React from "react";
-import { Menu, Bell, LogOut, User, Settings } from "lucide-react";
+import { Menu, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,6 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "@/hooks/useSidebar";
 import useAuth from "@/hooks/useAuth";
+import NotificationBell from "@/components/layout/NotificationBell";
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -31,6 +33,7 @@ export function Header() {
           >
             <Menu className="h-5 w-5" />
           </Button>
+
           <div
             className="flex items-center space-x-2 select-none cursor-pointer"
             onClick={() => navigate("/")}
@@ -52,15 +55,15 @@ export function Header() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-accent rounded-full"></span>
-          </Button>
+          <NotificationBell
+            userId={user?._id}
+            onItemClick={(n) => {
+              if (n.relatedRequestId) {
+                navigate(`/requests/${n.relatedRequestId}`);
+              }
+            }}
+            onViewAll={() => navigate("/notifications")}
+          />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -78,7 +81,6 @@ export function Header() {
                       .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {/* <span className="hidden sm:inline text-sm">{user.username}</span> */}
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>

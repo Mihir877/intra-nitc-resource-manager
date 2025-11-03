@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, User } from "lucide-react";
+import { User } from "lucide-react";
 import api from "@/api/axios";
 
 export default function PendingRequests() {
@@ -11,17 +11,13 @@ export default function PendingRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch requests and stats
   useEffect(() => {
     const fetchRequests = async () => {
       setLoading(true);
       try {
         const res = await api.get("/requests/pending");
         const data = res.data.data || [];
-
         setRequests(data);
-
-        // Compute counts
         setStats({
           pending: data.filter((r) => r.status?.toLowerCase() === "pending")
             .length,
@@ -39,28 +35,48 @@ export default function PendingRequests() {
     fetchRequests();
   }, []);
 
-  // Handle approve/reject
-  const handleAction = async (id, action) => {
-    try {
-      await api.patch(`/requests/${id}/${action.toLowerCase()}`);
-      setRequests((prev) =>
-        prev.map((req) => (req._id === id ? { ...req, status: action } : req))
-      );
+  const adjustStats = (prev, from, to) => {
+    const next = { ...prev };
+    next[from] = Math.max(0, next[from] - 1);
+    next[to] = next[to] + 1;
+    return next;
+  };
 
-      // Adjust stats accordingly
-      setStats((prev) => ({
-        ...prev,
-        pending: prev.pending - 1,
-        [action.toLowerCase()]: prev[action.toLowerCase()] + 1,
-      }));
+  const handleDecision = async (id, nextStatus) => {
+    let remarks = "";
+    if (nextStatus === "rejected") {
+      const input = window.prompt("Add remarks for rejection (optional):", "");
+      if (input !== null) remarks = input.trim();
+    }
+
+    const current = requests.find((r) => r._id === id);
+    if (!current) return;
+
+    const prevStatus = current.status;
+    setRequests((prev) =>
+      prev.map((r) => (r._id === id ? { ...r, status: nextStatus } : r))
+    );
+    setStats((prev) => adjustStats(prev, prevStatus, nextStatus));
+
+    try {
+      await api.patch(`/requests/${id}/decision`, {
+        status: nextStatus,
+        ...(nextStatus === "rejected" ? { remarks } : {}),
+      });
     } catch (err) {
-      console.error(`Failed to ${action} request ${id}`, err);
+      console.error(
+        `Failed to set status=${nextStatus} for request ${id}`,
+        err
+      );
+      setRequests((prev) =>
+        prev.map((r) => (r._id === id ? { ...r, status: prevStatus } : r))
+      );
+      setStats((prev) => adjustStats(prev, nextStatus, prevStatus));
     }
   };
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Pending Requests</h1>
         <p className="text-gray-500 text-sm mt-1">
@@ -68,23 +84,21 @@ export default function PendingRequests() {
         </p>
       </div>
 
-      {/* Stats Section */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard title="Pending Requests" value={stats.pending} />
         <StatCard title="Approved" value={stats.approved} />
         <StatCard title="Rejected" value={stats.rejected} />
       </div>
 
-      {/* Request Cards */}
       {loading ? (
         <p className="text-gray-500 text-sm">Loading requests...</p>
       ) : requests.length > 0 ? (
         <div className="flex flex-col gap-6">
           {requests.map((req) => (
             <RequestCard
-              key={req._id || req.id}
+              key={req._id}
               request={req}
-              onAction={handleAction}
+              onDecision={handleDecision}
             />
           ))}
         </div>
@@ -95,7 +109,6 @@ export default function PendingRequests() {
   );
 }
 
-// Small stat card component
 function StatCard({ title, value }) {
   return (
     <Card className="p-4 shadow-sm border border-gray-200">
@@ -105,14 +118,13 @@ function StatCard({ title, value }) {
   );
 }
 
-function RequestCard({ request, onAction }) {
+function RequestCard({ request, onDecision }) {
   const status =
     request.status?.charAt(0).toUpperCase() + request.status?.slice(1);
 
   return (
     <Card className="border border-gray-200 shadow-sm">
       <CardContent className="p-6">
-        {/* Header Row */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-3 items-center">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -135,7 +147,6 @@ function RequestCard({ request, onAction }) {
           </Badge>
         </div>
 
-        {/* Requested By */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-4 mb-4">
           <div className="flex items-start gap-2">
             <User className="w-5 h-5 text-gray-500 mt-1" />
@@ -176,7 +187,7 @@ function RequestCard({ request, onAction }) {
                         {
                           hour: "2-digit",
                           minute: "2-digit",
-                          hour12: false, // optional: set to true for 12-hour format
+                          hour12: false,
                         }
                       )}`
                     : "N/A"}
@@ -208,7 +219,6 @@ function RequestCard({ request, onAction }) {
           </div>
         </div>
 
-        {/* Purpose */}
         <div className="mb-5">
           <p className="text-sm text-gray-500 font-medium mb-1.5">Purpose</p>
           <div className="bg-gray-50 text-gray-800 px-3 py-2 rounded-md text-sm">
@@ -216,20 +226,19 @@ function RequestCard({ request, onAction }) {
           </div>
         </div>
 
-        {/* Action Buttons */}
         {status === "Pending" && (
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
               className="bg-blue-100 text-blue-700 border-blue-300 flex-1 hover:bg-blue-200"
-              onClick={() => onAction(request._id, "Approved")}
+              onClick={() => onDecision(request._id, "approved")}
             >
               ✓ Approve
             </Button>
             <Button
               variant="outline"
               className="bg-red-100 text-red-700 border-red-300 flex-1 hover:bg-red-200"
-              onClick={() => onAction(request._id, "Rejected")}
+              onClick={() => onDecision(request._id, "rejected")}
             >
               ✗ Reject
             </Button>

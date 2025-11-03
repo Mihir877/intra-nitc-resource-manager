@@ -11,7 +11,6 @@ export const createNotification = async ({
   emailPayload = {},
 }) => {
   try {
-    // 1️⃣ Save in-app notification to DB
     const notification = await Notification.create({
       userId: user._id,
       title,
@@ -21,22 +20,25 @@ export const createNotification = async ({
       status: "pending",
     });
 
-    // 2️⃣ Real-time socket notification (if user online)
+    // Real-time in-app
     if (channels.includes("in-app") && global._io && global._onlineUsers) {
       const socketId = global._onlineUsers.get(user._id.toString());
       if (socketId) {
         global._io.to(socketId).emit("notification", {
+          _id: notification._id,
           title,
           message,
           type,
           relatedRequestId,
           createdAt: notification.createdAt,
+          status: notification.status,
         });
-        console.log(`📡 Real-time notification sent to user ${user._id}`);
+
+        console.log(`📡 Real-time notification sent to user ${user._id}`); // [attached_file:3]
       }
     }
 
-    // 3️⃣ Email notification (if channel + verified)
+    // Optional email
     if (
       channels.includes("email") &&
       user.isEmailVerified &&
@@ -50,9 +52,11 @@ export const createNotification = async ({
         notification.status = "failed";
         console.error("⚠️ Email sending failed:", err.message);
       }
-      await notification.save();
+    } else {
+      notification.status = "sent";
     }
 
+    await notification.save();
     return notification;
   } catch (error) {
     console.error("❌ Error creating notification:", error.message);

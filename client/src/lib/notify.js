@@ -1,5 +1,4 @@
 // lib/notify.js
-"use client";
 import { createElement } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Info, AlertTriangle } from "lucide-react";

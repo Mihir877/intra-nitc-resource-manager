@@ -11,11 +11,11 @@ export const initSocket = (httpServer) => {
   });
 
   io.on("connection", (socket) => {
-    console.log("🟢 User connected:", socket.id);
+    // console.log("🟢 User connected:", socket.id);
 
     socket.on("register", (userId) => {
       onlineUsers.set(userId, socket.id);
-      console.log(`✅ Registered user ${userId} with socket ${socket.id}`);
+      // console.log(`✅ Registered user ${userId} with socket ${socket.id}`);
     });
 
     socket.on("disconnect", () => {
@@ -25,7 +25,7 @@ export const initSocket = (httpServer) => {
           break;
         }
       }
-      console.log("🔴 User disconnected:", socket.id);
+      // console.log("🔴 User disconnected:", socket.id);
     });
   });
 

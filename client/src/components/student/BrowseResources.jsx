@@ -1,4 +1,3 @@
-"use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";

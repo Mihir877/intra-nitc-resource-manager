@@ -1,5 +1,4 @@
 // app/components/resource/ResourceSchedule.jsx
-"use client";
 import { Button } from "@/components/ui/button";
 import { useSlotSelection } from "@/hooks/useSlotSelection";
 import { useState } from "react";

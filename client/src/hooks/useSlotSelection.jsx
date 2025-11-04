@@ -1,5 +1,4 @@
 // app/hooks/useSlotSelection.js
-"use client";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import api from "@/api/axios";
 

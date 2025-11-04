@@ -63,7 +63,6 @@ export const seedUsersFromJson = async (req, res) => {
   try {
     const { count = 10 } = req.body || {};
     const fileAbs = path.join(seedDir, "users.json");
-    console.log("fileAbs: ", fileAbs);
     if (!(await fileExists(fileAbs))) {
       return fail(res, 400, "users.json not found in seeder");
     }

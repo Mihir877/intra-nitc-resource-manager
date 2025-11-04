@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,9 +64,9 @@ export default function UserManagement() {
 
   /* ---------------- Handle Delete User ---------------- */
   const handleDeleteUser = async (userId) => {
-    console.log("deleteing user: ");
-    console.log(userId);
-    const confirmDelete = window.confirm("Are you sure you want to delete this user?");
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this user?"
+    );
     if (!confirmDelete) return;
 
     try {
@@ -85,7 +83,10 @@ export default function UserManagement() {
       }
     } catch (error) {
       console.error("Error deleting user:", error);
-      alert(error.response?.data?.message || "An error occurred while deleting the user.");
+      alert(
+        error.response?.data?.message ||
+          "An error occurred while deleting the user."
+      );
     }
   };
 
@@ -226,5 +227,8 @@ function formatDateTime(dateString) {
   const minutes = String(date.getMinutes()).padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
-  return `${day}-${month}-${year} ${String(hours).padStart(2, "0")}:${minutes} ${ampm}`;
+  return `${day}-${month}-${year} ${String(hours).padStart(
+    2,
+    "0"
+  )}:${minutes} ${ampm}`;
 }

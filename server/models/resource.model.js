@@ -35,26 +35,26 @@ const resourceSchema = new Schema(
       enum: ["available", "in_use", "maintenance", "disabled"],
       default: "available",
     },
-    // availability: [
-    //   {
-    //     day: {
-    //       type: String,
-    //       enum: [
-    //         "Monday",
-    //         "Tuesday",
-    //         "Wednesday",
-    //         "Thursday",
-    //         "Friday",
-    //         "Saturday",
-    //         "Sunday",
-    //       ],
-    //       trim: true,
-    //     }, // e.g. "Monday"
-    //     // changed from Date to String to represent time-of-day (HH:mm)
-    //     startTime: { type: String, trim: true }, // e.g. "09:00"
-    //     endTime: { type: String, trim: true }, // e.g. "17:00"
-    //   },
-    // ],
+    availability: [
+      {
+        day: {
+          type: String,
+          enum: [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ],
+          trim: true,
+        }, // e.g. "Monday"
+        // changed from Date to String to represent time-of-day (HH:mm)
+        startTime: { type: String, trim: true }, // e.g. "09:00"
+        endTime: { type: String, trim: true }, // e.g. "17:00"
+      },
+    ],
     maxBookingDuration: {
       type: Number, // in hours
       default: 2,
@@ -95,11 +95,11 @@ const resourceSchema = new Schema(
   { timestamps: true }
 );
 
-// // Set default availability after schema declaration to avoid repeating schema definition
-// resourceSchema.path("availability").default(function () {
-//   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-//   return days.map((day) => ({ day, startTime: "09:00", endTime: "17:00" }));
-// });
+// Set default availability after schema declaration to avoid repeating schema definition
+resourceSchema.path("availability").default(function () {
+  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+  return days.map((day) => ({ day, startTime: "09:00", endTime: "17:00" }));
+});
 
 // Indexes for fast lookup and search
 resourceSchema.index({

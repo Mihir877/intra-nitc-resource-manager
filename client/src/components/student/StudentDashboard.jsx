@@ -3,9 +3,8 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import api from "@/api/axios";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { dummyRecentRequests, dummyUpcomingBookings } from "@/data/dummyData";
 
 const StudentDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -61,7 +60,7 @@ const StudentDashboard = () => {
         if (res.data.success) {
           // Filter only approved requests
           const approved = res.data.requests.filter(
-            (r) => r.status === "Approved"
+            (r) => r.status === "approved"
           );
           setApprovedRequests(approved);
         }
@@ -125,8 +124,17 @@ const StudentDashboard = () => {
         {/* Recent Requests and Upcoming Bookings */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Recent Requests */}
-          <Card className="p-5">
-            <div className="text-sm text-gray-700">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold mb-0">
+                Recent Requests
+              </CardTitle>
+              <p className="text-sm text-gray-500">
+                Your latest resource requests
+              </p>
+            </CardHeader>
+
+            <CardContent className="text-sm text-gray-700">
               {loading ? (
                 <div className="flex items-center justify-center h-40 text-gray-500">
                   Loading requests...
@@ -146,7 +154,6 @@ const StudentDashboard = () => {
                         {req.resourceId?.name || "Unknown Resource"}
                       </span>
                       <div className="text-xs text-gray-500">
-                        {req.userId?.username || "Unknown User"} •{" "}
                         {new Date(req.startTime).toLocaleDateString()} •{" "}
                         {req.duration
                           ? req.duration
@@ -165,9 +172,9 @@ const StudentDashboard = () => {
                     <Badge
                       variant="outline"
                       className={`${
-                        req.status === "Approved"
+                        req.status === "approved"
                           ? "bg-green-100 text-green-700"
-                          : req.status === "Pending"
+                          : req.status === "pending"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-red-100 text-red-700"
                       }`}
@@ -177,16 +184,21 @@ const StudentDashboard = () => {
                   </div>
                 ))
               )}
-            </div>
+            </CardContent>
           </Card>
           {/* Upcoming Bookings */}
-          <Card className="p-5">
-            <h3 className="text-lg font-semibold mb-2">Upcoming Bookings</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              Your approved resource bookings
-            </p>
 
-            <div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-bold mb-0">
+                Upcoming Bookings
+              </CardTitle>
+              <p className="text-sm text-gray-500">
+                Your upcoming resource bookings
+              </p>
+            </CardHeader>
+
+            <CardContent>
               {loading ? (
                 <div className="text-gray-500 flex items-center justify-center h-40">
                   Loading bookings...
@@ -224,11 +236,11 @@ const StudentDashboard = () => {
                   </div>
                 ))
               )}
-            </div>
 
-            <Button variant="outline" className="mt-4 w-full">
-              View Schedule
-            </Button>
+              <Button variant="outline" className="mt-4 w-full">
+                View Schedule
+              </Button>
+            </CardContent>
           </Card>
         </div>
       </main>

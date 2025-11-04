@@ -331,6 +331,116 @@ export const getRequestHistory = async (req, res) => {
   }
 };
 
+export const getMyRequests = async (req, res) => {
+  try {
+    // Ensure authenticated
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    // Query params
+    const {
+      page = 1,
+      limit = 10,
+      status, // "pending|approved|rejected|cancelled"
+      from, // ISO start bound
+      to, // ISO end bound
+      sort = "-createdAt", // "-createdAt" | "createdAt" | "-startTime" | "startTime"
+      q, // optional purpose search
+    } = req.query;
+
+    // Filters
+    const filter = { userId };
+    if (status) filter.status = status;
+    if (from || to) {
+      filter.$and = [
+        ...(from ? [{ endTime: { $gte: new Date(from) } }] : []),
+        ...(to ? [{ startTime: { $lte: new Date(to) } }] : []),
+      ];
+    }
+    if (q && q.trim()) {
+      filter.purpose = { $regex: q.trim(), $options: "i" };
+    }
+
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+    const skip = (pageNum - 1) * pageSize;
+
+    // Projection keeps payload compact, compute duration client-friendly
+    const projection =
+      "status purpose startTime endTime createdAt updatedAt remarks approvedAt approvedBy";
+
+    const [total, items] = await Promise.all([
+      Request.countDocuments(filter),
+      Request.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(pageSize)
+        .select(projection)
+        .populate("resourceId", "name type location")
+        .populate("approvedBy", "username email role")
+        .lean(),
+    ]);
+
+    const requests = items.map((r) => {
+      const duration =
+        r.startTime && r.endTime
+          ? Math.max(
+              0,
+              Math.round((new Date(r.endTime) - new Date(r.startTime)) / 36e5)
+            )
+          : null;
+      return {
+        _id: r._id,
+        status: r.status,
+        purpose: r.purpose || "",
+        startTime: r.startTime,
+        endTime: r.endTime,
+        durationHours: duration,
+        remarks: r.remarks ?? "",
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        approvedAt: r.approvedAt || null,
+        approvedBy: r.approvedBy
+          ? {
+              _id: r.approvedBy._id,
+              username: r.approvedBy.username,
+              email: r.approvedBy.email,
+              role: r.approvedBy.role,
+            }
+          : null,
+        resource: r.resourceId
+          ? {
+              _id: r.resourceId._id,
+              name: r.resourceId.name,
+              type: r.resourceId.type,
+              location: r.resourceId.location,
+            }
+          : null,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      page: pageNum,
+      limit: pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+      requests,
+      message: "My requests fetched successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching my requests:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
 export const countRequests = async (req, res) => {
   try {
     let filter = {};

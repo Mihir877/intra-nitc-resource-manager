@@ -30,10 +30,6 @@ const requestSchema = new Schema(
       enum: ["pending", "approved", "rejected", "cancelled", "completed"],
       default: "pending",
     },
-    adminId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
 
     approvedBy: {
       type: Schema.Types.ObjectId,

@@ -10,6 +10,7 @@ import {
   getRequestHistory,
   archiveOldRequests,
   countRequests,
+  getMyRequests,
 } from "../controllers/request.controller.js";
 
 import { verifyJWT, requireAdmin } from "../middlewares/auth.middleware.js";
@@ -21,6 +22,7 @@ router.use(verifyJWT);
 // ----- Core Routes -----
 router.post("/", createRequest);
 router.get("/", getRequests);
+router.get("/my", getMyRequests);
 
 // ----- New: Get only pending requests -----
 router.get("/pending", requireAdmin, getPendingRequests);

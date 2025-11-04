@@ -108,8 +108,8 @@ export default function AdminDashboard() {
         {/* Main Cards */}
         <div className="grid grid-cols-2 gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold mb-0">
                 Pending Requests
               </CardTitle>
               <p className="text-sm text-gray-500">
@@ -140,8 +140,8 @@ export default function AdminDashboard() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold mb-0">
                 Recent Activity
               </CardTitle>
               <p className="text-sm text-gray-500">Latest system activity</p>

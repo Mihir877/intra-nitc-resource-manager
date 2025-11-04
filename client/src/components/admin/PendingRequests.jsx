@@ -136,9 +136,9 @@ function RequestCard({ request, onDecision }) {
           </div>
           <Badge
             className={
-              status === "Pending"
+              status === "pending"
                 ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                : status === "Approved"
+                : status === "approved"
                 ? "bg-green-100 text-green-700 hover:bg-green-200"
                 : "bg-red-100 text-red-700 hover:bg-red-200"
             }

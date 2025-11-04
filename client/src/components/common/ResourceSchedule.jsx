@@ -266,7 +266,7 @@ const ResourceSchedule = ({ resourceId }) => {
               )}
             </span>
           ) : (
-            <span className="text-muted-foreground">
+            <span className="text-blue-800">
               Select your booking time from the schedule below
             </span>
           )}

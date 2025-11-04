@@ -51,7 +51,6 @@ const toUICard = (r) => {
   const specsParts = [];
   if (r.category) specsParts.push(`Category: ${r.category}`);
   if (r.department) specsParts.push(`Dept: ${r.department}`);
-  if (r.capacity != null) specsParts.push(`Capacity: ${r.capacity}`);
   if (r.maxBookingDuration != null)
     specsParts.push(`Max ${r.maxBookingDuration}h`);
   if (r.requiresApproval === true) specsParts.push("Requires approval");

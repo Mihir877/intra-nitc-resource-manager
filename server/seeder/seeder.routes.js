@@ -2,7 +2,7 @@
 import { Router } from "express";
 import {
   seedUsersFromJson,
-  seedResourcesFaker,
+  seedResourcesJson,
   seedRequestsRandom,
   seedDecisionsRandom,
 } from "./seeder.controller.js";
@@ -15,7 +15,7 @@ router.use(requireAdmin);
 
 // All endpoints are admin-only
 router.post("/users", seedUsersFromJson);
-router.post("/resources", seedResourcesFaker);
+router.post("/resources", seedResourcesJson);
 router.post("/requests", seedRequestsRandom);
 router.post("/decisions", seedDecisionsRandom);
 

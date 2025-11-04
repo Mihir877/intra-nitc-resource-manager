@@ -1,0 +1,1307 @@
+[
+    {
+        "name": "Spectrophotometer UV–Vis",
+        "type": "instrument",
+        "category": "Laboratory",
+        "department": "Chemistry",
+        "description": "UV–Vis spectrophotometer for absorbance measurements.",
+        "location": "Central Lab",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": true,
+        "usageRules": "Handle cuvettes carefully; clean after use.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Infrared Spectrophotometer (FTIR)",
+        "type": "instrument",
+        "category": "Laboratory",
+        "department": "Chemistry",
+        "description": "Fourier-transform infrared spectrometer for molecular fingerprinting.",
+        "location": "Central Lab",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            }
+        ],
+        "maxBookingDuration": 4,
+        "requiresApproval": true,
+        "usageRules": "Use proper sample prep; consult SOP.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Gas Chromatograph (GC)",
+        "type": "instrument",
+        "category": "Laboratory",
+        "department": "Chemistry",
+        "description": "GC system for separation and analysis of volatile compounds.",
+        "location": "Analytical Suite",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "08:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "08:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "08:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "08:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "08:00",
+                "endTime": "16:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": true,
+        "usageRules": "Log column usage; follow carrier gas safety.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "HPLC System",
+        "type": "instrument",
+        "category": "Laboratory",
+        "department": "Chemistry",
+        "description": "High-performance liquid chromatography for non-volatile analytes.",
+        "location": "Analytical Suite",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "08:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "08:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "08:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "08:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "08:00",
+                "endTime": "18:00"
+            }
+        ],
+        "maxBookingDuration": 8,
+        "requiresApproval": true,
+        "usageRules": "Filter samples; record solvent usage.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "X-Ray Diffractometer (XRD)",
+        "type": "instrument",
+        "category": "Research",
+        "department": "Physics",
+        "description": "XRD for crystallographic analysis of materials.",
+        "location": "Materials Center",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "11:00",
+                "endTime": "19:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "11:00",
+                "endTime": "19:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "11:00",
+                "endTime": "19:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "11:00",
+                "endTime": "19:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "11:00",
+                "endTime": "19:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": true,
+        "usageRules": "Training mandatory; radiation safety compliance required.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Scanning Electron Microscope (SEM)",
+        "type": "instrument",
+        "category": "Research",
+        "department": "Materials",
+        "description": "SEM for high-resolution imaging of surfaces.",
+        "location": "Microscopy Core",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 4,
+        "requiresApproval": true,
+        "usageRules": "Sputter coat non-conductive samples; follow vacuum protocols.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Atomic Force Microscope (AFM)",
+        "type": "instrument",
+        "category": "Research",
+        "department": "Physics",
+        "description": "AFM for nanoscale topography and force measurements.",
+        "location": "Microscopy Core",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "10:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "10:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "10:00",
+                "endTime": "16:00"
+            }
+        ],
+        "maxBookingDuration": 3,
+        "requiresApproval": true,
+        "usageRules": "Use appropriate cantilevers; handle tips with care.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Differential Scanning Calorimeter (DSC)",
+        "type": "instrument",
+        "category": "Laboratory",
+        "department": "Materials",
+        "description": "DSC for thermal transitions and heat flow measurements.",
+        "location": "Thermal Analysis Suite",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 5,
+        "requiresApproval": true,
+        "usageRules": "Purge with correct gas; crucibles must be cleaned post-run.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Universal Testing Machine (UTM)",
+        "type": "instrument",
+        "category": "Mechanical",
+        "department": "ME",
+        "description": "UTM for tensile, compression, and flexural tests.",
+        "location": "Mechanics Lab",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "08:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "08:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "08:00",
+                "endTime": "16:00"
+            }
+        ],
+        "maxBookingDuration": 4,
+        "requiresApproval": true,
+        "usageRules": "Install proper grips; observe load limits and safety covers.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "3D Printer (FDM)",
+        "type": "instrument",
+        "category": "Fabrication",
+        "department": "CSE",
+        "description": "FDM printer for rapid prototyping with thermoplastics.",
+        "location": "Maker Space",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "12:00",
+                "endTime": "20:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "12:00",
+                "endTime": "20:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "12:00",
+                "endTime": "20:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": false,
+        "usageRules": "Bring STL files; material cost may apply.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Laser Cutter",
+        "type": "instrument",
+        "category": "Fabrication",
+        "department": "ME",
+        "description": "CO₂ laser cutter/engraver for 2D materials.",
+        "location": "Maker Space",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Wednesday",
+                "startTime": "12:00",
+                "endTime": "20:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "12:00",
+                "endTime": "20:00"
+            }
+        ],
+        "maxBookingDuration": 3,
+        "requiresApproval": true,
+        "usageRules": "Approved materials only; ventilation must be on.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Raman Spectrometer",
+        "type": "instrument",
+        "category": "Research",
+        "department": "Physics",
+        "description": "Raman spectrometer for vibrational mode analysis.",
+        "location": "Spectroscopy Suite",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 4,
+        "requiresApproval": true,
+        "usageRules": "Calibrate before runs; laser safety eyewear required.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "NMR Spectrometer",
+        "type": "instrument",
+        "category": "Research",
+        "department": "Chemistry",
+        "description": "Nuclear magnetic resonance spectrometer for structural elucidation.",
+        "location": "Central Research",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Friday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            }
+        ],
+        "maxBookingDuration": 10,
+        "requiresApproval": true,
+        "usageRules": "Cryogen checks mandatory; submit sample details in advance.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Transmission Electron Microscope (TEM)",
+        "type": "instrument",
+        "category": "Research",
+        "department": "Materials",
+        "description": "TEM for nanostructure imaging and diffraction.",
+        "location": "Microscopy Core",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "15:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "15:00"
+            }
+        ],
+        "maxBookingDuration": 3,
+        "requiresApproval": true,
+        "usageRules": "Sample grids required; pre-approval of sample prep.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Dynamic Light Scattering Analyzer",
+        "type": "instrument",
+        "category": "Research",
+        "department": "Chemistry",
+        "description": "DLS analyzer for particle size distribution in colloids.",
+        "location": "Characterization Lab",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Wednesday",
+                "startTime": "10:00",
+                "endTime": "16:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "10:00",
+                "endTime": "16:00"
+            }
+        ],
+        "maxBookingDuration": 3,
+        "requiresApproval": true,
+        "usageRules": "Filter samples; avoid high viscosity dispersions unless cleared.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Thin Film Deposition Unit (PVD)",
+        "type": "instrument",
+        "category": "Research",
+        "department": "ECE",
+        "description": "Physical vapor deposition system for thin films.",
+        "location": "Nanofab Suite",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "11:00",
+                "endTime": "19:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "11:00",
+                "endTime": "19:00"
+            }
+        ],
+        "maxBookingDuration": 5,
+        "requiresApproval": true,
+        "usageRules": "Target changes by staff only; vacuum cycles logged.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Thermogravimetric Analyzer (TGA)",
+        "type": "instrument",
+        "category": "Laboratory",
+        "department": "Materials",
+        "description": "TGA for mass change vs. temperature studies.",
+        "location": "Thermal Analysis Suite",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 4,
+        "requiresApproval": true,
+        "usageRules": "Use compatible pans; follow purge gas procedures.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Oscilloscope (Digital)",
+        "type": "instrument",
+        "category": "Electronics",
+        "department": "EEE",
+        "description": "Digital oscilloscope for signal analysis.",
+        "location": "Electronics Lab",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            }
+        ],
+        "maxBookingDuration": 2,
+        "requiresApproval": false,
+        "usageRules": "Return probes; avoid over-voltage on inputs.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 2
+    },
+    {
+        "name": "Function Generator",
+        "type": "instrument",
+        "category": "Electronics",
+        "department": "EEE",
+        "description": "Signal generator for waveform testing.",
+        "location": "Electronics Lab",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            }
+        ],
+        "maxBookingDuration": 2,
+        "requiresApproval": false,
+        "usageRules": "Power off after use; handle BNC cables carefully.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 2
+    },
+    {
+        "name": "Soldering Station",
+        "type": "instrument",
+        "category": "Electronics",
+        "department": "ECE",
+        "description": "Temperature-controlled soldering station for PCB rework.",
+        "location": "Prototyping Bench",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "13:00",
+                "endTime": "18:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "13:00",
+                "endTime": "18:00"
+            }
+        ],
+        "maxBookingDuration": 2,
+        "requiresApproval": false,
+        "usageRules": "Use fume extraction; clean tips after use.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Multimeter (Bench)",
+        "type": "instrument",
+        "category": "Electronics",
+        "department": "EEE",
+        "description": "High-accuracy bench multimeter for electrical measurements.",
+        "location": "Electronics Bench",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 2,
+        "requiresApproval": false,
+        "usageRules": "Select correct range; avoid current overload.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 3
+    },
+    {
+        "name": "Power Supply (Programmable)",
+        "type": "instrument",
+        "category": "Electronics",
+        "department": "EEE",
+        "description": "Programmable DC power supply for lab testing.",
+        "location": "Electronics Bench",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Wednesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 2,
+        "requiresApproval": false,
+        "usageRules": "Set current limits; turn off channels after use.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 2
+    },
+    {
+        "name": "Arduino Kit",
+        "type": "instrument",
+        "category": "Departmental",
+        "department": "ECE",
+        "description": "Microcontroller development kit for prototyping.",
+        "location": "Prototyping Shelf",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 2,
+        "requiresApproval": false,
+        "usageRules": "Return all components in the box; record borrow/return.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 5
+    },
+    {
+        "name": "Raspberry Pi Kit",
+        "type": "instrument",
+        "category": "Departmental",
+        "department": "CSE",
+        "description": "Single-board computer kit for embedded projects.",
+        "location": "Prototyping Shelf",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 2,
+        "requiresApproval": false,
+        "usageRules": "Use official power supplies; return microSD after use.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 4
+    },
+    {
+        "name": "GPU Server (A100 Node)",
+        "type": "server",
+        "category": "Computing",
+        "department": "CSE",
+        "description": "High-memory GPU node for AI/ML workloads.",
+        "location": "Data Center",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Friday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            }
+        ],
+        "maxBookingDuration": 12,
+        "requiresApproval": true,
+        "usageRules": "Use Slurm queue; respect GPU hour quotas.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 4
+    },
+    {
+        "name": "HPC CPU Node",
+        "type": "server",
+        "category": "Computing",
+        "department": "CSE",
+        "description": "Multi-core CPU node for simulations and batch workloads.",
+        "location": "Data Center",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Friday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            }
+        ],
+        "maxBookingDuration": 12,
+        "requiresApproval": true,
+        "usageRules": "Submit jobs via scheduler; CPU hour quotas apply.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 8
+    },
+    {
+        "name": "Remote Linux Workstation",
+        "type": "server",
+        "category": "Computing",
+        "department": "CSE",
+        "description": "Remote-access workstation for coursework and development.",
+        "location": "Data Center",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "06:00",
+                "endTime": "22:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "06:00",
+                "endTime": "22:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "06:00",
+                "endTime": "22:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "06:00",
+                "endTime": "22:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "06:00",
+                "endTime": "22:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": false,
+        "usageRules": "SSH access only; respect fair-use policies.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 10
+    },
+    {
+        "name": "Storage Server",
+        "type": "server",
+        "category": "Computing",
+        "department": "CSE",
+        "description": "Network-attached storage for research data.",
+        "location": "Data Center",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Friday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            }
+        ],
+        "maxBookingDuration": 24,
+        "requiresApproval": true,
+        "usageRules": "Quota-based access; backup schedule enforced.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 20
+    },
+    {
+        "name": "MATLAB License",
+        "type": "software",
+        "category": "Software",
+        "department": "CSE",
+        "description": "MATLAB campus license seats request.",
+        "location": "Software Pool",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 8,
+        "requiresApproval": true,
+        "usageRules": "Academic use only; license server usage tracked.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 20
+    },
+    {
+        "name": "COMSOL Multiphysics License",
+        "type": "software",
+        "category": "Software",
+        "department": "ME",
+        "description": "Finite element simulation license allocation.",
+        "location": "Software Pool",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Friday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": true,
+        "usageRules": "Seat limits enforced; cite in publications when applicable.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 10
+    },
+    {
+        "name": "ANSYS Simulation Suite",
+        "type": "software",
+        "category": "Software",
+        "department": "ME",
+        "description": "Structural/thermal/CFD simulation seats.",
+        "location": "Software Pool",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": true,
+        "usageRules": "Seats limited; jobs must align with academic projects.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 8
+    },
+    {
+        "name": "AutoCAD License",
+        "type": "software",
+        "category": "Software",
+        "department": "Civil",
+        "description": "AutoCAD educational license seats.",
+        "location": "Software Pool",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": true,
+        "usageRules": "Academic-only usage; export files to shared storage.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 15
+    },
+    {
+        "name": "LabVIEW License",
+        "type": "software",
+        "category": "Software",
+        "department": "EEE",
+        "description": "LabVIEW development environment license.",
+        "location": "Software Pool",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "09:00",
+                "endTime": "17:00"
+            }
+        ],
+        "maxBookingDuration": 6,
+        "requiresApproval": true,
+        "usageRules": "License checked out via server; return when idle.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 10
+    },
+    {
+        "name": "PCB Milling Machine",
+        "type": "instrument",
+        "category": "Fabrication",
+        "department": "ECE",
+        "description": "Desktop PCB prototyping mill.",
+        "location": "Prototyping Area",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Wednesday",
+                "startTime": "12:00",
+                "endTime": "18:00"
+            }
+        ],
+        "maxBookingDuration": 3,
+        "requiresApproval": true,
+        "usageRules": "Tooling bits allocation required; dust extraction must run.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Laser Scanner",
+        "type": "instrument",
+        "category": "Mechanical",
+        "department": "ME",
+        "description": "3D laser scanning for geometry capture.",
+        "location": "Metrology Bay",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Friday",
+                "startTime": "10:00",
+                "endTime": "16:00"
+            }
+        ],
+        "maxBookingDuration": 3,
+        "requiresApproval": true,
+        "usageRules": "Calibrate before each session; ensure target markers are placed.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Rheometer",
+        "type": "instrument",
+        "category": "Laboratory",
+        "department": "Chemistry",
+        "description": "Rotational rheometer for viscosity and viscoelastic tests.",
+        "location": "Rheology Suite",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "10:00",
+                "endTime": "16:00"
+            }
+        ],
+        "maxBookingDuration": 3,
+        "requiresApproval": true,
+        "usageRules": "Use correct geometry; clean plates after measurements.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Drone (Imaging)",
+        "type": "instrument",
+        "category": "Departmental",
+        "department": "Civil",
+        "description": "Aerial imaging drone for surveys and projects.",
+        "location": "Equipment Locker",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "09:00",
+                "endTime": "15:00"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "09:00",
+                "endTime": "15:00"
+            }
+        ],
+        "maxBookingDuration": 4,
+        "requiresApproval": true,
+        "usageRules": "Flight permissions required; log battery cycles.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "Thermal Camera",
+        "type": "instrument",
+        "category": "Departmental",
+        "department": "EEE",
+        "description": "Infrared camera for thermal diagnostics.",
+        "location": "Equipment Locker",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Wednesday",
+                "startTime": "09:00",
+                "endTime": "16:00"
+            }
+        ],
+        "maxBookingDuration": 3,
+        "requiresApproval": false,
+        "usageRules": "Handle lens carefully; return with charged batteries.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 1
+    },
+    {
+        "name": "AI/ML Training Sandbox",
+        "type": "server",
+        "category": "Emerging",
+        "department": "CSE",
+        "description": "Temporary GPU allocation for ML experiments.",
+        "location": "Cloud Pool",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Monday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Tuesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Wednesday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Thursday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            },
+            {
+                "day": "Friday",
+                "startTime": "00:00",
+                "endTime": "23:59"
+            }
+        ],
+        "maxBookingDuration": 8,
+        "requiresApproval": true,
+        "usageRules": "Time-limited allocations; no persistent storage.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 6
+    },
+    {
+        "name": "IoT Testbed",
+        "type": "instrument",
+        "category": "Emerging",
+        "department": "ECE",
+        "description": "Sensor network sandbox for IoT experimentation.",
+        "location": "Testbed Rack",
+        "status": "available",
+        "availability": [
+            {
+                "day": "Tuesday",
+                "startTime": "10:00",
+                "endTime": "18:00"
+            }
+        ],
+        "maxBookingDuration": 4,
+        "requiresApproval": true,
+        "usageRules": "Register MAC addresses; label deployed nodes.",
+        "createdBy": null,
+        "isActive": true,
+        "images": [],
+        "capacity": 3
+    }
+]

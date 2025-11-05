@@ -129,7 +129,7 @@ const loginUser = async (req, res) => {
     if (!user) {
       return res
         .status(404)
-        .json({ success: false, message: "User not found" });
+        .json({ success: false, message: "Incorrect user credentials" });
     }
 
     if (user.loginType !== UserLoginType.EMAIL_PASSWORD) {
@@ -375,9 +375,7 @@ const forgotPasswordRequest = async (req, res) => {
       subject: "Password reset request",
       mailgenContent: forgotPasswordMailgenContent(
         user.username,
-        `${req.protocol}://${req.get(
-          "host"
-        )}/api/v1/auth/reset-password/${unHashedToken}`
+        `${process.env.CLIENT_URL}/reset-password/${unHashedToken}`
       ),
     });
 

@@ -1,11 +1,10 @@
 // src/App.jsx
 
 import React from "react";
-import { BrowserRouter, useRoutes, Navigate } from "react-router-dom";
+import { BrowserRouter, useRoutes, Navigate, Outlet } from "react-router-dom";
 
 import StudentDashboard from "./components/student/StudentDashboard";
 import AdminDashboard from "./components/admin/AdminDashboard";
-import SchedulePage from "./components/student/Schedule";
 import LoginPage from "./components/auth/LoginPage";
 import RegisterPage from "./components/auth/RegisterPage";
 import PageNotFound from "./components/common/PageNotFound";
@@ -26,6 +25,15 @@ import Preferences from "./components/admin/Preferences";
 import ResourceDetailPage from "./components/common/ResourceDetailPage";
 import { Toaster } from "./components/ui/sonner";
 
+// Newly added auth pages
+import VerifyEmailPage from "./components/auth/VerifyEmailPage";
+import ResendVerificationPage from "./components/auth/ResendVerificationPage";
+import ForgotPasswordPage from "./components/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./components/auth/ResetPasswordPage";
+import AuthLayout from "./components/auth/AuthLayout";
+import StudentSchedulePage from "../backups/schedule page/Schedule";
+import SchedulePage from "./components/student/Schedule";
+
 const PageTitle = ({ children }) => (
   <h1 className="text-3xl font-bold text-gray-900">{children}</h1>
 );
@@ -33,9 +41,21 @@ const PageTitle = ({ children }) => (
 // Actual routes
 function AppRoutes() {
   return useRoutes([
-    { path: "/login", element: <LoginPage /> },
-    { path: "/register", element: <RegisterPage /> },
+    {
+      path: "/",
+      element: <AuthLayout />,
+      children: [
+        { path: "/login", element: <LoginPage /> },
+        { path: "/register", element: <RegisterPage /> },
+        { path: "/verify-email/:token", element: <VerifyEmailPage /> },
+        { path: "/resend-verification", element: <ResendVerificationPage /> },
+        { path: "/forgot-password", element: <ForgotPasswordPage /> },
+        { path: "/reset-password/:token", element: <ResetPasswordPage /> },
+      ],
+    },
+    // Public auth
 
+    // Student area
     {
       path: "/",
       element: <ProtectedRoute requiredRole="student" />,
@@ -46,10 +66,7 @@ function AppRoutes() {
             { index: true, element: <Navigate to="/dashboard" /> },
             { path: "dashboard", element: <StudentDashboard /> },
             { path: "resources", element: <BrowseResources /> },
-            {
-              path: "resources/:id",
-              element: <ResourceDetailPage />,
-            },
+            { path: "resources/:id", element: <ResourceDetailPage /> },
             {
               path: "resources/:id/book",
               element: <PageTitle>Book Resource</PageTitle>,
@@ -73,6 +90,7 @@ function AppRoutes() {
       ],
     },
 
+    // Admin area
     {
       path: "/admin",
       element: <ProtectedRoute requiredRole="admin" />,
@@ -84,7 +102,7 @@ function AppRoutes() {
             { path: "dashboard", element: <AdminDashboard /> },
             { path: "resources", element: <ResourceManager /> },
             { path: "requests", element: <PendingRequests /> },
-            { path: "schedule", element: <PageTitle>Schedule</PageTitle> },
+            { path: "schedule", element: <StudentSchedulePage /> },
             { path: "users", element: <Users /> },
             { path: "users/:id", element: <Profile /> },
             { path: "preferences", element: <Preferences /> },
@@ -105,11 +123,10 @@ const App = () => {
       <SidebarProvider>
         <BrowserRouter>
           <AppRoutes />
-
           <Toaster
             richColors
             closeButton
-            position="top-right"
+            position="bottom-left"
             expand
             duration={3500}
             toastOptions={{

@@ -1,104 +1,177 @@
 [
     {
-        "username": "admin",
-        "email": "admin_m25@nitc.ac.in",
-        "password": "Admin@25",
-        "role": "admin"
+        "username": "admin CSE",
+        "email": "admin_m25CSE@nitc.ac.in",
+        "password": "admin_m25CSE@nitc.ac.in",
+        "role": "admin",
+        "department": "CSE"
     },
     {
-        "username": "student",
-        "email": "student_m25@nitc.ac.in",
-        "password": "Student@123",
-        "role": "student"
+        "username": "coadmin CSE",
+        "email": "coadmin_m25CSE@nitc.ac.in",
+        "password": "coadmin_m25CSE@nitc.ac.in",
+        "role": "admin",
+        "department": "CSE"
     },
     {
-        "username": "superadmin",
-        "email": "superadmin@nitc.ac.in",
-        "password": "Admin#12345",
-        "role": "admin"
+        "username": "student CSE",
+        "email": "student_m25CSE@nitc.ac.in",
+        "password": "student_m25CSE@nitc.ac.in",
+        "role": "student",
+        "department": "CSE"
     },
     {
-        "username": "admin2",
-        "email": "admin2@nitc.ac.in",
-        "password": "Admin#23456",
-        "role": "admin"
+        "username": "Rahul Mehta",
+        "email": "rahul_m25CSE@nitc.ac.in",
+        "password": "rahul_m25CSE@nitc.ac.in",
+        "role": "student",
+        "department": "CSE"
     },
     {
-        "username": "fac_alok",
-        "email": "alok.faculty@nitc.ac.in",
-        "password": "Fac#12345",
-        "role": "faculty"
+        "username": "Aditi Sharma",
+        "email": "aditi_m25CSE@nitc.ac.in",
+        "password": "aditi_m25CSE@nitc.ac.in",
+        "role": "student",
+        "department": "CSE"
     },
     {
-        "username": "fac_nisha",
-        "email": "nisha.faculty@nitc.ac.in",
-        "password": "Fac#22345",
-        "role": "faculty"
+        "username": "Vikram Iyer",
+        "email": "vikram_m25CSE@nitc.ac.in",
+        "password": "vikram_m25CSE@nitc.ac.in",
+        "role": "student",
+        "department": "CSE"
     },
     {
-        "username": "fac_ravi",
-        "email": "ravi.faculty@nitc.ac.in",
-        "password": "Fac#32345",
-        "role": "faculty"
+        "username": "Neha Verma",
+        "email": "neha_m25CSE@nitc.ac.in",
+        "password": "neha_m25CSE@nitc.ac.in",
+        "role": "student",
+        "department": "CSE"
     },
     {
-        "username": "stud_ananya",
-        "email": "ananya.s@nitc.ac.in",
-        "password": "Stud#12345",
-        "role": "student"
+        "username": "admin ARCH",
+        "email": "admin_m25ARCH@nitc.ac.in",
+        "password": "admin_m25ARCH@nitc.ac.in",
+        "role": "admin",
+        "department": "ARCH"
     },
     {
-        "username": "stud_arjun",
-        "email": "arjun.s@nitc.ac.in",
-        "password": "Stud#22345",
-        "role": "student"
+        "username": "coadmin ARCH",
+        "email": "coadmin_m25ARCH@nitc.ac.in",
+        "password": "coadmin_m25ARCH@nitc.ac.in",
+        "role": "admin",
+        "department": "ARCH"
     },
     {
-        "username": "stud_rahul",
-        "email": "rahul.s@nitc.ac.in",
-        "password": "Stud#32345",
-        "role": "student"
+        "username": "Arjun Nair",
+        "email": "arjun_m25ARCH@nitc.ac.in",
+        "password": "arjun_m25ARCH@nitc.ac.in",
+        "role": "student",
+        "department": "ARCH"
     },
     {
-        "username": "stud_meera",
-        "email": "meera.s@nitc.ac.in",
-        "password": "Stud#42345",
-        "role": "student"
+        "username": "Meera Menon",
+        "email": "meera_m25ARCH@nitc.ac.in",
+        "password": "meera_m25ARCH@nitc.ac.in",
+        "role": "student",
+        "department": "ARCH"
     },
     {
-        "username": "stud_fathima",
-        "email": "fathima.s@nitc.ac.in",
-        "password": "Stud#52345",
-        "role": "student"
+        "username": "Rohan Gupta",
+        "email": "rohan_m25ARCH@nitc.ac.in",
+        "password": "rohan_m25ARCH@nitc.ac.in",
+        "role": "student",
+        "department": "ARCH"
     },
     {
-        "username": "stud_jose",
-        "email": "jose.s@nitc.ac.in",
-        "password": "Stud#62345",
-        "role": "student"
+        "username": "Sara Thomas",
+        "email": "sara_m25ARCH@nitc.ac.in",
+        "password": "sara_m25ARCH@nitc.ac.in",
+        "role": "student",
+        "department": "ARCH"
     },
     {
-        "username": "stud_keerthana",
-        "email": "keerthana.s@nitc.ac.in",
-        "password": "Stud#72345",
-        "role": "student"
+        "username": "admin ECE",
+        "email": "admin_m25ECE@nitc.ac.in",
+        "password": "admin_m25ECE@nitc.ac.in",
+        "role": "admin",
+        "department": "ECE"
     },
     {
-        "username": "stud_nikhil",
-        "email": "nikhil.s@nitc.ac.in",
-        "password": "Stud#82345",
-        "role": "student"
+        "username": "coadmin ECE",
+        "email": "coadmin_m25ECE@nitc.ac.in",
+        "password": "coadmin_m25ECE@nitc.ac.in",
+        "role": "admin",
+        "department": "ECE"
     },
     {
-        "username": "stud_sneha",
-        "email": "sneha.s@nitc.ac.in",
-        "password": "Stud#92345",
-        "role": "student"
+        "username": "Ananya Rao",
+        "email": "ananya_m25ECE@nitc.ac.in",
+        "password": "ananya_m25ECE@nitc.ac.in",
+        "role": "student",
+        "department": "ECE"
     },
     {
-        "username": "stud_vivek",
-        "email": "vivek.s@nitc.ac.in",
-        "password": "Stud#10345",
-        "role": "student"
+        "username": "Karthik Reddy",
+        "email": "karthik_m25ECE@nitc.ac.in",
+        "password": "karthik_m25ECE@nitc.ac.in",
+        "role": "student",
+        "department": "ECE"
+    },
+    {
+        "username": "Priya Singh",
+        "email": "priya_m25ECE@nitc.ac.in",
+        "password": "priya_m25ECE@nitc.ac.in",
+        "role": "student",
+        "department": "ECE"
+    },
+    {
+        "username": "Nikhil Jain",
+        "email": "nikhil_m25ECE@nitc.ac.in",
+        "password": "nikhil_m25ECE@nitc.ac.in",
+        "role": "student",
+        "department": "ECE"
+    },
+    {
+        "username": "admin ME",
+        "email": "admin_m25ME@nitc.ac.in",
+        "password": "admin_m25ME@nitc.ac.in",
+        "role": "admin",
+        "department": "ME"
+    },
+    {
+        "username": "coadmin ME",
+        "email": "coadmin_m25ME@nitc.ac.in",
+        "password": "coadmin_m25ME@nitc.ac.in",
+        "role": "admin",
+        "department": "ME"
+    },
+    {
+        "username": "Sanjay Kulkarni",
+        "email": "sanjay_m25ME@nitc.ac.in",
+        "password": "sanjay_m25ME@nitc.ac.in",
+        "role": "student",
+        "department": "ME"
+    },
+    {
+        "username": "Isha Patel",
+        "email": "isha_m25ME@nitc.ac.in",
+        "password": "isha_m25ME@nitc.ac.in",
+        "role": "student",
+        "department": "ME"
+    },
+    {
+        "username": "Mohit Bansal",
+        "email": "mohit_m25ME@nitc.ac.in",
+        "password": "mohit_m25ME@nitc.ac.in",
+        "role": "student",
+        "department": "ME"
+    },
+    {
+        "username": "Tanya Kapoor",
+        "email": "tanya_m25ME@nitc.ac.in",
+        "password": "tanya_m25ME@nitc.ac.in",
+        "role": "student",
+        "department": "ME"
     }
 ]

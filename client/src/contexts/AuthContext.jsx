@@ -51,12 +51,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
   // 🔹 Register
-  const register = async (username, email, password) => {
+  const register = async (username, email, password, department) => {
     try {
       const res = await api.post("/auth/register", {
         username,
         email,
         password,
+        department,
       });
       return res.data;
     } catch (error) {

@@ -53,12 +53,30 @@ const defaultAvailability = [
   endTime: "17:00",
 }));
 
+// Helpers (minimal additions)
+function parseDurationToHours(val) {
+  if (typeof val === "number" && Number.isFinite(val)) return Math.max(1, val);
+  if (typeof val !== "string") return 8;
+  const s = val.trim().toLowerCase();
+  const m = s.match(/^(\d+)\s*([hd])$/);
+  if (!m) return 8;
+  const n = parseInt(m[1], 10);
+  if (!Number.isFinite(n) || n <= 0) return 8;
+  return m[2] === "d" ? n * 24 : n;
+}
+
+function sanitizeString(v, fallback = "") {
+  return typeof v === "string" ? v.trim() || fallback : fallback;
+}
+
 /**
  * USERS
  * POST /api/v1/seeder/users
  * Body: { count?: number }
  * Behavior: Only reads from seeder/users.json, inserts up to count unique emails
  */
+const VALID_DEPARTMENTS = new Set(["CSE", "ARCH", "ECE", "ME"]);
+const VALID_ROLES = new Set(["admin", "student"]);
 export const seedUsersFromJson = async (req, res) => {
   try {
     const { count = 10 } = req.body || {};
@@ -66,6 +84,7 @@ export const seedUsersFromJson = async (req, res) => {
     if (!(await fileExists(fileAbs))) {
       return fail(res, 400, "users.json not found in seeder");
     }
+
     const input = await loadJsonArray(fileAbs);
     if (!Array.isArray(input) || input.length === 0) {
       return fail(res, 400, "No users to seed");
@@ -74,46 +93,73 @@ export const seedUsersFromJson = async (req, res) => {
     const toUse = Number.isFinite(count)
       ? input.slice(0, Math.max(0, count))
       : input;
-    const emails = toUse
-      .map((u) => (u.email || "").toLowerCase())
-      .filter(Boolean);
+
+    // Basic normalization + validation
+    const normalized = toUse
+      .map((u) => ({
+        username:
+          (u.username && String(u.username).trim()) ||
+          (u.email ? String(u.email).split("@")[0] : "").trim(),
+        email: u.email ? String(u.email).toLowerCase().trim() : "",
+        password: u.password ? String(u.password) : "",
+        role:
+          u.role && VALID_ROLES.has(String(u.role))
+            ? String(u.role)
+            : "student",
+        department:
+          u.department && VALID_DEPARTMENTS.has(String(u.department))
+            ? String(u.department)
+            : undefined,
+        isEmailVerified: Boolean(u.isEmailVerified) || false,
+        avatar: u.avatar || undefined,
+      }))
+      .filter((u) => u.email); // require email
+
+    // Separate invalid department rows to avoid inserting garbage
+    const invalidDept = normalized.filter((u) => !u.department);
+    const validRows = normalized.filter((u) => u.department);
+
+    // Skip duplicates by email
+    const emails = validRows.map((u) => u.email);
     const existing = await User.find({ email: { $in: emails } }).select(
-      "email"
-    );
-    const existingSet = new Set(existing.map((u) => u.email.toLowerCase()));
-
-    const toInsert = await Promise.all(
-      toUse
-        .filter((u) => u.email && !existingSet.has(u.email.toLowerCase()))
-        .map(async (u) => {
-          const hashed = await bcrypt.hash(
-            u.password || `P@ssw0rd_${Math.random().toString(36).slice(2)}`,
-            10
-          );
-          return {
-            username: u.username || u.email.split("@")[0],
-            email: u.email,
-            password: hashed,
-            role: u.role || "student",
-            isEmailVerified: Boolean(u.isEmailVerified) || false,
-            avatar: u.avatar,
-          };
-        })
+      "_id email password"
     );
 
-    if (toInsert.length === 0) {
-      return ok(res, {
-        message: "No new users to insert",
-        insertedCount: 0,
-        skippedCount: toUse.length,
+    const existingSet = new Set(existing.map((e) => e.email.toLowerCase()));
+
+    // Build toInsert
+    const toInsert = [];
+
+    for (const u of validRows) {
+      if (existingSet.has(u.email)) continue;
+      const hashed = await bcrypt.hash(
+        u.password || `P@ssw0rd_${Math.random().toString(36).slice(2)}`,
+        10
+      );
+      toInsert.push({
+        username: u.username || u.email.split("@")[0],
+        email: u.email,
+        password: hashed,
+        role: u.role,
+        department: u.department,
+        isEmailVerified: u.isEmailVerified,
+        avatar: u.avatar,
       });
     }
 
-    const inserted = await User.insertMany(toInsert, { ordered: false });
+    // Perform writes
+    let insertedCount = 0;
+
+    if (toInsert.length > 0) {
+      const inserted = await User.insertMany(toInsert, { ordered: false });
+      insertedCount = inserted.length;
+    }
+
     return created(res, {
       message: "Users seeded via json",
-      insertedCount: inserted.length,
-      skippedCount: toUse.length - inserted.length,
+      insertedCount,
+      skippedCount: toUse.length - insertedCount,
+      invalidDepartmentCount: invalidDept.length,
     });
   } catch (err) {
     console.error("Seed users error:", err);
@@ -152,7 +198,7 @@ export const seedResourcesJson = async (req, res) => {
     const items = [];
 
     for (const r of toUse) {
-      let name = r.name;
+      const name = sanitizeString(r.name);
       if (!name) continue;
       if (usedNames.has(name)) continue; // skip duplicate name from JSON
       usedNames.add(name);
@@ -165,25 +211,26 @@ export const seedResourcesJson = async (req, res) => {
 
       items.push({
         name,
-        type: r.type || "other",
-        category: r.category || "IT",
-        department: r.department || "CSE",
-        description: r.description || "",
-        location: r.location || "",
-        status: r.status || "available",
+        type: sanitizeString(r.type, "other"),
+        category: sanitizeString(r.category, "IT"),
+        department: sanitizeString(r.department, "CSE"),
+        description: sanitizeString(r.description, ""),
+        location: sanitizeString(r.location, ""),
+        status: sanitizeString(r.status, "available") || "available",
         availability:
           Array.isArray(r.availability) && r.availability.length
             ? r.availability
             : defaultAvailability,
-        maxBookingDuration: Number.isFinite(r.maxBookingDuration)
-          ? r.maxBookingDuration
-          : 8,
+        maxBookingDuration: parseDurationToHours(r.maxBookingDuration),
         requiresApproval,
-        usageRules: typeof r.usageRules === "string" ? r.usageRules : "",
+        usageRules: sanitizeString(r.usageRules, ""),
         createdBy: owner,
         isActive: r.isActive ?? true,
         images: Array.isArray(r.images) ? r.images : [],
-        capacity: Number.isFinite(r.capacity) ? r.capacity : 1,
+        capacity:
+          Number.isFinite(r.capacity) && r.capacity > 0
+            ? Math.floor(r.capacity)
+            : 1,
       });
     }
 
@@ -226,7 +273,6 @@ async function generateValidSlot(resource, maxTries = 20) {
     );
 
     // Overlap query: any existing pending/approved that intersects [startTime, endTime)
-    // Patterns similar to general mongoose queries doc examples. [web:22]
     const conflict = await Request.findOne({
       resourceId: resource._id,
       status: { $in: ["pending", "approved"] },
@@ -338,9 +384,7 @@ export const seedDecisionsRandom = async (req, res) => {
       r.approvedBy = req.user?.id || null;
       r.approvedAt = new Date();
       if (!approve) {
-        r.remarks = `Rejected: ${
-          r.resourceId?.name || "resource"
-        } not available`;
+        r.remarks = `Rejected: ${r.resourceId?.name || "resource"} not available`;
       }
       await r.save();
       decidedCount++;

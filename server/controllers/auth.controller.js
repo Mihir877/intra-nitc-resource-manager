@@ -1,16 +1,13 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { User } from "../models/user.model.js";
-
+import { User, ALLOWED_DEPARTMENTS } from "../models/user.model.js";
 import { getRandomNumber } from "../utils/helpers.js";
-
 import {
   emailVerificationMailgenContent,
   forgotPasswordMailgenContent,
   sendEmail,
 } from "../utils/mail.js";
 
-// Constants (can be imported from a constants file if preferred)
 const USER_ACTIVITY_TYPES = {
   USER_REGISTRATION: "user_registration",
   USER_LOGIN: "user_login",
@@ -30,7 +27,6 @@ const UserRolesEnum = {
   ADMIN: "admin",
 };
 
-// Cookie options
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -54,20 +50,38 @@ const generateAccessAndRefreshTokens = async (userId) => {
 // Register new user
 const registerUser = async (req, res) => {
   try {
-    const { username, email, password, role } = req.body;
-
-    const existedUser = await User.findOne({ email });
-    if (existedUser) {
-      return res.status(409).json({
+    const { username, email, password, role, department } = req.body;
+    // Basic presence checks
+    if (!username || !email || !password || !department) {
+      return res.status(400).json({
         success: false,
-        message: "User with email or username already exists",
+        message: "username, email, password, and department are required",
       });
     }
 
+    // Department validation against allowlist
+    if (!ALLOWED_DEPARTMENTS.includes(department)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid department",
+      });
+    }
+
+    // Uniqueness check
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "User with this email already exists",
+      });
+    }
+
+    // Create user
     const user = await User.create({
       email,
       password,
       username,
+      department,
       isEmailVerified: false,
       avatar: {
         url: "",
@@ -76,13 +90,14 @@ const registerUser = async (req, res) => {
       role: role || UserRolesEnum.STUDENT,
     });
 
+    // Issue email verification token
     const { unHashedToken, hashedToken, tokenExpiry } =
       user.generateTemporaryToken();
-
     user.emailVerificationToken = hashedToken;
     user.emailVerificationExpiry = tokenExpiry;
     await user.save({ validateBeforeSave: false });
 
+    // Send verification email
     await sendEmail({
       email: user.email,
       subject: "Please verify your email",
@@ -115,7 +130,6 @@ const registerUser = async (req, res) => {
   }
 };
 
-// Login user
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;

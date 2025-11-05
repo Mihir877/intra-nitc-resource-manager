@@ -17,7 +17,7 @@ const NITCLogo = () => {
       </div>
       <div>
         <h1 className="font-bold text-xl">NITC Resources</h1>
-        <p className="text-xs text-muted-foreground -mt-[4px]">
+        <p className="text-xs text-muted-foreground -mt-1">
           Resource Management System
         </p>
       </div>

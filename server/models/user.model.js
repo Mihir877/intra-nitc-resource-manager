@@ -3,6 +3,18 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
+const DEPARTMENTS = [
+  "CSE",
+  "ECE",
+  "EEE",
+  "ME",
+  "CE",
+  "ARCH",
+  "CHE",
+  "MBA",
+  "MCA",
+];
+
 const userSchema = new Schema(
   {
     username: {
@@ -38,11 +50,21 @@ const userSchema = new Schema(
       trim: true,
     },
     dateOfBirth: { type: Date },
+
+    // NEW: department captured at registration and enforced
+    department: {
+      type: String,
+      required: [true, "Please select a department"],
+      enum: DEPARTMENTS,
+      index: true,
+    },
+
     role: {
       type: String,
-      enum: ["student", "faculty", "admin"], // Adjust enum as per your app roles
+      enum: ["student", "faculty", "admin"],
       default: "student",
       required: true,
+      index: true,
     },
     isEmailVerified: {
       type: Boolean,
@@ -53,25 +75,15 @@ const userSchema = new Schema(
       enum: ["EMAIL_PASSWORD", "GOOGLE", "FACEBOOK"], // Add others if any
       default: "EMAIL_PASSWORD",
     },
-    refreshToken: {
-      type: String,
-    },
-    emailVerificationToken: {
-      type: String,
-      select: false,
-    },
-    emailVerificationExpiry: {
-      type: Date,
-      select: false,
-    },
-    forgotPasswordToken: {
-      type: String,
-      select: false,
-    },
-    forgotPasswordExpiry: {
-      type: Date,
-      select: false,
-    },
+    refreshToken: { type: String },
+
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationExpiry: { type: Date, select: false },
+    forgotPasswordToken: { type: String, select: false },
+    forgotPasswordExpiry: { type: Date, select: false },
+
+    // Optional metadata for auditing
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );
@@ -126,3 +138,4 @@ userSchema.index({
 });
 
 export const User = mongoose.model("User", userSchema);
+export const ALLOWED_DEPARTMENTS = DEPARTMENTS;

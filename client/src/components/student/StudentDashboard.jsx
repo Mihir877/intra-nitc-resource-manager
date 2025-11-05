@@ -90,7 +90,7 @@ const StudentDashboard = () => {
           </Button> */}
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
           {/* Total Requests */}
           <Card className="p-5">
             <h3 className="text-gray-600 font-semibold">Total Requests</h3>

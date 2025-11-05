@@ -183,6 +183,7 @@ const ResourceSchedule = ({ resourceId }) => {
     getActualStartEnd,
     calculateDuration,
     slotKeyToIso,
+    refetchSchedule,
   } = useSlotSelection(resourceId);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -210,9 +211,7 @@ const ResourceSchedule = ({ resourceId }) => {
     if (!actualStart) return;
     setSubmitting(true);
     try {
-      // CRITICAL: End slot needs +1 hour to represent the END boundary
-      // Example: slot "16" (4pm) represents 4:00-5:00, so end time is 5:00
-      const endSlotKey = actualEnd || actualStart; // Single slot: use start as end
+      const endSlotKey = actualEnd || actualStart;
       const endBoundaryKey = addOneHour(endSlotKey);
 
       const startTime = keyToIsoUtc(actualStart);
@@ -222,7 +221,7 @@ const ResourceSchedule = ({ resourceId }) => {
         resourceId,
         startTime,
         endTime,
-        bookingDuration: duration?.hours || 1, // Single slot = 1 hour
+        bookingDuration: duration?.hours || 1,
         purpose: purpose.trim(),
       };
 
@@ -231,6 +230,9 @@ const ResourceSchedule = ({ resourceId }) => {
       setConfirmOpen(false);
       clearSelection();
       setPurpose("");
+
+      // Refetch the schedule so UI reflects the new pending slot
+      await refetchSchedule();
     } catch (e) {
       console.error(e);
       notify.error(

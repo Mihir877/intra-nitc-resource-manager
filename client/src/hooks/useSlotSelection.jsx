@@ -1,5 +1,5 @@
 // app/hooks/useSlotSelection.js
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import api from "@/api/axios";
 
 export const useSlotSelection = (resourceId, noOfDays = 14) => {
@@ -9,30 +9,38 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
   const [selectedSlots, setSelectedSlots] = useState(new Set());
   const [startSlot, setStartSlot] = useState(null);
   const [endSlot, setEndSlot] = useState(null);
+  const abortRef = useRef(null);
+
+  const fetchSchedule = useCallback(async () => {
+    if (!resourceId) return;
+    setError("");
+    abortRef.current?.abort?.();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    try {
+      const res = await api.get(`resources/${resourceId}/schedule`, {
+        signal: controller.signal,
+      });
+      setResource(res.data.resource);
+      const isoSchedule = res.data.schedule || {};
+      const timeRange = res.data.timeRange || { startHour: 0, endHour: 24 };
+      setScheduleData({ schedule: isoSchedule, timeRange });
+    } catch (err) {
+      // ignore if aborted
+      if (controller.signal.aborted) return;
+      setError(err.message || "Failed to load schedule");
+    }
+  }, [resourceId]);
 
   useEffect(() => {
     let alive = true;
-    const fetchSchedule = async () => {
-      if (!resourceId) return;
-      setError("");
-      try {
-        const res = await api.get(`resources/${resourceId}/schedule`);
-        if (!alive) return;
-        setResource(res.data.resource);
-        // Convert ISO-hour keyed schedule to internal format
-        const isoSchedule = res.data.schedule || {};
-        const timeRange = res.data.timeRange || { startHour: 0, endHour: 24 };
-        setScheduleData({ schedule: isoSchedule, timeRange });
-      } catch (err) {
-        if (!alive) return;
-        setError(err.message || "Failed to load schedule");
-      }
-    };
+    // delegate to fetchSchedule; abort handled via AbortController
     fetchSchedule();
     return () => {
       alive = false;
+      abortRef.current?.abort?.();
     };
-  }, [resourceId]);
+  }, [fetchSchedule]);
 
   const upcomingDays = useMemo(() => {
     const today = new Date();
@@ -263,5 +271,6 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
     getActualStartEnd,
     calculateDuration,
     slotKeyToIso,
+    refetchSchedule: fetchSchedule, // expose refetch
   };
 };

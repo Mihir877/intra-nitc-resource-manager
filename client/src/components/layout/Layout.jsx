@@ -51,7 +51,7 @@ export function Layout({ children }) {
 
         {/* Main */}
         <main className="flex-1 min-w-0 overflow-y-auto">
-          <div className="max-w-[1400px] mx-auto p-4 md:p-6 lg:p-8 pb-2">
+          <div className="max-w-[1400px] mx-auto p-4 md:p-6 lg:p-8 pb-8">
             {/* {children} */}
             <Outlet />
           </div>

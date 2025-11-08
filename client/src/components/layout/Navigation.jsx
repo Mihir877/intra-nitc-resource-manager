@@ -20,15 +20,16 @@ const studentNavItems = [
   { icon: Calendar, label: "My Requests", href: "/requests" },
   // { icon: History, label: "History", href: "/history" },
   { icon: Calendar, label: "Schedule", href: "/schedule" },
-  { icon: User, label: "Profile", href: "/profile" },
+  { icon: User, label: "Profile", href: "/profile/me" },
 ];
 
 const adminNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
   { icon: Server, label: "Manage Resources", href: "/admin/resources" },
   { icon: FileCheck, label: "Pending Requests", href: "/admin/requests" },
-  { icon: Calendar, label: "Schedule", href: "/admin/schedule" },
+  // { icon: Calendar, label: "Schedule", href: "/admin/schedule" },
   { icon: Users, label: "Users", href: "/admin/users" },
+  { icon: User, label: "Profile", href: "/admin/profile/me" },
   // { icon: Settings, label: "Preferences", href: "/admin/preferences" },
 ];
 

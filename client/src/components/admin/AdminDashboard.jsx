@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import api from "@/api/axios"; // your axios instance
 import { timeAgo } from "@/utils/dateUtils";
+import DashboardStats from "../common/DashboardStats";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -63,49 +64,37 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <DashboardCard
-            title="Total Resources"
-            value={d.totalResources}
-            subtitle="Across all departments"
-            icon={<Server className="w-5 h-5 text-gray-500" />}
-          />
-          <DashboardCard
-            title="Available"
-            value={d.availableResources}
-            subtitle="Ready for booking"
-            icon={<CheckCircle className="w-5 h-5 text-green-500" />}
-          />
-          <DashboardCard
-            title="Pending Requests"
-            value={d.pendingRequests}
-            subtitle="Need review"
-            icon={<AlertCircle className="w-5 h-5 text-yellow-500" />}
-          />
-          <DashboardCard
-            title="Total Users"
-            value={d.totalUsers}
-            subtitle="Active accounts"
-            icon={<Users className="w-5 h-5 text-gray-500" />}
-          />
-          {/*
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Utilization</CardTitle>
-              <TrendingUp className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="font-semibold text-orange-500 text-2xl mb-2">
-                {d.utilization}%
-              </div>
-              <Progress value={d.utilization} className="h-2 bg-gray-200" />
-            </CardContent>
-          </Card>
-           */}
-        </div>
+        <DashboardStats
+          stats={[
+            {
+              label: "Total Resources",
+              value: d.totalResources,
+              subtitle: "Across all departments",
+              icon: <Server className="w-5 h-5 text-gray-500" />,
+            },
+            {
+              label: "Available",
+              value: d.availableResources,
+              subtitle: "Ready for booking",
+              icon: <CheckCircle className="w-5 h-5 text-green-500" />,
+            },
+            {
+              label: "Pending Requests",
+              value: d.pendingRequests,
+              subtitle: "Need review",
+              icon: <AlertCircle className="w-5 h-5 text-yellow-500" />,
+            },
+            {
+              label: "Total Users",
+              value: d.totalUsers,
+              subtitle: "Active accounts",
+              icon: <Users className="w-5 h-5 text-gray-500" />,
+            },
+          ]}
+        />
 
         {/* Main Cards */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-bold mb-0">

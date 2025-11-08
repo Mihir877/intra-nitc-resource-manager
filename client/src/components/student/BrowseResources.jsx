@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import PageTitle from "../common/PageTitle";
 
 const uiStatus = (backendStatus) => {
   const s = String(backendStatus || "").toLowerCase();
@@ -132,13 +133,10 @@ export default function BrowseResources() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Browse Resources</h1>
-        <p className="text-gray-500 mt-1">
-          Explore available GPU servers, lab equipment, and institutional
-          resources
-        </p>
-      </div>
+      <PageTitle
+        title="Browse Resources"
+        subtitle="Find and request resources"
+      />
 
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative w-full md:w-1/2">

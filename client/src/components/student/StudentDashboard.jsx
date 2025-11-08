@@ -1,12 +1,22 @@
-import React from "react";
-("use client");
-import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "@/api/axios";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Separator } from "../ui/separator";
+import PageTitle from "../common/PageTitle";
+import DashboardStats from "../common/DashboardStats";
+import { Server, Clock, CheckCircle, AlertCircle } from "lucide-react";
+
+const hoverRow =
+  "rounded-md transition-colors cursor-pointer hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
+
+const MAX_ITEMS = 5;
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
+
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [approvedRequests, setApprovedRequests] = useState([]);
@@ -17,35 +27,32 @@ const StudentDashboard = () => {
     rejectedRequests: 0,
     totalHours: 0,
   });
+
   const approvalRate =
     stats.totalRequests > 0
       ? ((stats.approvedRequests / stats.totalRequests) * 100).toFixed(1)
       : 0;
+
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await api.get("/requests"); // your backend route
-        if (res.data.success) {
-          setRequests(res.data.requests);
-        }
-      } catch (error) {
-        console.error("Error fetching requests:", error);
+        const res = await api.get("/requests");
+        if (res.data.success) setRequests(res.data.requests || []);
+      } catch (e) {
+        console.error("Error fetching requests:", e);
       } finally {
         setLoading(false);
       }
     };
-
     fetchRequests();
   }, []);
 
   const fetchStats = async () => {
     try {
-      const res = await api.get("/requests/count"); // <-- your backend route
-      if (res.data.success) {
-        setStats(res.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching request stats:", error);
+      const res = await api.get("/requests/count");
+      if (res.data.success) setStats(res.data.data || {});
+    } catch (e) {
+      console.error("Error fetching request stats:", e);
     }
   };
 
@@ -54,78 +61,90 @@ const StudentDashboard = () => {
   }, []);
 
   useEffect(() => {
-    const fetchApprovedRequests = async () => {
+    const fetchApproved = async () => {
       try {
         const res = await api.get("/requests");
         if (res.data.success) {
-          // Filter only approved requests
-          const approved = res.data.requests.filter(
-            (r) => r.status === "approved"
+          setApprovedRequests(
+            (res.data.requests || []).filter((r) => r.status === "approved")
           );
-          setApprovedRequests(approved);
         }
-      } catch (error) {
-        console.error("Error fetching approved requests:", error);
+      } catch (e) {
+        console.error("Error fetching approved requests:", e);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchApprovedRequests();
+    fetchApproved();
   }, []);
+
+  const statusClass = (status) => {
+    if (status === "approved")
+      return "bg-green-100 text-green-700 border-green-200";
+    if (status === "pending")
+      return "bg-yellow-100 text-yellow-700 border-yellow-200";
+    return "bg-red-100 text-red-700 border-red-200";
+  };
+
+  const goToRequest = (req) => {
+    if (req?._id) navigate(`/requests/${req._id}`);
+    else navigate("/requests");
+  };
+
+  // Limit lists to MAX_ITEMS and compute if there are more
+  const recentLimited = useMemo(() => requests.slice(0, MAX_ITEMS), [requests]);
+  const recentHasMore = useMemo(() => requests.length > MAX_ITEMS, [requests]);
+
+  const upcomingLimited = useMemo(
+    () => approvedRequests.slice(0, MAX_ITEMS),
+    [approvedRequests]
+  );
+  const upcomingHasMore = useMemo(
+    () => approvedRequests.length > MAX_ITEMS,
+    [approvedRequests]
+  );
 
   return (
     <div className="min-h-screen flex">
-      {/* Main content */}
       <main className="flex-1">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-500 mt-1">
-              Overview of your resource usage and requests
-            </p>
-          </div>
-          {/* <Button className="bg-orange-500 hover:bg-orange-600">
-            + Request Resource
-          </Button> */}
-        </header>
+        <PageTitle
+          title="Dashboard"
+          subtitle="Overview of your resource usage and requests"
+        />
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-          {/* Total Requests */}
-          <Card className="p-5">
-            <h3 className="text-gray-600 font-semibold">Total Requests</h3>
-            <p className="text-2xl font-bold">{stats.totalRequests}</p>
-          </Card>
+        <DashboardStats
+          stats={[
+            {
+              label: "Total Requests",
+              value: stats.totalRequests,
+              subtitle: "All-time requests",
+              icon: <Server className="w-5 h-5 text-gray-500" />,
+            },
+            {
+              label: "Approved",
+              value: stats.approvedRequests,
+              subtitle: `${approvalRate}% approval rate`,
+              icon: <CheckCircle className="w-5 h-5 text-green-500" />,
+            },
+            {
+              label: "Pending",
+              value: stats.pendingRequests,
+              subtitle: "Awaiting review",
+              icon: <AlertCircle className="w-5 h-5 text-yellow-500" />,
+            },
+            {
+              label: "Hours Used",
+              value: `${stats.totalHours}h`,
+              subtitle: "This semester",
+              icon: <Clock className="w-5 h-5 text-blue-500" />,
+            },
+          ]}
+        />
 
-          {/* Approved */}
-          <Card className="p-5">
-            <h3 className="text-gray-600 font-semibold">Approved</h3>
-            <p className="text-2xl font-bold">{stats.approvedRequests}</p>
-            <p className="text-green-500 text-sm">
-              {approvalRate}% approval rate
-            </p>
-          </Card>
-
-          {/* Pending */}
-          <Card className="p-5">
-            <h3 className="text-gray-600 font-semibold">Pending</h3>
-            <p className="text-2xl font-bold">{stats.pendingRequests}</p>
-            <p className="text-yellow-500 text-sm">Awaiting approval</p>
-          </Card>
-
-          {/* Hours Used */}
-          <Card className="p-5">
-            <h3 className="text-gray-600 font-semibold">Hours Used</h3>
-            <p className="text-2xl font-bold">{stats.totalHours}h</p>
-            <p className="text-gray-400 text-sm">This semester</p>
-          </Card>
-        </div>
-
-        {/* Recent Requests and Upcoming Bookings */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Recent Requests */}
           <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="border-b p-3 sm:px-6 sm:pt-5">
               <CardTitle className="text-lg font-bold mb-0">
                 Recent Requests
               </CardTitle>
@@ -134,7 +153,7 @@ const StudentDashboard = () => {
               </p>
             </CardHeader>
 
-            <CardContent className="text-sm text-gray-700">
+            <CardContent className="text-sm text-gray-700 px-3 sm:px-6">
               {loading ? (
                 <div className="flex items-center justify-center h-40 text-gray-500">
                   Loading requests...
@@ -144,52 +163,62 @@ const StudentDashboard = () => {
                   No requests found.
                 </div>
               ) : (
-                requests.map((req, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between border-b last:border-b-0 py-3"
-                  >
-                    <div>
-                      <span className="font-medium text-gray-800">
-                        {req.resourceId?.name || "Unknown Resource"}
-                      </span>
-                      <div className="text-xs text-gray-500">
-                        {new Date(req.startTime).toLocaleDateString()} •{" "}
-                        {req.duration
-                          ? req.duration
-                          : `${new Date(req.startTime).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })} - ${new Date(req.endTime).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}`}
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`${
-                        req.status === "approved"
-                          ? "bg-green-100 text-green-700"
-                          : req.status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
+                <>
+                  {recentLimited.map((req) => (
+                    <div
+                      key={req._id ?? `${req.resourceId?._id}-${req.startTime}`}
+                      onClick={() => goToRequest(req)}
+                      className="flex items-center justify-between border-b last:border-b-0 py-3"
                     >
-                      {req.status}
-                    </Badge>
-                  </div>
-                ))
+                      <div>
+                        <span className="font-medium text-gray-800">
+                          {req.resourceId?.name || "Unknown Resource"}
+                        </span>
+                        <div className="text-xs text-gray-500">
+                          {new Date(req.startTime).toLocaleDateString()} •{" "}
+                          {req.duration
+                            ? req.duration
+                            : `${new Date(req.startTime).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )} - ${new Date(req.endTime).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}`}
+                        </div>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={statusClass(req.status)}
+                      >
+                        {req.status}
+                      </Badge>
+                    </div>
+                  ))}
+
+                  {recentHasMore && (
+                    <Button
+                      variant="outline"
+                      className="mt-3 w-full text-blue-600 :hover:text-blue-700"
+                      onClick={() => navigate("/requests")}
+                    >
+                      View more
+                    </Button>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
-          {/* Upcoming Bookings */}
 
+          {/* Upcoming Bookings */}
           <Card>
-            <CardHeader>
+            <CardHeader className="border-b p-3 sm:px-6 sm:pt-5">
               <CardTitle className="text-lg font-bold mb-0">
                 Upcoming Bookings
               </CardTitle>
@@ -198,7 +227,7 @@ const StudentDashboard = () => {
               </p>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="text-sm text-gray-700 px-3 sm:px-6">
               {loading ? (
                 <div className="text-gray-500 flex items-center justify-center h-40">
                   Loading bookings...
@@ -208,38 +237,47 @@ const StudentDashboard = () => {
                   No approved bookings found.
                 </div>
               ) : (
-                approvedRequests.map((req, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between border-b last:border-b-0 py-3"
-                  >
-                    <div>
-                      <span className="font-medium text-gray-800">
-                        {req.resourceId?.name || "Unknown Resource"}
-                      </span>
-                      <div className="text-xs text-gray-500">
-                        Resource •{" "}
-                        {new Date(req.startTime).toLocaleDateString()} •{" "}
-                        <span className="font-semibold text-gray-900">
-                          {new Date(req.startTime).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}{" "}
-                          -{" "}
-                          {new Date(req.endTime).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                <>
+                  {upcomingLimited.map((req) => (
+                    <div
+                      key={req._id ?? `${req.resourceId?._id}-${req.startTime}`}
+                      onClick={() => goToRequest(req)}
+                      className="flex items-center justify-between border-b last:border-b-0 py-3"
+                    >
+                      <div>
+                        <span className="font-medium text-gray-800">
+                          {req.resourceId?.name || "Unknown Resource"}
                         </span>
+                        <div className="text-xs text-gray-500">
+                          Resource •{" "}
+                          {new Date(req.startTime).toLocaleDateString()} •{" "}
+                          <span className="font-semibold text-gray-900">
+                            {new Date(req.startTime).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}{" "}
+                            -{" "}
+                            {new Date(req.endTime).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))}
 
-              <Button variant="outline" className="mt-4 w-full">
-                View Schedule
-              </Button>
+                  {upcomingHasMore && (
+                    <Button
+                      variant="outline"
+                      className="mt-4 w-full text-blue-600 hover:text-blue-700"
+                      onClick={() => navigate("/schedule")}
+                    >
+                      View Schedule
+                    </Button>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -247,5 +285,65 @@ const StudentDashboard = () => {
     </div>
   );
 };
+
+function QuickStats({ stats, approvalRate }) {
+  const items = [
+    {
+      label: "Total Requests",
+      value: stats.totalRequests,
+    },
+    {
+      label: "Approved",
+      value: stats.approvedRequests,
+      extra: `${approvalRate}% approval rate`,
+      extraColor: "text-green-500",
+    },
+    {
+      label: "Pending",
+      value: stats.pendingRequests,
+      extra: "Awaiting approval",
+      extraColor: "text-yellow-500",
+    },
+    {
+      label: "Hours Used",
+      value: `${stats.totalHours}h`,
+      extra: "This semester",
+      extraColor: "text-gray-400",
+    },
+  ];
+
+  return (
+    <>
+      {/* ✅ Large screens: card grid */}
+      <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        {items.map((item) => (
+          <Card key={item.label} className="p-5">
+            <h3 className="text-gray-600 font-semibold">{item.label}</h3>
+            <p className="text-2xl font-bold">{item.value}</p>
+
+            {item.extra && (
+              <p className={`hidden md:block text-sm mt-1 ${item.extraColor}`}>
+                {item.extra}
+              </p>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      {/* ✅ Small screens: minimalist list */}
+      <div className="sm:hidden space-y-2 mb-5 bg-white p-3 rounded-lg shadow border">
+        {items.map((item, index) => (
+          <React.Fragment key={item.label}>
+            <div className="flex justify-between">
+              <span className="text-gray-600 font-medium">{item.label}</span>
+              <span className="font-bold">{item.value}</span>
+            </div>
+            {index !== items.length - 1 && <Separator className="my-1.5" />}
+          </React.Fragment>
+        ))}
+      </div>
+    </>
+  );
+}
 
 export default StudentDashboard;

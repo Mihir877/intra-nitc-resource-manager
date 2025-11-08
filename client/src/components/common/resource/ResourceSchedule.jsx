@@ -154,7 +154,17 @@ const SlotCell = ({
   });
 
   const tooltip = getTooltipText(entry);
-  const label = isSelected ? "✓" : statusStyle.label;
+  const label = isSelected ? (
+    // <div className="flex items-center justify-center gap-1">
+    //   <Check className="h-4 w-4 text-blue-700" />
+    // </div>
+
+    <div className="flex items-center justify-center gap-1 text-blue-700">
+      ✓
+    </div>
+  ) : (
+    statusStyle.label
+  );
 
   return (
     <button

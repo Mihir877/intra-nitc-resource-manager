@@ -153,7 +153,7 @@ const RegisterPage = () => {
           <Input
             id="email"
             type="email"
-            placeholder="you.name.roll@nitc.ac.in"
+            placeholder="name_roll@nitc.ac.in"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

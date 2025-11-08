@@ -76,6 +76,7 @@ const assignRole = async (req, res) => {
 
 // Get current authenticated user
 const getCurrentUser = async (req, res) => {
+  console.log("req.user: ", req.user);
   try {
     res.status(200).json({
       success: true,
@@ -83,6 +84,41 @@ const getCurrentUser = async (req, res) => {
       user: req.user,
       message: "Current user fetched successfully",
       activityType: USER_ACTIVITY_TYPES.RETRIEVE_DATA,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
+const getUserProfile = async (req, res) => {
+  try {
+    const isSelf = req.params.id === "me";
+    const userId = isSelf ? req.user._id : req.params.id;
+
+    // Access control
+    if (!isSelf && req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only view your own profile.",
+      });
+    }
+
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+      isSelf,
+      message: "Profile fetched successfully",
     });
   } catch (error) {
     console.error(error);
@@ -212,10 +248,11 @@ const deleteUser = async (req, res) => {
 };
 
 export {
-  deleteUser,
-  changeCurrentPassword,
-  assignRole,
   getCurrentUser,
+  getUserProfile,
   getAllUsers,
   updateUserProfile,
+  changeCurrentPassword,
+  assignRole,
+  deleteUser,
 };

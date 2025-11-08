@@ -7,6 +7,7 @@ import {
   getAllUsers,
   updateUserProfile,
   deleteUser,
+  getUserProfile,
 } from "../controllers/user.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -24,11 +25,13 @@ router.use(verifyJWT);
 
 // Protected routes (all require authentication)
 router.get("/me", getCurrentUser);
+router.get("/profile/:id", verifyJWT, getUserProfile);
 router.get("/get-all-users", getAllUsers);
+router.get("/schedule", getUserSchedule);
+
 router.post("/assign-role/:userId", assignRole);
 router.patch("/update-profile", updateUserProfile);
 router.post("/change-password", changeCurrentPassword);
-router.get("/schedule", getUserSchedule);
- router.delete("/delete-account/:id", deleteUser);
+router.delete("/delete-account/:id", deleteUser);
 
 export default router;

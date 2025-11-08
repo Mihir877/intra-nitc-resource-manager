@@ -1,26 +1,71 @@
 import { Request } from "../models/request.model.js";
 import { Resource } from "../models/resource.model.js";
 
-// GET: upcoming approved bookings for user (unchanged behavior, ISO consistent)
+/**
+ * @desc    Get 14-day user booking schedule (ISO-hour map like getScheduleForResource)
+ * @route   GET /api/v1/schedule/user
+ * @access  Authenticated User
+ */
 export const getUserSchedule = async (req, res) => {
   try {
     const userId = req.user.id;
-    const now = new Date();
-    const bookings = await Request.find({
+
+    // Define the 14-day window
+    const windowStart = new Date();
+    windowStart.setUTCHours(0, 0, 0, 0);
+
+    const windowEnd = new Date(windowStart);
+    windowEnd.setUTCDate(windowEnd.getUTCDate() + 14);
+
+    // Fetch user’s approved and pending bookings
+    const requests = await Request.find({
       userId,
-      status: "approved",
-      startTime: { $gte: now },
+      endTime: { $gte: windowStart },
+      startTime: { $lte: windowEnd },
+      status: { $in: ["approved", "pending"] },
     })
-      .populate("resourceId", "name type location description")
-      .sort({ startTime: 1 })
+      .select("startTime endTime status resourceId purpose")
+      .populate("resourceId", "name location type description")
       .lean();
 
-    res.status(200).json({
+    // Build the hourly schedule map
+    const schedule = {};
+    const timeRange = { startHour: 0, endHour: 24 }; // full day coverage
+
+    for (const r of requests) {
+      const start = new Date(r.startTime);
+      const end = new Date(r.endTime);
+
+      const cursor = new Date(start);
+      cursor.setUTCMinutes(0, 0, 0);
+
+      const hourKeys = [];
+      while (cursor < end) {
+        const key = toIsoHour(cursor);
+        hourKeys.push(key);
+        cursor.setUTCHours(cursor.getUTCHours() + 1);
+      }
+
+      for (let i = 0; i < hourKeys.length; i++) {
+        const key = hourKeys[i];
+        schedule[key] = {
+          status: r.status === "approved" ? "booked" : "pendingMine",
+          resource: r.resourceId?.name || "Resource",
+          location: r.resourceId?.location || "",
+          type: r.resourceId?.type || "",
+          purpose: r.purpose || "",
+          isStartSlot: i === 0,
+          isEndSlot: i === hourKeys.length - 1,
+        };
+      }
+    }
+
+    return res.status(200).json({
       success: true,
       statusCode: 200,
-      count: bookings.length,
-      bookings,
-      message: "User upcoming bookings fetched successfully",
+      schedule, // ISO-hour keyed map
+      timeRange, // consistent with getScheduleForResource
+      message: "User 14-day booking schedule fetched successfully",
     });
   } catch (error) {
     console.error("Error fetching user schedule:", error);
@@ -31,6 +76,13 @@ export const getUserSchedule = async (req, res) => {
   }
 };
 
+// Helper
+function toIsoHour(date) {
+  const d = new Date(date);
+  d.setUTCMinutes(0, 0, 0);
+  return d.toISOString();
+}
+``
 // GET: 14-day schedule for a resource as ISO-hour keyed map
 export const getScheduleForResource = async (req, res) => {
   try {

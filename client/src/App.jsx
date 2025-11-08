@@ -22,7 +22,8 @@ import History from "./components/student/History";
 import Users from "./components/admin/Users";
 import Profile from "./components/common/Profile";
 import Preferences from "./components/admin/Preferences";
-import ResourceDetailPage from "./components/common/ResourceDetailPage";
+import ResourceDetailPage from "./components/common/resource/ResourceDetailPage";
+import StudentSchdeule from "./components/student/StudentSchedule";
 import { Toaster } from "./components/ui/sonner";
 
 // Newly added auth pages
@@ -31,8 +32,6 @@ import ResendVerificationPage from "./components/auth/ResendVerificationPage";
 import ForgotPasswordPage from "./components/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import AuthLayout from "./components/auth/AuthLayout";
-import StudentSchedulePage from "../backups/schedule page/Schedule";
-import SchedulePage from "./components/student/Schedule";
 
 const PageTitle = ({ children }) => (
   <h1 className="text-3xl font-bold text-gray-900">{children}</h1>
@@ -83,7 +82,7 @@ function AppRoutes() {
               path: "request-resource",
               element: <PageTitle>Request Resource</PageTitle>,
             },
-            { path: "schedule", element: <SchedulePage /> },
+            { path: "schedule", element: <StudentSchdeule /> },
             { path: "profile", element: <Profile /> },
           ],
         },
@@ -102,7 +101,6 @@ function AppRoutes() {
             { path: "dashboard", element: <AdminDashboard /> },
             { path: "resources", element: <ResourceManager /> },
             { path: "requests", element: <PendingRequests /> },
-            { path: "schedule", element: <StudentSchedulePage /> },
             { path: "users", element: <Users /> },
             { path: "users/:id", element: <Profile /> },
             { path: "preferences", element: <Preferences /> },

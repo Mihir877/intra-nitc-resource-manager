@@ -32,6 +32,8 @@ import ResendVerificationPage from "./components/auth/ResendVerificationPage";
 import ForgotPasswordPage from "./components/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import AuthLayout from "./components/auth/AuthLayout";
+import ResourceFormPage from "./components/common/resource/ResourceFormPage";
+import RequestDetails from "./components/common/RequestDetails";
 
 const PageTitle = ({ children }) => (
   <h1 className="text-3xl font-bold text-gray-900">{children}</h1>
@@ -46,7 +48,6 @@ function AppRoutes() {
       children: [
         { path: "/login", element: <LoginPage /> },
         { path: "/register", element: <RegisterPage /> },
-        { path: "/verify-email/:token", element: <VerifyEmailPage /> },
         { path: "/resend-verification", element: <ResendVerificationPage /> },
         { path: "/forgot-password", element: <ForgotPasswordPage /> },
         { path: "/reset-password/:token", element: <ResetPasswordPage /> },
@@ -74,7 +75,7 @@ function AppRoutes() {
             { path: "requests", element: <MyRequests /> },
             {
               path: "requests/:id",
-              element: <PageTitle>Request Details</PageTitle>,
+              element: <RequestDetails />,
             },
 
             { path: "history", element: <History /> },
@@ -100,7 +101,14 @@ function AppRoutes() {
             { index: true, element: <Navigate to="dashboard" /> },
             { path: "dashboard", element: <AdminDashboard /> },
             { path: "resources", element: <ResourceManager /> },
+            { path: "resources/:id", element: <ResourceDetailPage /> },
+            { path: "resources/add", element: <ResourceFormPage /> },
+            { path: "resources/:id/edit", element: <ResourceFormPage /> },
             { path: "requests", element: <PendingRequests /> },
+            {
+              path: "requests/:id",
+              element: <RequestDetails />,
+            },
             { path: "users", element: <Users /> },
             { path: "users/:id", element: <Profile /> },
             { path: "profile/me", element: <Profile /> },
@@ -109,6 +117,8 @@ function AppRoutes() {
         },
       ],
     },
+
+    { path: "/verify-email/:token", element: <VerifyEmailPage /> },
 
     { path: "*", element: <PageNotFound /> },
   ]);

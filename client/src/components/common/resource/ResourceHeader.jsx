@@ -5,7 +5,6 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,8 @@ import {
   Timer,
   ShieldCheck,
   ImageIcon,
+  Layers,
+  User,
 } from "lucide-react";
 import AvailabilityDisplay from "./AvailabilityDisplay";
 import api from "@/api/axios";
@@ -35,7 +36,7 @@ const ResourceHeader = ({ resourceId }) => {
       const res = await api.get(`/resources/${resourceId}`);
       setResource(res.data?.resource);
     } catch (error) {
-      console.error("error: ", error);
+      console.error(error);
       setError("Failed to load resource details");
     } finally {
       setLoading(false);
@@ -72,95 +73,143 @@ const ResourceHeader = ({ resourceId }) => {
       : "bg-muted text-muted-foreground border-muted";
 
   return (
-    <Card className="mb-3 border border-muted shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
+    <Card className="border border-muted shadow-md overflow-hidden">
+      {/* Header */}
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-0">
         <div>
-          <CardTitle className="text-2xl mb-4 ml-1">
-            {resource.name || "Resource"}
+          <CardTitle className="text-2xl font-bold mb-1">
+            {resource.name}
           </CardTitle>
-          <CardDescription className="flex flex-wrap items-center gap-2 mt-1 -ml-1">
-            {resource.type ? (
-              <Badge variant="outline" className="capitalize">
-                {resource.type}
-              </Badge>
-            ) : null}
-            {resource.category ? (
-              <Badge variant="outline">{resource.category}</Badge>
-            ) : null}
-            {resource.capacity != null ? (
-              <Badge variant="secondary">Capacity {resource.capacity}</Badge>
-            ) : null}
-          </CardDescription>
+
+          {/* Description as subtitle */}
+          {resource.description && (
+            <CardDescription className="text-muted-foreground text-sm max-w-2xl">
+              {resource.description}
+            </CardDescription>
+          )}
+
+         
         </div>
 
         {resource.status && (
-          <Badge className={`border ${statusColor}`}>
+          <Badge className={`border ${statusColor} text-sm px-3 py-1`}>
             {resource.status === "available" ? (
-              <CheckCircle2 className="h-3 w-3 mr-1" />
+              <CheckCircle2 className="h-4 w-4 mr-1" />
             ) : resource.status === "in_use" ? (
-              <AlertCircle className="h-3 w-3 mr-1" />
+              <AlertCircle className="h-4 w-4 mr-1" />
             ) : null}
             {resource.status.replace("_", " ")}
           </Badge>
         )}
       </CardHeader>
 
-      <CardContent className="flex gap-4">
-        <div className="w-24 h-24 rounded-md overflow-hidden bg-muted flex items-center justify-center shrink-0">
+      {/* Content */}
+      <CardContent className="p-5 flex flex-col sm:flex-row gap-5">
+        {/* Left: Image */}
+        <div className="w-full sm:w-52 h-52 rounded-xl overflow-hidden bg-muted flex items-center justify-center shadow-sm border">
           {resource.images?.length ? (
             <img
               src={resource.images[0]}
-              alt={`${resource.name} photo`}
+              alt={`${resource.name}`}
               className="w-full h-full object-cover"
             />
           ) : (
-            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+            <ImageIcon className="h-10 w-10 text-muted-foreground" />
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
+        {/* Right: Details */}
+        <div className="flex-1 flex flex-col gap-4">
+           {/* Meta badges */}
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {resource.type && (
+              <Badge variant="outline" className="capitalize">
+                {resource.type}
+              </Badge>
+            )}
+            {resource.department && (
+              <Badge variant="secondary">{resource.department}</Badge>
+            )}
+            {resource.capacity != null && (
+              <Badge variant="secondary">Capacity {resource.capacity}</Badge>
+            )}
+            {resource.isActive ? (
+              <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                Active
+              </Badge>
+            ) : (
+              <Badge className="bg-gray-200 text-gray-600">Inactive</Badge>
+            )}
+          </div>
+
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            {resource.location ? (
+            {resource.location && (
               <span className="inline-flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> {resource.location}
+                <MapPin className="h-4 w-4" /> {resource.location}
               </span>
-            ) : null}
+            )}
             <Separator orientation="vertical" className="h-4" />
             <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="h-3 w-3" />
+              <ShieldCheck className="h-4 w-4" />
               {resource.requiresApproval
                 ? "Requires Approval"
                 : "Instant Booking"}
             </span>
             <Separator orientation="vertical" className="h-4" />
-            {resource.maxBookingDuration != null ? (
-              <span className="inline-flex items-center gap-1">
-                <Timer className="h-3 w-3" /> Up to{" "}
-                {resource.maxBookingDuration}h
-              </span>
-            ) : null}
+            <span className="inline-flex items-center gap-1">
+              <Timer className="h-4 w-4" />
+              Max {resource.maxBookingDuration}h / session
+            </span>
           </div>
 
+          {/* ✅ Availability section */}
           <AvailabilityDisplay availability={resource.availability} />
+
+          {/* ✅ Footer info moved here */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 text-xs text-muted-foreground border-t pt-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1">
+                <User className="h-3 w-3" /> Created by{" "}
+                <span className="font-medium text-gray-800 dark:text-gray-200">
+                  {resource.createdBy || "—"}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Layers className="h-3 w-3" />
+                Last updated:{" "}
+                <span className="font-medium text-gray-800 dark:text-gray-200">
+                  {new Date(resource.updatedAt).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-lg mt-3 sm:mt-0"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? "Hide Usage Rules" : "Show Usage Rules"}
+            </Button>
+          </div>
         </div>
       </CardContent>
 
-      {/* <CardFooter className="flex items-center justify-between">
-        <div className="text-xs text-muted-foreground">
-          {expanded
-            ? resource.description
-            : `${resource.description?.slice(0, 100)}...`}
+      {/* Usage Rules Section */}
+      {expanded && (
+        <div className="bg-muted/40 border-t text-sm p-5 text-muted-foreground">
+          {resource.usageRules?.length > 0 &&
+          resource.usageRules.some((r) => r.trim()) ? (
+            <ul className="list-disc pl-5 space-y-1">
+              {resource.usageRules.map((rule, idx) => (
+                <li key={idx}>{rule}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>No specific usage rules defined.</p>
+          )}
         </div>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? "Show Details" : "Hide Details"}
-          </Button>
-        </div>
-      </CardFooter> */}
+      )}
     </Card>
   );
 };

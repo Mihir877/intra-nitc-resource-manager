@@ -1,9 +1,13 @@
 import express from "express";
-import { getDashboardStats } from "../controllers/dashboard.controller.js";
+import {
+  getAdminDashboard,
+  getStudentDashboard,
+} from "../controllers/dashboard.controller.js";
 import { requireAdmin, verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.get("/stats", verifyJWT, requireAdmin, getDashboardStats);
+router.get("/student", verifyJWT, getStudentDashboard);
+router.get("/admin", verifyJWT, requireAdmin, getAdminDashboard);
 
 export default router;

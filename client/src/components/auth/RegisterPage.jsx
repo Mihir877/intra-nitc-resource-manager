@@ -1,5 +1,5 @@
 // src/components/auth/RegisterPage.jsx
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,18 +16,8 @@ import useAuth from "@/hooks/useAuth";
 import { notify } from "@/lib/notify";
 import { Separator } from "../ui/separator";
 import PasswordField from "./PasswordField";
-
-const DEPARTMENTS = [
-  { code: "CSE", name: "Computer Science & Engineering" },
-  { code: "ECE", name: "Electronics & Communication Engineering" },
-  { code: "EEE", name: "Electrical & Electronics Engineering" },
-  { code: "ME", name: "Mechanical Engineering" },
-  { code: "CE", name: "Civil Engineering" },
-  { code: "ARCH", name: "Architecture" },
-  { code: "CHE", name: "Chemical Engineering" },
-  { code: "MBA", name: "Management (MBA)" },
-  { code: "MCA", name: "Computer Applications (MCA)" },
-];
+import { DEPARTMENTS } from "@/utils/constants";
+import { Loader2 } from "lucide-react";
 
 const DEPT_CODES = DEPARTMENTS.map((d) => d.code);
 
@@ -38,11 +28,15 @@ const RegisterPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [department, setDepartment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  if (user) {
-    navigate(user.role === "admin" ? "/admin" : "/student");
-  }
+  // Avoid navigating during render
+  useEffect(() => {
+    if (user) {
+      navigate(user.role === "admin" ? "/admin" : "/student");
+    }
+  }, [user, navigate]); // [web:7]
 
   // Matches name_roll@nitc.ac.in; roll must have >=2 letters & >=2 digits
   const isNitcEmail = (em) => {
@@ -52,7 +46,7 @@ const RegisterPage = () => {
     const letters = (roll.match(/[a-zA-Z]/g) || []).length >= 2;
     const digits = (roll.match(/[0-9]/g) || []).length >= 2;
     return letters && digits;
-  };
+  }; // [web:50]
 
   // Heuristic dept inference from roll
   const inferredDept = useMemo(() => {
@@ -70,10 +64,11 @@ const RegisterPage = () => {
     if (/mba/.test(roll)) return "MBA";
     if (/mca/.test(roll)) return "MCA";
     return "";
-  }, [email]);
+  }, [email]); // [web:50]
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return; // guard against double submit [web:24]
 
     if (!username.trim()) {
       notify.error("Registration failed", "Please enter your full username.");
@@ -90,6 +85,10 @@ const RegisterPage = () => {
       notify.error("Registration failed", "Please enter your password.");
       return;
     }
+    if (password !== confirmPassword) {
+      notify.error("Registration failed", "Passwords do not match.");
+      return;
+    }
 
     const finalDept = department || inferredDept;
     if (!finalDept) {
@@ -102,8 +101,8 @@ const RegisterPage = () => {
     }
 
     try {
+      setIsSubmitting(true);
       // role omitted: backend defaults to student
-      console.log("username,email,password,: ", username, email, password);
       const res = await register(username, email, password, finalDept);
       if (res?.success) {
         notify.success(
@@ -118,7 +117,13 @@ const RegisterPage = () => {
         );
       }
     } catch (err) {
-      notify.error("Server error", err?.message || "Please try again.");
+      console.error("Registration failed:", err?.response?.data?.message);
+      notify.error(
+        "Registration error",
+        err?.response?.data?.message || "Please try again."
+      );
+    } finally {
+      setIsSubmitting(false); // always re-enable [web:47]
     }
   };
 
@@ -143,6 +148,7 @@ const RegisterPage = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            disabled={isSubmitting} // disable while pending [web:7]
           />
         </div>
 
@@ -157,6 +163,7 @@ const RegisterPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isSubmitting} // [web:7]
           />
           {inferredDept && !department && (
             <p className="text-xs text-muted-foreground mt-1">
@@ -168,7 +175,11 @@ const RegisterPage = () => {
 
         <div>
           <Label className="mb-1 block">Department</Label>
-          <Select value={department} onValueChange={setDepartment}>
+          <Select
+            value={department}
+            onValueChange={setDepartment}
+            disabled={isSubmitting} // disable select too [web:35]
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select department" />
             </SelectTrigger>
@@ -198,10 +209,21 @@ const RegisterPage = () => {
           confirmLabel="Confirm password"
           confirmValue={confirmPassword}
           onConfirmChange={(e) => setConfirmPassword(e.target.value)}
+          disabled={isSubmitting} // pass through to inputs if supported [web:7]
         />
 
-        <Button type="submit" className="w-full">
-          Create account
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting} // main disable flag [web:24]
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+            </>
+          ) : (
+            "Create account"
+          )}
         </Button>
       </form>
 

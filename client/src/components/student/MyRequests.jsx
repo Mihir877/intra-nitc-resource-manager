@@ -12,26 +12,17 @@ import {
   X,
   CheckCircle2,
   Search,
-  Filter,
   MapPin,
+  ExternalLink,
 } from "lucide-react";
 import api from "@/api/axios";
 import { format, isSameDay, differenceInHours } from "date-fns";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import PageTitle from "../common/PageTitle";
 import { cn } from "@/lib/utils";
 import { StatusFilter } from "../common/StatusFilter";
+import { useNavigate } from "react-router-dom";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 // Helpers
 const STATUS_LABEL = {
@@ -58,9 +49,9 @@ const statusPill = (status) => {
 };
 
 // New formatters
-const fmtDayCompact = (iso) => format(new Date(iso), "yyyy-MM-dd"); // request date
-const fmtNiceDay = (iso) => format(new Date(iso), "do MMMM, yy"); // 7th Nov, 25
-const fmtNiceTime = (iso) => format(new Date(iso), "HH:mm"); // 09:00
+const fmtDayCompact = (iso) => format(new Date(iso), "yyyy-MM-dd");
+const fmtNiceDay = (iso) => format(new Date(iso), "do MMMM, yy");
+const fmtNiceTime = (iso) => format(new Date(iso), "HH:mm");
 const hoursBetween = (a, b) =>
   Math.max(1, differenceInHours(new Date(b), new Date(a)));
 
@@ -69,7 +60,11 @@ export default function MyRequests() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(null);
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // new filter
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // confirmation dialog state
+  const [confirmId, setConfirmId] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -104,7 +99,6 @@ export default function MyRequests() {
     return base;
   }, [requests]);
 
-  // text search across resource name, type, location, purpose, request id
   const searched = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return requests;
@@ -125,20 +119,16 @@ export default function MyRequests() {
     });
   }, [requests, q]);
 
-  // apply status filter (replaces tab triggers)
   const filtered = useMemo(() => {
-    const base =
-      statusFilter === "all"
-        ? searched
-        : searched.filter((r) => r.status?.toLowerCase() === statusFilter);
-    return base;
+    return statusFilter === "all"
+      ? searched
+      : searched.filter((r) => r.status?.toLowerCase() === statusFilter);
   }, [searched, statusFilter]);
 
   const handleCancel = async (id) => {
-    if (!window.confirm("Cancel this request?")) return;
     setCancelling(id);
     try {
-      await api.post(`/requests/${id}/cancel`);
+      await api.patch(`/requests/${id}/cancel`);
       setRequests((prev) =>
         prev.map((r) =>
           r._id === id
@@ -150,6 +140,7 @@ export default function MyRequests() {
       console.error("Cancel failed", e);
     } finally {
       setCancelling(null);
+      setShowConfirm(false);
     }
   };
 
@@ -200,13 +191,29 @@ export default function MyRequests() {
               <RequestCard
                 key={req._id}
                 req={req}
-                onCancel={handleCancel}
+                onOpenConfirm={(id) => {
+                  setConfirmId(id);
+                  setShowConfirm(true);
+                }}
                 cancelling={cancelling === req._id}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Confirm dialog */}
+      <ConfirmDialog
+        open={showConfirm}
+        onOpenChange={setShowConfirm}
+        title="Cancel Booking?"
+        description="Are you sure you want to cancel this booking? This action cannot be undone."
+        confirmText="Yes, Cancel"
+        cancelText="No, Keep It"
+        variant="destructive"
+        onConfirm={() => confirmId && handleCancel(confirmId)}
+        loading={!!cancelling}
+      />
     </div>
   );
 }
@@ -225,25 +232,20 @@ function EmptyState() {
   );
 }
 
-function RequestCard({ req, onCancel, cancelling }) {
+function RequestCard({ req, onOpenConfirm, cancelling }) {
+  const navigate = useNavigate();
   const status = req.status?.toLowerCase();
   const resource = req.resource || {};
 
-  // Date/time labels
   const sameDay = isSameDay(new Date(req.startTime), new Date(req.endTime));
   const datePrimary = sameDay
     ? fmtNiceDay(req.startTime)
     : `${fmtNiceDay(req.startTime)} → ${fmtNiceDay(req.endTime)}`;
-  const timePrimary = sameDay
-    ? `${fmtNiceTime(req.startTime)} - ${fmtNiceTime(req.endTime)}`
-    : `${fmtNiceTime(req.startTime)} → ${fmtNiceTime(req.endTime)}`;
   const totalHours =
     req.durationHours ?? hoursBetween(req.startTime, req.endTime);
 
   const formatDuration = (hours) => {
-    if (hours <= 24) {
-      return `${hours}h`;
-    }
+    if (hours <= 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
     const remainingHours = hours % 24;
     return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`;
@@ -252,7 +254,6 @@ function RequestCard({ req, onCancel, cancelling }) {
   return (
     <Card className="border border-gray-200 shadow-sm">
       <CardContent className="p-6">
-        {/* Heading */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -270,7 +271,6 @@ function RequestCard({ req, onCancel, cancelling }) {
           </Badge>
         </div>
 
-        {/* Sub header: location + Request Date */}
         <div className="flex justify-between mt-1 text-xs text-gray-500">
           {req?.resource?.location ? (
             <div className="flex items-center">
@@ -285,9 +285,7 @@ function RequestCard({ req, onCancel, cancelling }) {
 
         <Separator className="my-3" />
 
-        {/* Details row */}
         <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-          {/* Left: Dates and times grouped */}
           <div className="flex items-start gap-3">
             <CalendarDays className="h-5 w-5 text-gray-500 mt-0.5" />
             <div className="space-y-0.5">
@@ -295,26 +293,14 @@ function RequestCard({ req, onCancel, cancelling }) {
                 <div className="text-gray-900 font-medium">{datePrimary}</div>
                 {!sameDay && (
                   <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs text-purple-700">
-                    Multi‑day
+                    Multi-day
                   </span>
                 )}
               </div>
-
-              {/* <div
-                className="text-sm text-gray-700"
-                title={`${new Date(req.startTime).toISOString()} → ${new Date(
-                  req.endTime
-                ).toISOString()}`}
-              >
-                <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 ml-3 text-xs text-gray-700">
-                  {totalHours}h
-                </span>
-              </div> */}
             </div>
           </div>
 
-          {/* Right: Quick glance badges (start/end) */}
-          <div className="flex  gap-2 sm:items-end">
+          <div className="flex gap-2 sm:items-end">
             <div className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2.5 py-1.5">
               <span className="text-xs text-gray-500">Start</span>
               <span className="text-sm font-medium text-gray-900">
@@ -330,7 +316,6 @@ function RequestCard({ req, onCancel, cancelling }) {
           </div>
         </div>
 
-        {/* Purpose section */}
         <div className="mt-4">
           <p className="text-sm text-gray-500 font-medium mb-1.5">Purpose</p>
           <div className="bg-gray-50 text-gray-800 px-3 py-2 rounded-md text-sm">
@@ -338,32 +323,62 @@ function RequestCard({ req, onCancel, cancelling }) {
           </div>
         </div>
 
-        {/* Footer actions for pending */}
-        {status === "pending" && (
-          <div className="mt-4">
+        {/* Footer buttons */}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {status === "approved" && (
+            <div className="flex items-center text-green-700 text-sm">
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Approved on {req.approvedAt ? fmtDayCompact(req.approvedAt) : "—"}
+            </div>
+          )}
+          {status === "completed" && (
+            <div className="flex items-center text-blue-700 text-sm">
+              <Clock3 className="h-4 w-4 mr-2" />
+              Completed on{" "}
+              {req.completedAt ? fmtDayCompact(req.completedAt) : "—"}
+            </div>
+          )}
+          {status === "rejected" && (
+            <div className="flex items-center text-red-700 text-sm">
+              <X className="h-4 w-4 mr-2" />
+              Rejected {req.remarks ? `– ${req.remarks}` : ""}
+            </div>
+          )}
+
+          <div className="flex gap-2 sm:ml-auto">
             <Button
               variant="outline"
-              className="w-full sm:w-auto bg-gray-100 text-gray-800 hover:bg-gray-200"
-              onClick={() => onCancel(req._id)}
+              size="xs"
               disabled={cancelling}
+              onClick={() => onOpenConfirm(req._id)}
+              className={cn(
+                "transition-all duration-200 px-4 py-1",
+                "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
+              )}
             >
               {cancelling ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" /> Cancelling…
+                </>
               ) : (
-                <X className="h-4 w-4 mr-2" />
+                <>
+                  Cancel
+                  <X className="h-4 w-4 ml-1" />
+                </>
               )}
-              Cancel Request
+            </Button>
+
+            <Button
+              variant="outline"
+              size="xs"
+              className="transition-all duration-200 px-4 py-1"
+              onClick={() => navigate(`/requests/${req._id}`)}
+            >
+              View Details
+              <ExternalLink className="h-4 w-4 ml-2" />
             </Button>
           </div>
-        )}
-
-        {/* Footer note for approved/completed */}
-        {status === "approved" && (
-          <div className="mt-4 flex items-center text-green-700 text-sm">
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Approved on {req.approvedAt ? fmtDayCompact(req.approvedAt) : "—"}
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

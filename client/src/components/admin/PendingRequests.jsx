@@ -1,87 +1,73 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { User } from "lucide-react";
 import api from "@/api/axios";
+import PageTitle from "../common/PageTitle";
+import useAuth from "@/hooks/useAuth";
 
 export default function PendingRequests() {
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchRequests = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get("/requests/pending");
-        const data = res.data.data || [];
-        setRequests(data);
-        setStats({
-          pending: data.filter((r) => r.status?.toLowerCase() === "pending")
-            .length,
-          approved: data.filter((r) => r.status?.toLowerCase() === "approved")
-            .length,
-          rejected: data.filter((r) => r.status?.toLowerCase() === "rejected")
-            .length,
-        });
-      } catch (err) {
-        console.error("Error fetching requests:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRequests();
-  }, []);
-
-  const adjustStats = (prev, from, to) => {
-    const next = { ...prev };
-    next[from] = Math.max(0, next[from] - 1);
-    next[to] = next[to] + 1;
-    return next;
-  };
-
-  const handleDecision = async (id, nextStatus) => {
-    let remarks = "";
-    if (nextStatus === "rejected") {
-      const input = window.prompt("Add remarks for rejection (optional):", "");
-      if (input !== null) remarks = input.trim();
-    }
-
-    const current = requests.find((r) => r._id === id);
-    if (!current) return;
-
-    const prevStatus = current.status;
-    setRequests((prev) =>
-      prev.map((r) => (r._id === id ? { ...r, status: nextStatus } : r))
-    );
-    setStats((prev) => adjustStats(prev, prevStatus, nextStatus));
-
+  const fetchRequests = useCallback(async () => {
+    setLoading(true);
     try {
-      await api.patch(`/requests/${id}/decision`, {
-        status: nextStatus,
-        ...(nextStatus === "rejected" ? { remarks } : {}),
+      const res = await api.get("/requests/pending");
+      const data = res.data.data || [];
+      setRequests(data);
+      setStats({
+        pending: data.filter((r) => r.status?.toLowerCase() === "pending")
+          .length,
+        approved: data.filter((r) => r.status?.toLowerCase() === "approved")
+          .length,
+        rejected: data.filter((r) => r.status?.toLowerCase() === "rejected")
+          .length,
       });
     } catch (err) {
-      console.error(
-        `Failed to set status=${nextStatus} for request ${id}`,
-        err
-      );
-      setRequests((prev) =>
-        prev.map((r) => (r._id === id ? { ...r, status: prevStatus } : r))
-      );
-      setStats((prev) => adjustStats(prev, nextStatus, prevStatus));
+      console.error("Error fetching requests:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const handleDecision = async (id, nextStatus) => {
+    let remark = "";
+    if (nextStatus === "rejected") {
+      const input = window.prompt("Add remarks for rejection (optional):", "");
+      if (input !== null) remark = input.trim();
+    }
+
+    try {
+      setRefreshing(true);
+      const endpoint =
+        nextStatus === "approved"
+          ? `/requests/${id}/approve`
+          : `/requests/${id}/reject`;
+      await api.patch(endpoint, { remark });
+
+      // ✅ Refetch from backend to ensure up-to-date data
+      await fetchRequests();
+    } catch (err) {
+      console.error(`Failed to ${nextStatus} request ${id}`, err);
+      setRefreshing(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Pending Requests</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Review and manage resource allocation requests
-        </p>
-      </div>
+      <PageTitle
+        title="Pending Requests"
+        subtitle="Review and manage resource allocation requests"
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard title="Pending Requests" value={stats.pending} />
@@ -104,6 +90,12 @@ export default function PendingRequests() {
       ) : (
         <p className="text-gray-500 text-sm">No pending requests found.</p>
       )}
+
+      {refreshing && (
+        <p className="text-xs text-blue-500 mt-4 italic animate-pulse">
+          Updating request list...
+        </p>
+      )}
     </div>
   );
 }
@@ -118,6 +110,11 @@ function StatCard({ title, value }) {
 }
 
 function RequestCard({ request, onDecision }) {
+  const { user } = useAuth();
+  const isDeptAdmin =
+    user?.role === "admin" &&
+    user?.department === request?.resourceId?.department;
+
   const status =
     request.status?.charAt(0).toUpperCase() + request.status?.slice(1);
 
@@ -127,19 +124,22 @@ function RequestCard({ request, onDecision }) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex gap-3 items-center">
             <h2 className="text-lg font-semibold text-gray-900">
-              {request.resourceId?.name || request.resourceName}
+              {request.resourceId?.name}
             </h2>
             <Badge variant="outline" className="text-xs font-medium">
-              {request.resourceId?.type || request.resourceType}
+              {request.resourceId?.type}
+            </Badge>
+            <Badge className="text-xs bg-gray-100 text-gray-700">
+              {request.resourceId?.department}
             </Badge>
           </div>
           <Badge
             className={
-              status === "pending"
-                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                : status === "approved"
-                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                : "bg-red-100 text-red-700 hover:bg-red-200"
+              status === "Pending"
+                ? "bg-yellow-100 text-yellow-700"
+                : status === "Approved"
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
             }
           >
             {status}
@@ -178,16 +178,10 @@ function RequestCard({ request, onDecision }) {
                   {request.startTime
                     ? `${new Date(request.startTime).toLocaleDateString(
                         undefined,
-                        {
-                          dateStyle: "medium",
-                        }
+                        { dateStyle: "medium" }
                       )} ${new Date(request.startTime).toLocaleTimeString(
                         undefined,
-                        {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        }
+                        { hour: "2-digit", minute: "2-digit", hour12: false }
                       )}`
                     : "N/A"}
                 </span>
@@ -200,16 +194,10 @@ function RequestCard({ request, onDecision }) {
                   {request.endTime
                     ? `${new Date(request.endTime).toLocaleDateString(
                         undefined,
-                        {
-                          dateStyle: "medium",
-                        }
+                        { dateStyle: "medium" }
                       )} ${new Date(request.endTime).toLocaleTimeString(
                         undefined,
-                        {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        }
+                        { hour: "2-digit", minute: "2-digit", hour12: false }
                       )}`
                     : "N/A"}
                 </span>
@@ -228,20 +216,36 @@ function RequestCard({ request, onDecision }) {
         {status === "Pending" && (
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
+              disabled={!isDeptAdmin}
               variant="outline"
-              className="bg-blue-100 text-blue-700 border-blue-300 flex-1 hover:bg-blue-200"
-              onClick={() => onDecision(request._id, "approved")}
+              className={`flex-1 ${
+                isDeptAdmin
+                  ? "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200"
+                  : "opacity-50 cursor-not-allowed"
+              }`}
+              onClick={() => isDeptAdmin && onDecision(request._id, "approved")}
             >
               ✓ Approve
             </Button>
             <Button
+              disabled={!isDeptAdmin}
               variant="outline"
-              className="bg-red-100 text-red-700 border-red-300 flex-1 hover:bg-red-200"
-              onClick={() => onDecision(request._id, "rejected")}
+              className={`flex-1 ${
+                isDeptAdmin
+                  ? "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
+                  : "opacity-50 cursor-not-allowed"
+              }`}
+              onClick={() => isDeptAdmin && onDecision(request._id, "rejected")}
             >
               ✗ Reject
             </Button>
           </div>
+        )}
+        {!isDeptAdmin && status === "Pending" && (
+          <p className="text-xs text-gray-500 mt-2 italic">
+            You can view this request but cannot approve/reject — it belongs to
+            another department.
+          </p>
         )}
       </CardContent>
     </Card>

@@ -10,7 +10,7 @@ import DashboardStats from "../common/DashboardStats";
 import { Server, Clock, CheckCircle, AlertCircle } from "lucide-react";
 
 const hoverRow =
-  "rounded-md transition-colors cursor-pointer hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
+  "flex items-center justify-between border-b last:border-b-0 py-3 px-2 -mx-2 transition-colors cursor-pointer hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
 
 const MAX_ITEMS = 5;
 
@@ -34,48 +34,21 @@ const StudentDashboard = () => {
       : 0;
 
   useEffect(() => {
-    const fetchRequests = async () => {
+    const fetchDashboard = async () => {
       try {
-        const res = await api.get("/requests");
-        if (res.data.success) setRequests(res.data.requests || []);
-      } catch (e) {
-        console.error("Error fetching requests:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRequests();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const res = await api.get("/requests/count");
-      if (res.data.success) setStats(res.data.data || {});
-    } catch (e) {
-      console.error("Error fetching request stats:", e);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  useEffect(() => {
-    const fetchApproved = async () => {
-      try {
-        const res = await api.get("/requests");
+        const res = await api.get("/dashboard/student");
         if (res.data.success) {
-          setApprovedRequests(
-            (res.data.requests || []).filter((r) => r.status === "approved")
-          );
+          setStats(res.data.stats);
+          setRequests(res.data.recentRequests || []);
+          setApprovedRequests(res.data.approvedUpcoming || []);
         }
       } catch (e) {
-        console.error("Error fetching approved requests:", e);
+        console.error("Error loading dashboard:", e);
       } finally {
         setLoading(false);
       }
     };
-    fetchApproved();
+    fetchDashboard();
   }, []);
 
   const statusClass = (status) => {
@@ -91,16 +64,9 @@ const StudentDashboard = () => {
     else navigate("/requests");
   };
 
-  // Limit lists to MAX_ITEMS and compute if there are more
   const recentLimited = useMemo(() => requests.slice(0, MAX_ITEMS), [requests]);
-  const recentHasMore = useMemo(() => requests.length > MAX_ITEMS, [requests]);
-
   const upcomingLimited = useMemo(
     () => approvedRequests.slice(0, MAX_ITEMS),
-    [approvedRequests]
-  );
-  const upcomingHasMore = useMemo(
-    () => approvedRequests.length > MAX_ITEMS,
     [approvedRequests]
   );
 
@@ -168,7 +134,7 @@ const StudentDashboard = () => {
                     <div
                       key={req._id ?? `${req.resourceId?._id}-${req.startTime}`}
                       onClick={() => goToRequest(req)}
-                      className="flex items-center justify-between border-b last:border-b-0 py-3"
+                      className={hoverRow}
                     >
                       <div>
                         <span className="font-medium text-gray-800">
@@ -180,16 +146,10 @@ const StudentDashboard = () => {
                             ? req.duration
                             : `${new Date(req.startTime).toLocaleTimeString(
                                 [],
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
+                                { hour: "2-digit", minute: "2-digit" }
                               )} - ${new Date(req.endTime).toLocaleTimeString(
                                 [],
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                }
+                                { hour: "2-digit", minute: "2-digit" }
                               )}`}
                         </div>
                       </div>
@@ -202,10 +162,10 @@ const StudentDashboard = () => {
                     </div>
                   ))}
 
-                  {recentHasMore && (
+                  {stats.totalRequests > 5 && (
                     <Button
                       variant="outline"
-                      className="mt-3 w-full text-blue-600 :hover:text-blue-700"
+                      className="mt-3 w-full text-blue-600 hover:text-blue-700"
                       onClick={() => navigate("/requests")}
                     >
                       View more
@@ -242,7 +202,7 @@ const StudentDashboard = () => {
                     <div
                       key={req._id ?? `${req.resourceId?._id}-${req.startTime}`}
                       onClick={() => goToRequest(req)}
-                      className="flex items-center justify-between border-b last:border-b-0 py-3"
+                      className={hoverRow}
                     >
                       <div>
                         <span className="font-medium text-gray-800">
@@ -267,15 +227,13 @@ const StudentDashboard = () => {
                     </div>
                   ))}
 
-                  {upcomingHasMore && (
-                    <Button
-                      variant="outline"
-                      className="mt-4 w-full text-blue-600 hover:text-blue-700"
-                      onClick={() => navigate("/schedule")}
-                    >
-                      View Schedule
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    className="mt-4 w-full text-blue-600 hover:text-blue-700"
+                    onClick={() => navigate("/schedule")}
+                  >
+                    View Schedule
+                  </Button>
                 </>
               )}
             </CardContent>
@@ -285,65 +243,5 @@ const StudentDashboard = () => {
     </div>
   );
 };
-
-function QuickStats({ stats, approvalRate }) {
-  const items = [
-    {
-      label: "Total Requests",
-      value: stats.totalRequests,
-    },
-    {
-      label: "Approved",
-      value: stats.approvedRequests,
-      extra: `${approvalRate}% approval rate`,
-      extraColor: "text-green-500",
-    },
-    {
-      label: "Pending",
-      value: stats.pendingRequests,
-      extra: "Awaiting approval",
-      extraColor: "text-yellow-500",
-    },
-    {
-      label: "Hours Used",
-      value: `${stats.totalHours}h`,
-      extra: "This semester",
-      extraColor: "text-gray-400",
-    },
-  ];
-
-  return (
-    <>
-      {/* ✅ Large screens: card grid */}
-      <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-        {items.map((item) => (
-          <Card key={item.label} className="p-5">
-            <h3 className="text-gray-600 font-semibold">{item.label}</h3>
-            <p className="text-2xl font-bold">{item.value}</p>
-
-            {item.extra && (
-              <p className={`hidden md:block text-sm mt-1 ${item.extraColor}`}>
-                {item.extra}
-              </p>
-            )}
-          </Card>
-        ))}
-      </div>
-
-      {/* ✅ Small screens: minimalist list */}
-      <div className="sm:hidden space-y-2 mb-5 bg-white p-3 rounded-lg shadow border">
-        {items.map((item, index) => (
-          <React.Fragment key={item.label}>
-            <div className="flex justify-between">
-              <span className="text-gray-600 font-medium">{item.label}</span>
-              <span className="font-bold">{item.value}</span>
-            </div>
-            {index !== items.length - 1 && <Separator className="my-1.5" />}
-          </React.Fragment>
-        ))}
-      </div>
-    </>
-  );
-}
 
 export default StudentDashboard;

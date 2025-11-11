@@ -1,32 +1,26 @@
-// src/pages/auth/VerifyEmailPage.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "@/api/axios";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 export default function VerifyEmailPage() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [status, setStatus] = useState("pending"); // pending | success | error
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
 
   useEffect(() => {
     let active = true;
-    (async () => {
+
+    const verify = async () => {
       try {
         const res = await api.get(`/auth/verify-email/${token}`);
         if (!active) return;
         setStatus("success");
-        setMessage(res?.data?.message || "Email verified successfully.");
-        setTimeout(() => navigate("/login", { replace: true }), 1200);
+        setMessage(res?.data?.message || "Your email has been verified!");
+        setTimeout(() => navigate("/login", { replace: true }), 2000);
       } catch (err) {
         if (!active) return;
         const msg =
@@ -37,48 +31,84 @@ export default function VerifyEmailPage() {
         setStatus("error");
         setMessage(msg);
       }
-    })();
+    };
+
+    if (token) verify();
     return () => {
       active = false;
     };
   }, [token, navigate]);
 
   return (
-    <div className="min-h-screen grid place-items-center bg-gray-50">
-      <Card className="w-full max-w-lg">
-        <div className="pt-8 text-center mb-6">
-          <CardTitle className="text-3xl font-bold">
-            Email verification
-          </CardTitle>
-          <CardDescription>Validating your verification token…</CardDescription>
-        </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 text-center px-6">
+      {status === "pending" && (
+        <motion.div
+          key="pending"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="space-y-5"
+        >
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto" />
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
+            Verifying your email...
+          </h1>
+          <p className="text-gray-500 max-w-md mx-auto">
+            Please wait a moment while we validate your verification token.
+          </p>
+        </motion.div>
+      )}
 
-        <CardContent>
-          {status === "pending" && <p>Checking token…</p>}
-          {status === "success" && (
-            <Alert className="mb-4">
-              <AlertTitle>Success</AlertTitle>
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          )}
-          {status === "error" && (
-            <>
-              <Alert variant="destructive" className="mb-4">
-                <AlertTitle>Verification failed</AlertTitle>
-                <AlertDescription>{message}</AlertDescription>
-              </Alert>
-              <div className="flex gap-2">
-                <Link to="/login">
-                  <Button variant="secondary">Back to login</Button>
-                </Link>
-                <Link to="/resend-verification">
-                  <Button>Resend email</Button>
-                </Link>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {status === "success" && (
+        <motion.div
+          key="success"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="space-y-5"
+        >
+          <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto" />
+          <h1 className="text-3xl font-bold text-gray-800">Email Verified!</h1>
+          <Alert className="border-green-200 bg-green-50 text-green-800 max-w-lg mx-auto">
+            <AlertTitle>Success</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+          <p className="text-sm text-gray-500">Redirecting you to login...</p>
+        </motion.div>
+      )}
+
+      {status === "error" && (
+        <motion.div
+          key="error"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="space-y-6"
+        >
+          <XCircle className="w-16 h-16 text-red-600 mx-auto" />
+          <h1 className="text-3xl font-bold text-gray-800">
+            Verification Failed
+          </h1>
+          <Alert variant="destructive" className="max-w-lg mx-auto text-left">
+            <AlertTitle>We couldn’t verify your email</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
+            <Link to="/login">
+              <Button variant="secondary" className="w-full sm:w-auto">
+                Back to Login
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+      )}
+
+      <footer className="absolute bottom-6 text-xs text-gray-400">
+        &copy; {new Date().getFullYear()} MyApp. All rights reserved.
+      </footer>
     </div>
   );
 }

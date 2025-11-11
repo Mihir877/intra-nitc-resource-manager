@@ -13,13 +13,10 @@ const resourceSchema = new Schema(
       // enum: ["instrument", "server", "lab_equipment", "other"],
       default: "instrument",
     },
-    category: {
-      type: String,
-      trim: true,
-    },
     department: {
       type: String,
       trim: true,
+      required: [true, "Department is required"],
     },
     description: {
       type: String,
@@ -63,10 +60,12 @@ const resourceSchema = new Schema(
       type: Boolean,
       default: true,
     },
-    usageRules: {
-      type: String,
-      trim: true,
-    },
+    usageRules: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

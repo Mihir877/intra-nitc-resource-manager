@@ -96,7 +96,7 @@ export function Header() {
                 </p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/profile")}>
+              <DropdownMenuItem onClick={() => navigate(user.role==="admin" ? "/admin/profile/me" : "/profile/me")}>
                 <User className="mr-2 h-4 w-4" /> Profile
               </DropdownMenuItem>
               {/* <DropdownMenuItem onClick={() => navigate("/settings")}>

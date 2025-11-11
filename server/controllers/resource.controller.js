@@ -1,5 +1,6 @@
 import { Resource } from "../models/resource.model.js";
 import { Request } from "../models/request.model.js";
+import { v2 as cloudinary } from "cloudinary";
 
 /**
  * @desc    Create a new resource
@@ -22,12 +23,35 @@ export const createResource = async (req, res) => {
       capacity,
     } = req.body;
 
-    // Check if resource already exists
-    const existing = await Resource.findOne({ name });
+    // Role restriction — only admins or superadmins can create
+    if (req.user.role !== "admin" && req.user.role !== "superadmin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Only administrators can create resources.",
+      });
+    }
+
+    // Department binding — department admins can create only for their own dept
+    let department = req.user.department;
+    if (!department && req.user.role === "superadmin") {
+      // Superadmins can optionally set department in body
+      department = req.body.department;
+    }
+
+    if (!department) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Department information missing. Please assign a department before creating a resource.",
+      });
+    }
+
+    // Prevent duplicate resource names (per department)
+    const existing = await Resource.findOne({ name, department });
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: "Resource with this name already exists",
+        message: `A resource named "${name}" already exists in ${department} department.`,
       });
     }
 
@@ -35,6 +59,7 @@ export const createResource = async (req, res) => {
       name,
       type,
       category,
+      department,
       description,
       location,
       availability,
@@ -50,7 +75,7 @@ export const createResource = async (req, res) => {
       success: true,
       statusCode: 201,
       resource,
-      message: "Resource created successfully",
+      message: `Resource created successfully in ${department} department`,
     });
   } catch (error) {
     console.error("Error creating resource:", error);
@@ -75,7 +100,29 @@ export const getAllResources = async (req, res) => {
     if (status) filters.status = status;
     if (search) filters.name = { $regex: search, $options: "i" };
 
-    const resources = await Resource.find(filters).sort({ createdAt: -1 });
+    let resources;
+    const user = req.user;
+
+    if (user.role === "admin" && user.department) {
+      const deptFilter = { ...filters, department: user.department };
+
+      // Fetch all resources once
+      const allResources = await Resource.find(filters).sort({ createdAt: -1 });
+
+      // Separate into department-first order
+      const deptResources = allResources.filter(
+        (r) => r.department === user.department
+      );
+      const otherResources = allResources.filter(
+        (r) => r.department !== user.department
+      );
+
+      // Merge (department resources first)
+      resources = [...deptResources, ...otherResources];
+    } else {
+      // Superadmins or system-level users see all resources normally
+      resources = await Resource.find(filters).sort({ createdAt: -1 });
+    }
 
     res.status(200).json({
       success: true,
@@ -129,27 +176,81 @@ export const getResourceById = async (req, res) => {
  * @route   PATCH /api/v1/resources/:id
  * @access  Admin
  */
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 export const updateResource = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const { removedImages = [], images = [], ...updates } = req.body;
 
-    const updatedResource = await Resource.findByIdAndUpdate(
-      id,
-      { ...updates, lastUpdatedBy: req.user._id },
-      { new: true, runValidators: true }
-    );
+    // Role restriction
+    if (req.user.role !== "admin" && req.user.role !== "superadmin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Only administrators can update resources.",
+      });
+    }
 
-    if (!updatedResource) {
+    // Find resource
+    const resource = await Resource.findById(id);
+    if (!resource) {
       return res
         .status(404)
         .json({ success: false, message: "Resource not found" });
     }
 
+    // Department restriction for admins
+    if (
+      req.user.role === "admin" &&
+      resource.department !== req.user.department
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. You can only edit resources belonging to your department (${req.user.department}).`,
+      });
+    }
+
+    // Delete removed images from Cloudinary
+    if (removedImages.length > 0) {
+      for (const imageUrl of removedImages) {
+        const publicId = extractPublicId(imageUrl);
+        if (publicId) {
+          try {
+            await cloudinary.uploader.destroy(publicId);
+          } catch (err) {
+            console.warn(
+              `⚠️ Failed to delete Cloudinary image ${publicId}:`,
+              err.message
+            );
+          }
+        }
+      }
+    }
+
+    // Prevent changing department unless superadmin
+    if (req.user.role !== "superadmin" && updates.department) {
+      delete updates.department;
+    }
+
+    // 6. Apply updates
+    resource.set({
+      ...updates,
+      images, // new list of remaining images
+      lastUpdatedBy: req.user._id,
+    });
+
+    await resource.save();
+
+    // 7. Success response
     res.status(200).json({
       success: true,
       statusCode: 200,
-      resource: updatedResource,
+      resource,
       message: "Resource updated successfully",
     });
   } catch (error) {
@@ -160,6 +261,20 @@ export const updateResource = async (req, res) => {
     });
   }
 };
+
+// Helper to extract Cloudinary public_id from URL
+function extractPublicId(url) {
+  try {
+    // Example: https://res.cloudinary.com/demo/image/upload/v1234/folder/image_name.jpg
+    const parts = url.split("/");
+    const uploadIndex = parts.indexOf("upload");
+    if (uploadIndex === -1) return null;
+    const publicPath = parts.slice(uploadIndex + 2).join("/"); // skip version folder (v1234)
+    return publicPath.replace(/\.[^/.]+$/, ""); // remove extension
+  } catch {
+    return null;
+  }
+}
 
 /**
  * @desc    Set resource status (enable/disable/maintenance/etc.)

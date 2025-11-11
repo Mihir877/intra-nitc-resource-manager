@@ -103,9 +103,7 @@ const registerUser = async (req, res) => {
       subject: "Please verify your email",
       mailgenContent: emailVerificationMailgenContent(
         user.username,
-        `${req.protocol}://${req.get(
-          "host"
-        )}/api/v1/auth/verify-email/${unHashedToken}`
+        `${process.env.CLIENT_URL}/verify-email/${unHashedToken}`
       ),
     });
 
@@ -264,9 +262,7 @@ const resendEmailVerification = async (req, res) => {
       subject: "Please verify your email",
       mailgenContent: emailVerificationMailgenContent(
         user.username,
-        `${req.protocol}://${req.get(
-          "host"
-        )}/api/v1/auth/verify-email/${unHashedToken}`
+        `${process.env.CLIENT_URL}/verify-email/${unHashedToken}`
       ),
     });
 

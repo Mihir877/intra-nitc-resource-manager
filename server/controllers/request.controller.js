@@ -2,6 +2,18 @@ import { Request } from "../models/request.model.js";
 import { Resource } from "../models/resource.model.js";
 import mongoose from "mongoose";
 import { createNotification } from "../utils/notification.service.js";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+
+// Extend plugins (important for .tz())
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Kolkata");
+
+// 💡 Utility: format ISO into human-friendly date
+const humanDate = (iso) =>
+  iso ? dayjs(iso).tz().format("DD MMM YYYY, h:mm A") : "N/A";
 
 export const createRequest = async (req, res) => {
   try {
@@ -121,29 +133,45 @@ export const getRequests = async (req, res) => {
   }
 };
 
+// --- Approve/Reject Decision Controller ---
 export const decisionRequest = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status, remarks } = req.body;
-    const validStatuses = ["approved", "rejected"];
-    if (!validStatuses.includes(status)) {
+    const { id, decision } = req.params;
+    const { remark } = req.body;
+
+    const decisionMap = { approve: "approved", reject: "rejected" };
+    const status = decisionMap[decision];
+    if (!status) {
       return res
         .status(400)
-        .json({ success: false, message: "Invalid status value" });
+        .json({ success: false, message: "Invalid decision parameter" });
     }
 
     const request = await Request.findById(id)
       .populate("userId", "email username")
-      .populate("resourceId", "name")
+      .populate("resourceId", "name department")
       .lean();
 
-    if (!request)
+    if (!request) {
       return res
         .status(404)
         .json({ success: false, message: "Request not found" });
+    }
+
+    // Department check
+    if (
+      req.user.role === "admin" &&
+      req.user.department &&
+      request.resourceId.department !== req.user.department
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not authorized to approve/reject requests from other departments",
+      });
+    }
 
     const now = new Date().toISOString();
-
     await Request.updateOne(
       { _id: id },
       {
@@ -151,39 +179,43 @@ export const decisionRequest = async (req, res) => {
           status,
           approvedBy: req.user._id,
           approvedAt: now,
-          ...(status === "rejected" ? { remarks: remarks?.trim() || "" } : {}),
+          remarks: status === "rejected" ? remark?.trim() || "" : "",
         },
       }
     );
 
     const updated = await Request.findById(id)
-      .populate("userId", "email username")
-      .populate("resourceId", "name")
+      .populate("userId", "email username department role isEmailVerified")
+      .populate("resourceId", "name department")
       .lean();
 
+    // 📨 Email payload generation
     const isApproved = status === "approved";
+    const subjectAction = isApproved ? "Approved ✔️" : "Rejected ❌";
+
     const emailPayload = {
       email: updated.userId.email,
-      subject: `${
-        isApproved ? "✅ Booking Approved" : "❌ Booking Rejected"
-      }: ${updated.resourceId.name}`,
+      subject: `Booking ${subjectAction}: ${updated.resourceId.name}`,
       mailgenContent: {
         body: {
           name: updated.userId.username,
           intro: isApproved
-            ? `Your booking for ${updated.resourceId.name} has been approved!`
-            : `Your booking for ${updated.resourceId.name} has been rejected.`,
+            ? `Good news! Your booking request for **${updated.resourceId.name}** has been *approved*.`
+            : `We’re sorry to inform you that your booking request for **${updated.resourceId.name}** has been *rejected*.`,
           table: {
             data: [
               { Resource: updated.resourceId.name },
-              { "Start (UTC ISO)": new Date(updated.startTime).toISOString() },
-              { "End (UTC ISO)": new Date(updated.endTime).toISOString() },
-              ...(!isApproved ? [{ Remarks: updated.remarks || "" }] : []),
+              { "Start Time": `Start Time: ${humanDate(updated.startTime)}` },
+              { "End Time": `End Time: ${humanDate(updated.endTime)}` },
+              ...(isApproved
+                ? []
+                : [{ Remarks: updated.remarks || "No remarks provided" }]),
             ],
           },
           outro: isApproved
-            ? "You can now access the resource during your booked slot."
-            : "Please try booking another time slot from the portal.",
+            ? "You can now access and use the resource during your booked time slot. Please make sure to follow all usage rules and return the resource in proper condition."
+            : "You may try booking another available time slot through the portal. If you believe this was an error, you can reach out to your department admin for clarification.",
+          signature: "Best regards,\nNITC Resource Management Team",
         },
       },
     };
@@ -192,9 +224,9 @@ export const decisionRequest = async (req, res) => {
       user: updated.userId,
       title: isApproved ? "Booking Approved" : "Booking Rejected",
       message: isApproved
-        ? `Your booking for ${updated.resourceId.name} is approved.`
+        ? `Your booking for ${updated.resourceId.name} has been approved.`
         : `Your booking for ${updated.resourceId.name} was rejected. Reason: ${
-            updated.remarks || ""
+            updated.remarks || "No remarks provided."
           }`,
       type: isApproved ? "success" : "error",
       relatedRequestId: updated._id,
@@ -204,12 +236,74 @@ export const decisionRequest = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      statusCode: 200,
-      request: updated,
       message: `Request has been ${status}`,
+      request: updated,
     });
   } catch (error) {
-    console.error("Error updating request:", error);
+    console.error("Error in decisionRequest:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
+// @desc Get single request details (with resource & user info)
+// @route GET /api/v1/requests/:id
+// @access Authenticated (admin or owner)
+export const getRequestById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate ID
+    if (!id || id.length !== 24) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid request ID" });
+    }
+
+    const request = await Request.findById(id)
+      .populate("userId", "username email role")
+      .populate(
+        "resourceId",
+        "name type location department description maxBookingDuration requiresApproval usageRules status images"
+      )
+      .populate("approvedBy", "username email role")
+      .lean();
+
+    if (!request) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Request not found" });
+    }
+
+    // Authorization check — only admins or owner
+    const isAdmin = req.user.role === "admin";
+    const isOwner = request.userId._id.toString() === req.user._id.toString();
+    if (!isAdmin && !isOwner) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access denied to this request" });
+    }
+
+    // Duration computation
+    const durationHours =
+      request.startTime && request.endTime
+        ? Math.round(
+            (new Date(request.endTime) - new Date(request.startTime)) / 36e5
+          )
+        : null;
+
+    return res.status(200).json({
+      success: true,
+      request: {
+        ...request,
+        durationHours,
+      },
+      message: "Request details fetched successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching request details:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Internal Server Error",
@@ -220,23 +314,28 @@ export const decisionRequest = async (req, res) => {
 export const cancelRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { remarks } = req.body;
+    const remarks = req.body?.remarks || "";
+
     const request = await Request.findById(id)
-      .populate("userId", "email username")
+      .populate("userId", "email username department role isEmailVerified")
       .populate("resourceId", "name");
-    if (!request)
+
+    if (!request) {
       return res
         .status(404)
         .json({ success: false, message: "Request not found" });
+    }
 
     const isAdmin = req.user.role === "admin";
     const isOwner = request.userId.equals(req.user._id);
+
     if (!isAdmin && !isOwner) {
       return res.status(403).json({
         success: false,
         message: "Not authorized to cancel this request",
       });
     }
+
     if (isAdmin && (!remarks || !remarks.trim())) {
       return res.status(400).json({
         success: false,
@@ -244,51 +343,54 @@ export const cancelRequest = async (req, res) => {
       });
     }
 
-    request.status = "cancelled";
-    request.remarks =
+    const finalRemarks =
       remarks?.trim() || (isAdmin ? "Cancelled by admin" : "Cancelled by user");
+
+    request.status = "cancelled";
+    request.remarks = finalRemarks;
     await request.save();
 
-    if (isAdmin) {
-      const {
-        userId: user,
-        resourceId: resource,
-        startTime,
-        endTime,
-      } = request;
-      const timeSlot = `${new Date(startTime).toISOString()} - ${new Date(
-        endTime
-      ).toISOString()}`;
+    const { userId: user, resourceId: resource, startTime, endTime } = request;
 
-      const emailPayload = {
-        email: user.email,
-        subject: `❌ Booking Cancelled: ${resource.name}`,
-        mailgenContent: {
-          body: {
-            name: user.username,
-            intro: `Your booking for ${resource.name} has been cancelled by an admin.`,
-            table: {
-              data: [
-                { Resource: resource.name },
-                { "Time Slot (UTC ISO)": timeSlot },
-                { Remarks: request.remarks },
-              ],
-            },
-            outro: "Please try booking another time slot from the portal.",
+    const timeSlot = `${new Date(startTime).toISOString()} - ${new Date(
+      endTime
+    ).toISOString()}`;
+
+    const emailPayload = {
+      email: user.email,
+      subject: `Booking Cancelled: ${resource.name}`,
+      mailgenContent: {
+        body: {
+          name: user.username,
+          intro: isAdmin
+            ? `Your booking for ${resource.name} has been cancelled by an administrator.`
+            : `You have cancelled your booking for ${resource.name}.`,
+          table: {
+            data: [
+              { Resource: resource.name },
+              { "Start Time": `Start Time: ${humanDate(updated.startTime)}` },
+              { "End Time": `End Time: ${humanDate(updated.endTime)}` },
+              { Remarks: finalRemarks },
+            ],
           },
+          outro: isAdmin
+            ? "Please contact your department if you need clarification."
+            : "You can book another available slot from the portal anytime.",
         },
-      };
+      },
+    };
 
-      await createNotification({
-        user,
-        title: "Booking Cancelled",
-        message: `Your booking for ${resource.name} on ${timeSlot} was cancelled by an admin. Reason: ${request.remarks}`,
-        type: "error",
-        relatedRequestId: request._id,
-        channels: ["in-app", "email"],
-        emailPayload,
-      });
-    }
+    await createNotification({
+      user,
+      title: "Booking Cancelled",
+      message: isAdmin
+        ? `Your booking for ${resource.name} on ${timeSlot} was cancelled by an admin. Reason: ${finalRemarks}`
+        : `You cancelled your booking for ${resource.name} on ${timeSlot}.`,
+      type: "error",
+      relatedRequestId: request._id,
+      channels: ["in-app", "email"],
+      emailPayload,
+    });
 
     res.status(200).json({
       success: true,
@@ -534,9 +636,21 @@ export const archiveOldRequests = async (req, res) => {
 
 export const getPendingRequests = async (req, res) => {
   try {
-    const pending = await Request.find({ status: "pending" })
+    const query = { status: "pending" };
+
+    // If department admin, filter only their department resources
+    if (req.user.role === "admin" && req.user.department) {
+      const deptResources = await Resource.find({
+        department: req.user.department,
+      }).select("_id");
+      query.resourceId = { $in: deptResources.map((r) => r._id) };
+    }
+
+    const pending = await Request.find(query)
+      .sort({ createdAt: 1 }) // oldest first
       .populate("userId", "username email role")
-      .populate("resourceId", "name type location");
+      .populate("resourceId", "name type location department");
+
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -546,65 +660,6 @@ export const getPendingRequests = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching pending requests:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Internal Server Error",
-    });
-  }
-};
-
-export const quickApprove = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const request = await Request.findById(id)
-      .populate("userId", "email username")
-      .populate("resourceId", "name");
-    if (!request)
-      return res
-        .status(404)
-        .json({ success: false, message: "Request not found" });
-    request.status = "approved";
-    request.approvedBy = req.user._id;
-    request.approvedAt = new Date();
-    await request.save();
-    res.status(200).json({
-      success: true,
-      statusCode: 200,
-      request,
-      message: "Request approved successfully",
-    });
-  } catch (error) {
-    console.error("Error approving request:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Internal Server Error",
-    });
-  }
-};
-
-export const quickReject = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const request = await Request.findById(id)
-      .populate("userId", "email username")
-      .populate("resourceId", "name");
-    if (!request)
-      return res
-        .status(404)
-        .json({ success: false, message: "Request not found" });
-    request.status = "rejected";
-    request.remarks = "Rejected by admin (quick action)";
-    request.approvedBy = req.user._id;
-    request.approvedAt = new Date();
-    await request.save();
-    res.status(200).json({
-      success: true,
-      statusCode: 200,
-      request,
-      message: "Request rejected successfully",
-    });
-  } catch (error) {
-    console.error("Error rejecting request:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Internal Server Error",

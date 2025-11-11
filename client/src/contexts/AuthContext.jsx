@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
       });
       setUser(res.data.user);
     } catch (error) {
-      console.error("Error fetching user:", error.message);
+      console.error("Error fetching user:", error.response.data.message);
       localStorage.removeItem("accessToken");
       setUser(null);
     } finally {
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error(res.data.message || "Invalid credentials");
       }
     } catch (error) {
-      console.error("Login failed:", error.message);
+      console.error("Login failed:", error.response.data.message);
       throw error;
     }
   };
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       });
       return res.data;
     } catch (error) {
-      console.error("Registration failed:", error.message);
+      console.error("Registration failed:", error.response.data.message);
       throw error;
     }
   };
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await api.post("/auth/logout");
     } catch (error) {
-      console.error("Logout failed:", error.message);
+      console.error("Logout failed:", error.response.data.message);
     } finally {
       localStorage.removeItem("accessToken");
       setUser(null);

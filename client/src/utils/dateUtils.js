@@ -6,6 +6,9 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
 
+export const humanDate = (iso) =>
+  iso ? dayjs(iso).tz().format("DD MMM YYYY, h:mm A") : "N/A";
+
 /**
  * parseSlotKeyToIso
  * Input: slotKey: string in "YYYY-MM-DD_HH" (24h) format (e.g., "2025-11-07_08")

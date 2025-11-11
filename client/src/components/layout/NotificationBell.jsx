@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { io } from "socket.io-client";
 import { notify } from "@/lib/notify";
+import api from "@/api/axios";
 
 export default function NotificationBell({
   userId,
@@ -26,6 +27,12 @@ export default function NotificationBell({
 
   useEffect(() => {
     if (!userId) return;
+
+    // Fetch recent notifications
+    api.get("/notifications/recent?limit=20").then((res) => {
+      if (res.data.success) setNotifs(res.data.notifications);
+      console.log("res.data: ", res.data)
+    });
 
     const socket = io(import.meta.env.VITE_API_URL ?? "http://localhost:8080", {
       withCredentials: true,
@@ -69,6 +76,15 @@ export default function NotificationBell({
       // Optimistically mark all as read.
       setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
       // TODO: Optionally call API to persist "mark all read".
+    }
+  };
+
+  const handleMarkAllAsRead = async (open) => {
+    if (open) {
+      setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+      try {
+        await api.patch("/notifications/mark-all-read");
+      } catch {}
     }
   };
 

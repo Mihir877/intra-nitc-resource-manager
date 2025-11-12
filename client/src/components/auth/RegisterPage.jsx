@@ -128,17 +128,17 @@ const RegisterPage = () => {
   };
 
   return (
-    <div>
+    <div className="text-foreground">
       <div className="text-center mb-6">
         <CardTitle className="text-3xl font-bold">Create account</CardTitle>
-        <CardDescription>
+        <CardDescription className="text-muted-foreground">
           Only institutional NITC emails are allowed.
         </CardDescription>
       </div>
 
       <form onSubmit={handleRegister} className="space-y-6">
         <div>
-          <Label htmlFor="username" className="mb-1 block">
+          <Label htmlFor="username" className="mb-1 block text-foreground">
             Full Name
           </Label>
           <Input
@@ -148,12 +148,12 @@ const RegisterPage = () => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            disabled={isSubmitting} // disable while pending [web:7]
+            disabled={isSubmitting}
           />
         </div>
 
         <div>
-          <Label htmlFor="email" className="mb-1 block">
+          <Label htmlFor="email" className="mb-1 block text-foreground">
             Email Address
           </Label>
           <Input
@@ -163,7 +163,7 @@ const RegisterPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={isSubmitting} // [web:7]
+            disabled={isSubmitting}
           />
           {inferredDept && !department && (
             <p className="text-xs text-muted-foreground mt-1">
@@ -174,23 +174,27 @@ const RegisterPage = () => {
         </div>
 
         <div>
-          <Label className="mb-1 block">Department</Label>
+          <Label className="mb-1 block text-foreground">Department</Label>
           <Select
             value={department}
             onValueChange={setDepartment}
-            disabled={isSubmitting} // disable select too [web:35]
+            disabled={isSubmitting}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select department" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-popover text-popover-foreground border-border">
               {DEPARTMENTS.map((d) => (
-                <SelectItem key={d.code} value={d.code}>
+                <SelectItem
+                  key={d.code}
+                  value={d.code}
+                  className="hover:bg-accent hover:text-accent-foreground transition"
+                >
                   <div className="flex gap-2 items-center">
                     {d.code}
                     <Separator
                       orientation="vertical"
-                      className="h-4 bg-gray-400"
+                      className="h-4 bg-border"
                     />
                     {d.name}
                   </div>
@@ -209,13 +213,13 @@ const RegisterPage = () => {
           confirmLabel="Confirm password"
           confirmValue={confirmPassword}
           onConfirmChange={(e) => setConfirmPassword(e.target.value)}
-          disabled={isSubmitting} // pass through to inputs if supported [web:7]
+          disabled={isSubmitting}
         />
 
         <Button
           type="submit"
-          className="w-full"
-          disabled={isSubmitting} // main disable flag [web:24]
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition"
+          disabled={isSubmitting}
         >
           {isSubmitting ? (
             <>
@@ -227,9 +231,12 @@ const RegisterPage = () => {
         </Button>
       </form>
 
-      <p className="mt-4 text-sm text-center">
+      <p className="mt-4 text-sm text-center text-muted-foreground">
         Already have an account?{" "}
-        <Link to="/login" className="text-blue-500">
+        <Link
+          to="/login"
+          className="text-primary hover:text-primary/80 underline transition"
+        >
           Login
         </Link>
       </p>

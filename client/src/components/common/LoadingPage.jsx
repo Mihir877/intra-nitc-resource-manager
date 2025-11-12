@@ -13,12 +13,12 @@ const LoadingPage = ({
   const sizeClass = compact ? "w-5 h-5" : "w-8 h-8";
 
   return (
-    <div className={`${containerClass} text-gray-500`}>
+    <div className={`${containerClass} text-muted-foreground  `}>
       <Loader2
-        className={`${sizeClass} animate-spin text-gray-600 mb-3`}
+        className={`${sizeClass} animate-spin text-foreground mb-3`}
         strokeWidth={2}
       />
-      <p className="text-sm text-gray-600 font-medium">{message}</p>
+      <p className="text-sm text-muted-foreground font-medium">{message}</p>
     </div>
   );
 };

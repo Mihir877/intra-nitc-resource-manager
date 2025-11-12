@@ -20,12 +20,9 @@ import { XCircle } from "lucide-react";
 import {
   Search,
   Filter,
-  Cpu,
+  Info,
   MapPin,
   Clock,
-  CheckCircle2,
-  AlertCircle,
-  Info,
   ShieldCheck,
   CalendarClock,
   Users,
@@ -37,13 +34,7 @@ import { Separator } from "../ui/separator";
 import { Label } from "../ui/label";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-
-const STATUS_STYLES = {
-  available: "bg-green-50 border-green-200",
-  in_use: "bg-orange-50 border-orange-200",
-  maintenance: "bg-yellow-50 border-yellow-200",
-  disabled: "bg-gray-50 border-gray-200",
-};
+import StatusBadge from "../common/StatusBadge";
 
 function useFiltered(resources, { search, type, department }) {
   return useMemo(() => {
@@ -108,14 +99,14 @@ export default function BrowseResources() {
         subtitle="Explore and request shared resources."
       />
 
-      {/* Filters */}
+      {/* 🔹 Filters */}
       <div className="mb-5">
         {isSmallScreen ? (
           <div className="flex justify-between items-center">
             <div className="relative flex-1 mr-3">
-              <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-3 text-muted-foreground w-5 h-5" />
               <Input
-                className="pl-10"
+                className="pl-10 bg-background text-foreground"
                 placeholder="Search resources..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -124,17 +115,22 @@ export default function BrowseResources() {
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 border-border text-foreground hover:bg-muted"
+                >
                   <Filter className="w-4 h-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-4 space-y-4">
-                <Label className="text-xs text-gray-500 mb-1 block">Type</Label>
+              <PopoverContent className="w-64 p-4 space-y-4 bg-card border border-border text-foreground">
+                <Label className="text-xs text-muted-foreground mb-1 block">
+                  Type
+                </Label>
                 <Select onValueChange={setTypeFilter} value={typeFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card border-border">
                     {types.map((t) => (
                       <SelectItem key={t} value={t}>
                         {t === "all" ? "All Types" : t}
@@ -143,14 +139,14 @@ export default function BrowseResources() {
                   </SelectContent>
                 </Select>
 
-                <Label className="text-xs text-gray-500 mb-1 block">
+                <Label className="text-xs text-muted-foreground mb-1 block">
                   Department
                 </Label>
                 <Select onValueChange={setDeptFilter} value={deptFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Department" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card border-border">
                     {departments.map((d) => (
                       <SelectItem key={d} value={d}>
                         {d === "all" ? "All Departments" : d}
@@ -161,7 +157,7 @@ export default function BrowseResources() {
 
                 <Button
                   variant="outline"
-                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                  className="w-full text-destructive border-destructive/20 hover:bg-destructive/10"
                   onClick={() => {
                     setSearch("");
                     setTypeFilter("all");
@@ -176,9 +172,9 @@ export default function BrowseResources() {
         ) : (
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-3 text-muted-foreground w-5 h-5" />
               <Input
-                className="pl-10"
+                className="pl-10 bg-background text-foreground"
                 placeholder="Search resources..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -186,10 +182,10 @@ export default function BrowseResources() {
             </div>
             <div className="flex gap-2 flex-wrap">
               <Select onValueChange={setTypeFilter} value={typeFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-40 border-border bg-background text-foreground">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   {types.map((t) => (
                     <SelectItem key={t} value={t}>
                       {t === "all" ? "All Types" : t}
@@ -198,10 +194,10 @@ export default function BrowseResources() {
                 </SelectContent>
               </Select>
               <Select onValueChange={setDeptFilter} value={deptFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-40 border-border bg-background text-foreground">
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-card border-border">
                   {departments.map((d) => (
                     <SelectItem key={d} value={d}>
                       {d === "all" ? "All Departments" : d}
@@ -211,7 +207,7 @@ export default function BrowseResources() {
               </Select>
               <Button
                 variant="outline"
-                className="text-red-600 border-red-200 hover:bg-red-50"
+                className="text-destructive border-destructive/20 hover:bg-destructive/10"
                 onClick={() => {
                   setSearch("");
                   setTypeFilter("all");
@@ -225,9 +221,9 @@ export default function BrowseResources() {
         )}
       </div>
 
-      {/* Count */}
+      {/* 🔹 Count */}
       <div className="mb-1 flex items-center justify-between">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           {loading ? (
             <span className="inline-flex items-center gap-2">
               <Info className="w-4 h-4 animate-pulse" /> Loading resources...
@@ -235,26 +231,28 @@ export default function BrowseResources() {
           ) : (
             <span>
               Showing{" "}
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-foreground">
                 {filtered.length}
               </span>{" "}
               of {resources.length} total
             </span>
           )}
         </div>
-        <div className="text-xs text-gray-400">Click cards to learn more</div>
+        <div className="text-xs text-muted-foreground">
+          Click cards to learn more
+        </div>
       </div>
 
       <Separator className="mb-4" />
 
-      {/* Grid */}
+      {/* 🔹 Grid */}
       <div>
         {loading ? (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="animate-pulse bg-gray-50 rounded-2xl p-4 h-36"
+                className="animate-pulse bg-muted rounded-2xl p-4 h-36"
               />
             ))}
           </div>
@@ -265,7 +263,7 @@ export default function BrowseResources() {
             ))}
           </div>
         ) : (
-          <div className="py-8 text-center text-gray-500">
+          <div className="py-8 text-center text-muted-foreground">
             No resources found.
           </div>
         )}
@@ -274,10 +272,12 @@ export default function BrowseResources() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                Resource Card                               */
+/* -------------------------------------------------------------------------- */
+
 function ResourceCard({ resource }) {
   const navigate = useNavigate();
-  const statusKey = (resource.status || "disabled").toLowerCase();
-  const statusClass = STATUS_STYLES[statusKey] || STATUS_STYLES.disabled;
 
   const firstImage = resource.images?.[0];
   const availabilitySummary = resource.availability?.[0]
@@ -285,9 +285,8 @@ function ResourceCard({ resource }) {
     : "Flexible";
 
   return (
-    <div
-      className={`group bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition ${statusClass}`}
-    >
+    <div className="group bg-card border border-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
+      {/* Image */}
       {firstImage ? (
         <img
           src={firstImage}
@@ -295,40 +294,45 @@ function ResourceCard({ resource }) {
           className="w-full h-36 object-cover"
         />
       ) : (
-        <div className="w-full h-36 bg-gray-100 flex items-center justify-center text-gray-400">
+        <div className="w-full h-36 bg-muted flex items-center justify-center text-muted-foreground">
           <ImageIcon className="w-8 h-8" />
         </div>
       )}
 
+      {/* Content */}
       <div className="p-4 space-y-2">
-        <div>
-          <div className="flex items-start justify-between">
-            <h3 className="font-semibold text-gray-800 truncate">
-              {resource.name}
-            </h3>
-
-            <div className="text-xs px-2 py-1 rounded-md border bg-white capitalize">
-              {resource.department}
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge className="text-xs" variant="secondary">
-                {resource.type}
-              </Badge>
-              <span className="text-xs text-gray-500 flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> {resource.location}
-              </span>
-            </div>
-          </div>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-foreground truncate">
+            {resource.name}
+          </h3>
+          <StatusBadge status={resource.status} />
         </div>
 
-        <p className="text-sm text-gray-600 line-clamp-2">
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          {resource.department && (
+            <Badge
+              variant="outline"
+              className="text-xs bg-background dark:bg-muted border-border capitalize"
+            >
+              {resource.department}
+            </Badge>
+          )}
+          <Badge
+            variant="outline"
+            className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 capitalize"
+          >
+            {resource.type}
+          </Badge>
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> {resource.location}
+          </span>
+        </div>
+
+        <p className="text-sm text-muted-foreground line-clamp-2">
           {resource.description}
         </p>
 
-        <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 mt-2">
+        <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground mt-2">
           <div className="flex items-center gap-1">
             <Clock className="w-3 h-3" /> {availabilitySummary}
           </div>
@@ -337,23 +341,21 @@ function ResourceCard({ resource }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
           <ShieldCheck className="w-3 h-3" />{" "}
           {resource.requiresApproval ? "Approval required" : "Auto-approved"}
         </div>
 
         <div className="mt-3 flex justify-between items-center text-sm">
-          <span className="inline-flex items-center gap-1 text-blue-700">
+          <span className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-400">
             <CalendarClock className="w-4 h-4" /> Max{" "}
             {resource.maxBookingDuration || 1} hrs
           </span>
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              navigate(`/resources/${resource._id}`);
-            }}
-            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+            onClick={() => navigate(`/resources/${resource._id}`)}
+            className="text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30"
           >
             View Details
           </Button>

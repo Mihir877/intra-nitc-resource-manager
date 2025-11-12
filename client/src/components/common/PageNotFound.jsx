@@ -18,27 +18,40 @@ const PageNotFound = () => {
   }, [seconds, navigate]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 via-blue-100 to-blue-300">
-      <Alert variant="destructive" className="mb-8 w-full max-w-md">
-        <AlertTriangle className="h-6 w-6 text-red-500" />
-        <AlertTitle className="text-xl font-bold">404 - Page Not Found</AlertTitle>
-        <AlertDescription>
-          The link you followed may be broken, or the page may have been removed.
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground  ">
+      <Alert
+        variant="destructive"
+        className="mb-8 w-full max-w-md border-border text-destructive-foreground"
+      >
+        <AlertTriangle className="h-6 w-6 text-destructive" />
+        <AlertTitle className="text-xl font-bold">
+          404 - Page Not Found
+        </AlertTitle>
+        <AlertDescription className="text-muted-foreground">
+          The link you followed may be broken, or the page may have been
+          removed.
         </AlertDescription>
       </Alert>
-      <h2 className="text-2xl font-bold text-center mb-4">
-        Sorry, this page isn't available.
+
+      <h2 className="text-2xl font-bold text-center mb-4 text-foreground">
+        Sorry, this page isn&apos;t available.
       </h2>
+
       <div className="flex flex-col items-center mb-6">
-        <span className="text-5xl font-extrabold text-blue-700 drop-shadow mb-2">
+        <span className="text-5xl font-extrabold text-primary drop-shadow mb-2">
           {seconds}
         </span>
-        <span className="text-lg font-medium text-gray-700">
+        <span className="text-lg font-medium text-muted-foreground">
           Redirecting to Home Page...
         </span>
       </div>
+
       <div className="flex justify-center">
-        <Button asChild variant="">
+        <Button
+          asChild
+          variant="default"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 transition"
+        >
           <Link to="/">Go back to Home Page</Link>
         </Button>
       </div>

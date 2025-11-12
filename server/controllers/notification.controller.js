@@ -2,7 +2,7 @@
 import { Notification } from "../models/notification.model.js";
 import { createNotification as createNotificationService } from "../utils/notification.service.js"; // your existing one
 
-// ✅ Create notification (calls your service)
+// Create notification (calls your service)
 export const createNotification = async (req, res) => {
   try {
     const {
@@ -47,13 +47,14 @@ export const createNotification = async (req, res) => {
   }
 };
 
-// ✅ Get recent notifications
+// Get recent notifications
 export const getRecentNotifications = async (req, res) => {
   try {
     const userId = req.user._id;
     const limit = parseInt(req.query.limit) || 10;
 
-    const notifications = await Notification.find({ userId })
+    // Fetch only notifications marked as read
+    const notifications = await Notification.find({ userId, isRead: false })
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
@@ -65,7 +66,7 @@ export const getRecentNotifications = async (req, res) => {
   }
 };
 
-// ✅ Mark all as read
+// Mark all as read
 export const markAllRead = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -80,7 +81,7 @@ export const markAllRead = async (req, res) => {
   }
 };
 
-// ✅ Clear all notifications
+// Clear all notifications
 export const clearNotifications = async (req, res) => {
   try {
     const userId = req.user._id;

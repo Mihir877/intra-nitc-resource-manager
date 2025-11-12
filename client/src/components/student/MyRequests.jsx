@@ -23,8 +23,12 @@ import { cn } from "@/lib/utils";
 import { StatusFilter } from "../common/StatusFilter";
 import { useNavigate } from "react-router-dom";
 import ConfirmDialog from "../common/ConfirmDialog";
+import StatusBadge from "../common/StatusBadge";
 
-// Helpers
+/* -------------------------------------------------------------------------- */
+/*                                   helpers                                  */
+/* -------------------------------------------------------------------------- */
+
 const STATUS_LABEL = {
   all: "All",
   pending: "Pending",
@@ -33,27 +37,15 @@ const STATUS_LABEL = {
   rejected: "Rejected",
 };
 
-const statusPill = (status) => {
-  switch (status) {
-    case "pending":
-      return "bg-yellow-100 text-yellow-700 hover:bg-yellow-200";
-    case "approved":
-      return "bg-green-100 text-green-700 hover:bg-green-200";
-    case "completed":
-      return "bg-blue-100 text-blue-700 hover:bg-blue-200";
-    case "rejected":
-      return "bg-red-100 text-red-700 hover:bg-red-200";
-    default:
-      return "bg-gray-100 text-gray-700 hover:bg-gray-200";
-  }
-};
-
-// New formatters
 const fmtDayCompact = (iso) => format(new Date(iso), "yyyy-MM-dd");
 const fmtNiceDay = (iso) => format(new Date(iso), "do MMMM, yy");
 const fmtNiceTime = (iso) => format(new Date(iso), "HH:mm");
 const hoursBetween = (a, b) =>
   Math.max(1, differenceInHours(new Date(b), new Date(a)));
+
+/* -------------------------------------------------------------------------- */
+/*                                  component                                 */
+/* -------------------------------------------------------------------------- */
 
 export default function MyRequests() {
   const [requests, setRequests] = useState([]);
@@ -145,7 +137,7 @@ export default function MyRequests() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background text-foreground ">
       <PageTitle
         title="My Requests"
         subtitle="Track and manage your resource bookings"
@@ -154,15 +146,16 @@ export default function MyRequests() {
       {/* Search + Filter row */}
       <div className="mb-4 flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by resource, status, purpose, location or ID…"
             className={cn(
               "pl-9",
-              "placeholder:text-gray-400/80",
-              "placeholder:text-sm"
+              "placeholder:text-muted-foreground/80",
+              "placeholder:text-sm",
+              "bg-background text-foreground"
             )}
           />
         </div>
@@ -179,7 +172,7 @@ export default function MyRequests() {
       {/* Results */}
       <div className="mt-2">
         {loading ? (
-          <div className="flex items-center gap-2 text-gray-600">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>Loading requests…</span>
           </div>
@@ -218,19 +211,27 @@ export default function MyRequests() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                 Empty State                                 */
+/* -------------------------------------------------------------------------- */
+
 function EmptyState() {
   return (
-    <div className="rounded-md border border-dashed border-gray-200 p-8 text-center">
-      <div className="mx-auto mb-2 h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center">
-        <Info className="h-5 w-5 text-gray-500" />
+    <div className="rounded-md border border-border border-dashed p-8 text-center bg-card text-card-foreground">
+      <div className="mx-auto mb-2 h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+        <Info className="h-5 w-5 text-muted-foreground" />
       </div>
-      <p className="text-gray-900 font-medium">No requests to show</p>
-      <p className="text-gray-500 text-sm">
+      <p className="text-foreground font-medium">No requests to show</p>
+      <p className="text-muted-foreground text-sm">
         Adjust your filters or try a different search
       </p>
     </div>
   );
 }
+
+/* -------------------------------------------------------------------------- */
+/*                                Request Card                                 */
+/* -------------------------------------------------------------------------- */
 
 function RequestCard({ req, onOpenConfirm, cancelling }) {
   const navigate = useNavigate();
@@ -252,26 +253,39 @@ function RequestCard({ req, onOpenConfirm, cancelling }) {
   };
 
   return (
-    <Card className="border border-gray-200 shadow-sm">
+    <Card className="border border-border bg-card text-card-foreground">
       <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 w-full">
+            <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
               {resource.name || "Resource"}
             </h2>
-            <Badge variant="outline" className="text-xs font-medium capitalize">
-              {resource.type || "resource"}
-            </Badge>
-            <Badge variant="outline" className="text-xs bg-gray-200">
-              {formatDuration(totalHours)}
-            </Badge>
+
+            <div className="flex justify-between items-center w-full mt-1 sm:mt-0">
+              <div className="flex gap-2">
+                <Badge
+                  variant="outline"
+                  className="text-xs font-medium capitalize bg-background border-border text-muted-foreground"
+                >
+                  {resource.type || "resource"}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-muted border-border text-muted-foreground"
+                >
+                  {formatDuration(totalHours)}
+                </Badge>
+              </div>
+
+              <div className="flex items-center">
+                <StatusBadge status={status} />
+              </div>
+            </div>
           </div>
-          <Badge className={statusPill(status)}>
-            {STATUS_LABEL[status] || "Unknown"}
-          </Badge>
         </div>
 
-        <div className="flex justify-between mt-1 text-xs text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:justify-between mt-1 text-xs text-muted-foreground">
+          {/* Location (top on mobile, left on desktop) */}
           {req?.resource?.location ? (
             <div className="flex items-center">
               <MapPin className="inline h-3 w-3 mr-1 mt-px" />
@@ -280,19 +294,23 @@ function RequestCard({ req, onOpenConfirm, cancelling }) {
           ) : (
             <span />
           )}
-          <span>Request Date: {fmtDayCompact(req.createdAt)}</span>
+
+          {/* Request date (bottom on mobile, right on desktop) */}
+          <span className="mt-1 sm:mt-0">
+            Request Date: {fmtDayCompact(req.createdAt)}
+          </span>
         </div>
 
-        <Separator className="my-3" />
+        <Separator className="my-3 border-border" />
 
         <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
           <div className="flex items-start gap-3">
-            <CalendarDays className="h-5 w-5 text-gray-500 mt-0.5" />
+            <CalendarDays className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div className="space-y-0.5">
-              <div className="flex gap-2">
-                <div className="text-gray-900 font-medium">{datePrimary}</div>
+              <div className="flex gap-2 items-center">
+                <div className="text-foreground font-medium">{datePrimary}</div>
                 {!sameDay && (
-                  <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs text-purple-700">
+                  <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
                     Multi-day
                   </span>
                 )}
@@ -301,15 +319,15 @@ function RequestCard({ req, onOpenConfirm, cancelling }) {
           </div>
 
           <div className="flex gap-2 sm:items-end">
-            <div className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2.5 py-1.5">
-              <span className="text-xs text-gray-500">Start</span>
-              <span className="text-sm font-medium text-gray-900">
+            <div className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
+              <span className="text-xs text-muted-foreground">Start</span>
+              <span className="text-sm font-medium text-foreground">
                 {fmtNiceTime(req.startTime)}
               </span>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2.5 py-1.5">
-              <span className="text-xs text-gray-500">End</span>
-              <span className="text-sm font-medium text-gray-900">
+            <div className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-2.5 py-1.5">
+              <span className="text-xs text-muted-foreground">End</span>
+              <span className="text-sm font-medium text-foreground">
                 {fmtNiceTime(req.endTime)}
               </span>
             </div>
@@ -317,33 +335,38 @@ function RequestCard({ req, onOpenConfirm, cancelling }) {
         </div>
 
         <div className="mt-4">
-          <p className="text-sm text-gray-500 font-medium mb-1.5">Purpose</p>
-          <div className="bg-gray-50 text-gray-800 px-3 py-2 rounded-md text-sm">
+          <p className="text-sm text-muted-foreground font-medium mb-1.5">
+            Purpose
+          </p>
+          <div className="bg-muted px-3 py-2 rounded-md text-sm text-foreground">
             {req.purpose || "No purpose provided."}
           </div>
         </div>
 
         {/* Footer buttons */}
         <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          {status === "approved" && (
-            <div className="flex items-center text-green-700 text-sm">
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Approved on {req.approvedAt ? fmtDayCompact(req.approvedAt) : "—"}
-            </div>
-          )}
-          {status === "completed" && (
-            <div className="flex items-center text-blue-700 text-sm">
-              <Clock3 className="h-4 w-4 mr-2" />
-              Completed on{" "}
-              {req.completedAt ? fmtDayCompact(req.completedAt) : "—"}
-            </div>
-          )}
-          {status === "rejected" && (
-            <div className="flex items-center text-red-700 text-sm">
-              <X className="h-4 w-4 mr-2" />
-              Rejected {req.remarks ? `– ${req.remarks}` : ""}
-            </div>
-          )}
+          <div className="flex-1">
+            {status === "approved" && (
+              <div className="flex items-center text-green-600 dark:text-green-400 text-sm">
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Approved on{" "}
+                {req.approvedAt ? fmtDayCompact(req.approvedAt) : "—"}
+              </div>
+            )}
+            {status === "completed" && (
+              <div className="flex items-center text-blue-600 dark:text-blue-400 text-sm">
+                <Clock3 className="h-4 w-4 mr-2" />
+                Completed on{" "}
+                {req.completedAt ? fmtDayCompact(req.completedAt) : "—"}
+              </div>
+            )}
+            {status === "rejected" && (
+              <div className="flex items-center text-red-600 dark:text-red-400 text-sm">
+                <X className="h-4 w-4 mr-2" />
+                Rejected {req.remarks ? `– ${req.remarks}` : ""}
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-2 sm:ml-auto">
             <Button
@@ -353,7 +376,7 @@ function RequestCard({ req, onOpenConfirm, cancelling }) {
               onClick={() => onOpenConfirm(req._id)}
               className={cn(
                 "transition-all duration-200 px-4 py-1",
-                "border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
+                "border-destructive text-destructive hover:bg-destructive/10"
               )}
             >
               {cancelling ? (
@@ -371,7 +394,7 @@ function RequestCard({ req, onOpenConfirm, cancelling }) {
             <Button
               variant="outline"
               size="xs"
-              className="transition-all duration-200 px-4 py-1"
+              className="transition-all duration-200 px-4 py-1 border-border text-foreground hover:bg-muted"
               onClick={() => navigate(`/requests/${req._id}`)}
             >
               View Details

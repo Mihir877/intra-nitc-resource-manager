@@ -4,7 +4,12 @@
 
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// optional: set globally if the app only runs in India
+dayjs.tz.setDefault("Asia/Kolkata");
 
 export const humanDate = (iso) =>
   iso ? dayjs(iso).tz().format("DD MMM YYYY, h:mm A") : "N/A";
@@ -90,20 +95,18 @@ export function formatDayHeader(date) {
  *     endTime:   "10:00"
  *   }
  */
-export function getBookingTimeInfo(startIso, endIso) {
-  const start = dayjs(startIso).utc();
-  const end = dayjs(endIso).utc().add(1, "hour");
+export function getBookingTimeInfo(start, end) {
+  const s = dayjs(start).tz("Asia/Kolkata");
+  const e = dayjs(end).tz("Asia/Kolkata");
 
-  const fmt = (d) =>
-    d.format("ddd, MMM D").replace(/^\w/, (c) => c.toUpperCase());
-  // Capitalizes first character
+  const isSameDay = s.isSame(e, "day");
 
   return {
-    startDate: fmt(start), // "Wed, Nov 4"
-    endDate: fmt(end), // "Thu, Nov 5"
-    isSameDay: start.isSame(end, "day"),
-    startTime: start.format("HH:mm"),
-    endTime: end.format("HH:mm"),
+    isSameDay,
+    startDate: s.format("DD MMM YYYY"),
+    endDate: e.format("DD MMM YYYY"),
+    startTime: s.format("hh:mm A"),
+    endTime: e.format("hh:mm A"),
   };
 }
 

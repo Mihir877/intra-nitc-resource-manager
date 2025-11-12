@@ -42,55 +42,60 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  return (
+return (
+  <div className="text-foreground">
+    <div className="text-center mb-6">
+      <CardTitle className="text-2xl">Forgot password</CardTitle>
+      <CardDescription className="text-muted-foreground">
+        We will email you a link to reset your password.
+      </CardDescription>
+    </div>
+
     <div>
-      <div className="text-center mb-6">
-        <CardTitle className="text-2xl">Forgot password</CardTitle>
-        <CardDescription>
-          We will email you a link to reset your password.
-        </CardDescription>
-      </div>
-
-      <div>
-        <form onSubmit={onSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="email">Institutional email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="name_roll@nitc.ac.in"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              aria-describedby="email-help"
-            />
-            <p id="email-help" className="text-xs text-muted-foreground">
-              Use only your NITC email address.
-            </p>
-          </div>
-
-          <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Sending..." : "Send reset link"}
-          </Button>
-
-          <div className="text-xs text-muted-foreground text-center">
-            If you don’t receive an email in a few minutes, check spam or try
-            again.
-          </div>
-        </form>
-
-        <div className="mt-3 h-px bg-border" />
-
-        <div className="mt-2 text-center text-sm text-muted-foreground">
-          Remembered it?{" "}
-          <a
-            href="/login"
-            className="text-primary underline underline-offset-4"
-          >
-            Back to login
-          </a>
+      <form onSubmit={onSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-foreground">
+            Institutional email
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="name_roll@nitc.ac.in"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            aria-describedby="email-help"
+            className="bg-background border-border text-foreground"
+          />
+          <p id="email-help" className="text-xs text-muted-foreground">
+            Use only your NITC email address.
+          </p>
         </div>
+
+        <Button
+          type="submit"
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition"
+          disabled={busy}
+        >
+          {busy ? "Sending..." : "Send reset link"}
+        </Button>
+
+        <div className="text-xs text-muted-foreground text-center">
+          If you don’t receive an email in a few minutes, check spam or try
+          again.
+        </div>
+      </form>
+
+      <div className="mt-3 h-px bg-border" />
+
+      <div className="mt-2 text-center text-sm text-muted-foreground">
+        Remembered it?{" "}
+        <a href="/login" className="text-primary underline underline-offset-4">
+          Back to login
+        </a>
       </div>
     </div>
-  );
+  </div>
+);
+
 }

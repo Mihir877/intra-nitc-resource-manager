@@ -16,66 +16,63 @@ const keyToIsoUtc = (key) => {
   return dayjs.utc(`${d}T${String(h).padStart(2, "0")}:00:00Z`).toISOString();
 };
 
-// Add 1 hour to a slot key to get the END boundary time
+// Add 1 hour to slot key
 const addOneHour = (slotKey) => {
   const [date, hour] = slotKey.split("_");
   const nextHour = parseInt(hour, 10) + 1;
-
-  // Handle day rollover (23:00 → next day 00:00)
   if (nextHour >= 24) {
     const nextDate = dayjs(date).add(1, "day").format("YYYY-MM-DD");
     return `${nextDate}_0`;
   }
-
   return `${date}_${nextHour}`;
 };
 
 const firstColPx = 80;
 const otherColPx = 100;
 
-// Status-based styling configuration
+// 🎨 STATUS styles — vivid, with dark-mode contrast
 const STATUS_STYLES = {
   available: {
-    bg: "bg-white border-green-500/20 hover:bg-green-50",
-    text: "text-gray-600",
+    bg: "bg-white border-green-200 hover:bg-green-50 dark:bg-gray-900 dark:border-green-900 dark:hover:bg-green-950/30",
+    text: "text-gray-700 dark:text-gray-300",
     label: "",
   },
   booked: {
-    bg: "bg-red-50 border-red-200",
-    text: "text-red-600 font-semibold",
+    bg: "bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800",
+    text: "text-red-700 dark:text-red-400 font-semibold",
     label: "Booked",
   },
   pendingMine: {
-    bg: "bg-amber-50 border-amber-300",
-    text: "text-amber-700 font-medium",
+    bg: "bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-900",
+    text: "text-amber-700 dark:text-amber-400 font-medium",
     label: "Pending",
   },
   pendingOther: {
-    bg: "bg-yellow-50 border-yellow-300 hover:bg-yellow-100",
-    text: "text-yellow-700",
+    bg: "bg-yellow-50 border-yellow-300 hover:bg-yellow-100 dark:bg-yellow-950/30 dark:border-yellow-900 dark:hover:bg-yellow-900/50",
+    text: "text-yellow-700 dark:text-yellow-400",
     label: "Pending",
   },
   softBlocked: {
-    bg: "bg-slate-100 border-slate-300",
-    text: "text-slate-600 font-medium",
+    bg: "bg-slate-100 border-slate-300 dark:bg-slate-900 dark:border-slate-700",
+    text: "text-slate-600 dark:text-slate-400 font-medium",
     label: "Maint.",
   },
   cooldown: {
-    bg: "bg-blue-50 border-blue-200",
-    text: "text-blue-600",
+    bg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900",
+    text: "text-blue-600 dark:text-blue-400",
     label: "Cool",
   },
   unavailable: {
-    bg: "bg-gray-50 border-gray-100",
-    text: "text-gray-400",
+    bg: "bg-gray-50 border-gray-100 dark:bg-gray-900 dark:border-gray-800",
+    text: "text-gray-400 dark:text-gray-500",
     label: "",
   },
 };
 
+// Tooltip text logic
 const getTooltipText = (entry) => {
   if (!entry) return "Unavailable";
-
-  const tooltips = {
+  const t = {
     booked: `Booked${entry.purpose ? `: ${entry.purpose}` : ""}${
       entry.user ? ` - ${entry.user}` : ""
     }`,
@@ -86,42 +83,46 @@ const getTooltipText = (entry) => {
     available: "Available - Click to select",
     unavailable: "Unavailable",
   };
-
-  return tooltips[entry.status] || tooltips.unavailable;
+  return t[entry.status] || t.unavailable;
 };
 
+// 💎 Classic vivid selection styling restored
 const getSlotClassName = ({ isSelected, isStart, isEnd, isSingle, status }) => {
-  const base = "h-9 border text-xs transition-colors select-none";
+  const base = "h-9 border text-xs font-medium select-none cursor-pointer";
 
-  // Selection variants first (highest priority)
   if (isSelected) {
     return cn(
       base,
-      // shared selected styling
-      "bg-blue-300 text-white border-blue-500",
-      // specific shapes
+      // vivid gradient-like blue
+      "bg-blue-400/40 text-white border-blue-500 dark:bg-blue-800/40 dark:border-blue-600",
       isSingle &&
-        "bg-blue-400 font-semibold border-2 border-blue-600 rounded shadow-sm",
+        "rounded shadow-sm font-semibold border-2 border-blue-600 dark:border-blue-500",
+      // continuous look
       !isSingle && !isStart && !isEnd && "border-y-0",
-      isStart && "rounded-t border-b-0 border-l-4 border-l-blue-700",
-      isEnd && "rounded-b border-t-0 border-r-4 border-r-blue-700"
+      // strong edge on first slot
+      isStart &&
+        "rounded-t border-b-0 border-l-4 border-l-blue-700/70 dark:border-l-blue-500/70",
+      // strong edge on last slot
+      isEnd &&
+        "rounded-b border-t-0 border-r-4 border-r-blue-700/70 dark:border-r-blue-500/70",
+      // both (single slot)
+      isStart && isEnd && "border"
     );
   }
 
-  // Status-based variants
   const s = STATUS_STYLES[status] ?? STATUS_STYLES.unavailable;
-
   return cn(
     base,
     s.bg,
     s.text,
-    s.border,
+    "border",
     isStart && "rounded-t border-b-0",
     isEnd && "rounded-b border-t-0",
     isStart && isEnd && "border"
   );
 };
 
+// SlotCell
 const SlotCell = ({
   slotKey,
   entry,
@@ -135,7 +136,7 @@ const SlotCell = ({
     return (
       <div
         key={slotKey}
-        className="h-9 bg-gray-50 border border-gray-100"
+        className="h-9 bg-gray-50 border border-gray-100 dark:bg-gray-700 dark:border-gray-800"
         title="Unavailable"
       />
     );
@@ -143,7 +144,6 @@ const SlotCell = ({
 
   const isSingle = isActualStart && !actualEnd;
   const isRequestable = entry.isRequestable;
-  const statusStyle = STATUS_STYLES[entry.status] || STATUS_STYLES.unavailable;
 
   const className = getSlotClassName({
     isSelected,
@@ -155,15 +155,11 @@ const SlotCell = ({
 
   const tooltip = getTooltipText(entry);
   const label = isSelected ? (
-    // <div className="flex items-center justify-center gap-1">
-    //   <Check className="h-4 w-4 text-blue-700" />
-    // </div>
-
-    <div className="flex items-center justify-center gap-1 text-blue-700">
+    <div className="flex items-center justify-center gap-1 text-blue-700 dark:text-blue-100">
       ✓
     </div>
   ) : (
-    statusStyle.label
+    STATUS_STYLES[entry.status]?.label
   );
 
   return (
@@ -223,7 +219,6 @@ const ResourceSchedule = ({ resourceId }) => {
     try {
       const endSlotKey = actualEnd || actualStart;
       const endBoundaryKey = addOneHour(endSlotKey);
-
       const startTime = keyToIsoUtc(actualStart);
       const endTime = keyToIsoUtc(endBoundaryKey);
 
@@ -240,8 +235,6 @@ const ResourceSchedule = ({ resourceId }) => {
       setConfirmOpen(false);
       clearSelection();
       setPurpose("");
-
-      // Refetch the schedule so UI reflects the new pending slot
       await refetchSchedule();
     } catch (e) {
       console.error(e);
@@ -257,16 +250,13 @@ const ResourceSchedule = ({ resourceId }) => {
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4">
       <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-md">
-        <div
-          className="flex align-center text-sm font-medium min-h-8"
-          style={{ alignItems: "center" }}
-        >
+        <div className="flex items-center text-sm font-medium min-h-8">
           {selectedSlots.size > 0 ? (
             <span>
               {selectedSlots.size} slot{selectedSlots.size !== 1 ? "s" : ""}{" "}
               selected
               {duration && (
-                <span className="ml-2 text-blue-600 font-semibold">
+                <span className="ml-2 text-blue-600 dark:text-blue-400 font-semibold">
                   Duration: {duration.formatted}
                 </span>
               )}
@@ -277,15 +267,16 @@ const ResourceSchedule = ({ resourceId }) => {
               )}
             </span>
           ) : (
-            <span className="text-blue-800">
+            <span className="text-blue-800 dark:text-blue-400">
               Select your booking time from the schedule below
             </span>
           )}
         </div>
+
         {selectedSlots.size > 0 && (
           <div className="flex gap-2">
             <Button onClick={clearSelection} variant="outline" size="sm">
-              Clear Selection
+              Clear
             </Button>
             <Button
               size="sm"
@@ -298,9 +289,11 @@ const ResourceSchedule = ({ resourceId }) => {
         )}
       </div>
 
-      <div className="border rounded-md overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* Schedule Grid */}
+      <div className="border border-border rounded-md overflow-hidden bg-card text-card-foreground">
+        <div className="overflow-x-auto dark:scrollbar-thumb-gray-700 dark:scrollbar-track-gray-900 scrollbar-thin">
           <div style={{ width: "max-content" }}>
+            {/* Header */}
             <div
               className="grid"
               style={{
@@ -316,7 +309,12 @@ const ResourceSchedule = ({ resourceId }) => {
               {upcomingDays.map((d) => (
                 <div
                   key={d.key}
-                  className="sticky top-0 z-20 bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground text-center border-b"
+                  className={cn(
+                    "sticky top-0 z-20 px-3 py-2 text-xs font-medium text-center border-b",
+                    d.isToday
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                      : "bg-muted/40 text-muted-foreground"
+                  )}
                   style={{ width: otherColPx }}
                 >
                   {d.label}
@@ -324,6 +322,7 @@ const ResourceSchedule = ({ resourceId }) => {
               ))}
             </div>
 
+            {/* Time Rows */}
             <div>
               {timeSlots.map((slot) => (
                 <div

@@ -1,4 +1,3 @@
-// src/components/auth/LoginPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CardDescription, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Avoid navigating during render
+  // Auto-redirect after login
   useEffect(() => {
     if (user) {
       navigate(user.role === "admin" ? "/admin" : "/");
@@ -25,7 +24,7 @@ const LoginPage = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (isSubmitting) return; // hard guard against double submit [web:24]
+    if (isSubmitting) return;
     if (!email || !password) {
       notify.error("Login failed", "Please fill in all fields.");
       return;
@@ -40,31 +39,33 @@ const LoginPage = () => {
         navigate(role === "admin" ? "/admin" : "/");
       }, 350);
     } catch (err) {
-      console.log(err);
-      // notify.error(
-      //   "Login failed",
-      //   err?.response?.data?.message ||
-      //     "Something went wrong. Please try again."
-      // );
-
-      toast.info("Event has been created", {});
+      console.error(err);
+      toast.error(
+        err?.response?.data?.message ||
+          "Something went wrong. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div>
+    <div className="text-foreground">
+      {/* Header */}
       <div className="text-center mb-6">
         <CardTitle className="text-3xl font-bold">Login</CardTitle>
-        <CardDescription>
+        <CardDescription className="text-muted-foreground">
           Use your institutional NITC email to continue.
         </CardDescription>
       </div>
 
+      {/* Form */}
       <form onSubmit={handleLogin} className="space-y-6">
         <div>
-          <label htmlFor="email" className="block font-medium mb-1">
+          <label
+            htmlFor="email"
+            className="block font-medium mb-1 text-foreground"
+          >
             Email Address
           </label>
           <Input
@@ -74,13 +75,16 @@ const LoginPage = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={isSubmitting} // disable inputs while pending [web:7]
+            disabled={isSubmitting}
+            className="bg-background border-border text-foreground"
           />
-          <div style={{ marginTop: "-12px" }} />
         </div>
 
         <div>
-          <label htmlFor="password" className="block font-medium mb-1">
+          <label
+            htmlFor="password"
+            className="block font-medium mb-1 text-foreground"
+          >
             Password
           </label>
           <Input
@@ -90,14 +94,15 @@ const LoginPage = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={isSubmitting} // disable inputs while pending [web:7]
+            disabled={isSubmitting}
+            className="bg-background border-border text-foreground"
           />
         </div>
 
         <Button
           type="submit"
-          className="w-full"
-          disabled={isSubmitting} // main disable flag [web:24]
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition"
+          disabled={isSubmitting}
         >
           {isSubmitting ? (
             <>
@@ -110,20 +115,30 @@ const LoginPage = () => {
         </Button>
       </form>
 
+      {/* Links */}
       <div className="mt-4 text-sm flex items-center justify-between">
-        <Link to="/forgot-password" className="text-primary underline">
+        <Link
+          to="/forgot-password"
+          className="text-primary hover:text-primary/80 underline transition"
+        >
           Forgot password?
         </Link>
-        <Link to="/register" className="text-primary underline">
+        <Link
+          to="/register"
+          className="text-primary hover:text-primary/80 underline transition"
+        >
           Create account
         </Link>
       </div>
 
+      {/* Demo Users */}
       <div className="mt-6 flex items-center justify-center gap-2">
-        <span className="text-sm font-semibold">Demo users</span>
+        <span className="text-sm font-semibold text-muted-foreground">
+          Demo users
+        </span>
 
         <span
-          className="group relative cursor-pointer inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-medium text-sm border border-blue-300 hover:bg-blue-200 transition"
+          className="cursor-pointer inline-flex items-center px-3 py-1 rounded-full bg-accent text-accent-foreground font-medium text-sm border border-border hover:bg-accent/80 transition"
           onClick={() => {
             if (isSubmitting) return;
             setEmail("student_m25@nitc.ac.in");
@@ -134,7 +149,7 @@ const LoginPage = () => {
         </span>
 
         <span
-          className="group relative cursor-pointer inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-800 font-medium text-sm border border-green-300 hover:bg-green-200 transition"
+          className="cursor-pointer inline-flex items-center px-3 py-1 rounded-full bg-secondary text-secondary-foreground font-medium text-sm border border-border hover:bg-secondary/80 transition"
           onClick={() => {
             if (isSubmitting) return;
             setEmail("admin_m25@nitc.ac.in");

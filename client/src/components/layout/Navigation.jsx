@@ -33,10 +33,16 @@ const adminNavItems = [
   // { icon: Settings, label: "Preferences", href: "/admin/preferences" },
 ];
 
-export function Navigation() {
+export function Navigation({ setOpen }) {
   const { user } = useAuth();
   const location = useLocation();
   const navItems = user?.role === "admin" ? adminNavItems : studentNavItems;
+
+  const handleClose = () => {
+    if (setOpen) {
+      setOpen(false);
+    }
+  };
 
   return (
     <nav className="p-3">
@@ -48,35 +54,25 @@ export function Navigation() {
             location.pathname.startsWith(item.href + "/");
 
           return (
-            <li key={item.href}>
+            <li key={item.href} onClick={handleClose}>
               <NavLink
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm  duration-200",
                   isActive
-                    ? "bg-chart-3 text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    ? // 🔹 Active link styling (theme-aware)
+                      "bg-primary text-primary-foreground shadow-sm"
+                    : // 🔹 Default link styling
+                      "text-muted-foreground hover:text-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
-                <Icon className="h-4 w-4" />
-                <span className="truncate -mt-1px">{item.label}</span>
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="truncate">{item.label}</span>
               </NavLink>
             </li>
           );
         })}
       </ul>
-
-      {/* {user?.role !== "admin" && (
-        <div className="pt-5">
-          <Link
-            to="/request"
-            className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-primary/85 px-3 py-2.5 text-sm text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="-mt-[1px]">Request Resource</span>
-          </Link>
-        </div>
-      )} */}
     </nav>
   );
 }

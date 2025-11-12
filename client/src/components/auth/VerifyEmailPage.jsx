@@ -38,9 +38,8 @@ export default function VerifyEmailPage() {
       active = false;
     };
   }, [token, navigate]);
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 text-center px-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-center px-6  ">
       {status === "pending" && (
         <motion.div
           key="pending"
@@ -50,11 +49,11 @@ export default function VerifyEmailPage() {
           transition={{ duration: 0.3 }}
           className="space-y-5"
         >
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto" />
-          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
             Verifying your email...
           </h1>
-          <p className="text-gray-500 max-w-md mx-auto">
+          <p className="text-muted-foreground max-w-md mx-auto">
             Please wait a moment while we validate your verification token.
           </p>
         </motion.div>
@@ -69,13 +68,17 @@ export default function VerifyEmailPage() {
           transition={{ duration: 0.3 }}
           className="space-y-5"
         >
-          <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto" />
-          <h1 className="text-3xl font-bold text-gray-800">Email Verified!</h1>
-          <Alert className="border-green-200 bg-green-50 text-green-800 max-w-lg mx-auto">
+          <CheckCircle2 className="w-16 h-16 text-green-500 dark:text-green-400 mx-auto" />
+          <h1 className="text-3xl font-bold text-foreground">
+            Email Verified!
+          </h1>
+          <Alert className="border-border bg-accent text-accent-foreground max-w-lg mx-auto">
             <AlertTitle>Success</AlertTitle>
             <AlertDescription>{message}</AlertDescription>
           </Alert>
-          <p className="text-sm text-gray-500">Redirecting you to login...</p>
+          <p className="text-sm text-muted-foreground">
+            Redirecting you to login...
+          </p>
         </motion.div>
       )}
 
@@ -88,8 +91,8 @@ export default function VerifyEmailPage() {
           transition={{ duration: 0.3 }}
           className="space-y-6"
         >
-          <XCircle className="w-16 h-16 text-red-600 mx-auto" />
-          <h1 className="text-3xl font-bold text-gray-800">
+          <XCircle className="w-16 h-16 text-destructive mx-auto" />
+          <h1 className="text-3xl font-bold text-foreground">
             Verification Failed
           </h1>
           <Alert variant="destructive" className="max-w-lg mx-auto text-left">
@@ -106,7 +109,7 @@ export default function VerifyEmailPage() {
         </motion.div>
       )}
 
-      <footer className="absolute bottom-6 text-xs text-gray-400">
+      <footer className="absolute bottom-6 text-xs text-muted-foreground">
         &copy; {new Date().getFullYear()} MyApp. All rights reserved.
       </footer>
     </div>

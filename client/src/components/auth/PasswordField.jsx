@@ -1,4 +1,3 @@
-// src/components/auth/PasswordField.jsx
 import React, { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +48,8 @@ export default function PasswordField({
 
   const strengthLabel =
     ["Weak", "Weak", "Fair", "Good", "Strong", "Strong"][strength] || "Weak";
+
+  // Strength colors tuned for accessibility in dark mode
   const strengthColor =
     [
       "bg-red-500",
@@ -57,12 +58,12 @@ export default function PasswordField({
       "bg-yellow-500",
       "bg-emerald-500",
       "bg-emerald-600",
-    ][strength] || "bg-red-500";
+    ][strength] || "bg-destructive";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 text-foreground">
       <div>
-        <Label htmlFor={id} className="mb-1 block">
+        <Label htmlFor={id} className="mb-1 block text-foreground">
           {label}
         </Label>
         <div className="relative">
@@ -79,7 +80,7 @@ export default function PasswordField({
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
-            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition"
             aria-label={show ? "Hide password" : "Show password"}
           >
             {show ? (
@@ -93,7 +94,7 @@ export default function PasswordField({
 
       {typeof confirmValue !== "undefined" && onConfirmChange && (
         <div className="space-y-2">
-          <Label htmlFor={confirmId} className="mb-1 block">
+          <Label htmlFor={confirmId} className="mb-1 block text-foreground">
             {confirmLabel}
           </Label>
           <div className="relative">
@@ -101,15 +102,14 @@ export default function PasswordField({
               id={confirmId}
               type={show2 ? "text" : "password"}
               placeholder={placeholder}
-              value={confirmValue ?? ""} // ensure controlled
-              onChange={onConfirmChange} // ensure handler passed
+              value={confirmValue ?? ""}
+              onChange={onConfirmChange}
               autoComplete="new-password"
-              disabled={false} // prevent accidental disable
             />
             <button
               type="button"
               onClick={() => setShow2((s) => !s)}
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition"
               aria-label={
                 show2 ? "Hide confirm password" : "Show confirm password"
               }
@@ -131,7 +131,7 @@ export default function PasswordField({
         <div>
           <div className="h-1.5 w-full rounded bg-muted overflow-hidden">
             <div
-              className={`h-1.5 transition-all ${strengthColor}`}
+              className={`h-1.5 transition-all  ease-in-out ${strengthColor}`}
               style={{ width: `${(strength / 5) * 100}%` }}
             />
           </div>
@@ -161,9 +161,9 @@ function ReqItem({ ok, label }) {
   return (
     <li className="flex items-center gap-2">
       {ok ? (
-        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+        <ShieldCheck className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
       ) : (
-        <ShieldAlert className="h-4 w-4 text-amber-500" />
+        <ShieldAlert className="h-4 w-4 text-amber-500 dark:text-amber-400" />
       )}
       <span className={ok ? "text-foreground" : "text-muted-foreground"}>
         {label}

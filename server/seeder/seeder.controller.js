@@ -7,6 +7,14 @@ import { User } from "../models/user.model.js";
 import { Resource } from "../models/resource.model.js";
 import { Request } from "../models/request.model.js";
 
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import timezone from "dayjs/plugin/timezone.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Kolkata");
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -234,214 +242,119 @@ export const seedResourcesJson = async (req, res) => {
 };
 
 /* =======================
-   HELPER: SLOT GENERATION
-======================= */
-function timeStringToDate(baseDate, timeStr) {
-  const [hStr, mStr] = String(timeStr || "00:00").split(":");
-  const h = parseInt(hStr, 10) || 0;
-  const m = parseInt(mStr, 10) || 0;
-  return new Date(
-    baseDate.getFullYear(),
-    baseDate.getMonth(),
-    baseDate.getDate(),
-    h,
-    m,
-    0,
-    0
-  );
-}
-
-function weekdayName(date) {
-  const names = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-  return names[date.getDay()];
-}
-
-function roundToStepMinutes(date, step = 15) {
-  const total = date.getHours() * 60 + date.getMinutes();
-  const rounded = Math.floor(total / step) * step;
-  const h = Math.floor(rounded / 60);
-  const m = rounded % 60;
-  return new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-    h,
-    m,
-    0,
-    0
-  );
-}
-
-// Helper: convert "HH:mm" to number hour
-function parseHour(timeStr) {
-  if (!timeStr) return 0;
-  const [hStr] = timeStr.split(":");
-  return parseInt(hStr, 10) || 0;
-}
-
-/**
- * Updated generateValidSlot
- * Ensures start/end times are complete hours within availability
- * and within resource.maxBookingDuration limit.
- */
-async function generateValidSlot(resource, maxTries = 30) {
-  try {
-    const availArr =
-      Array.isArray(resource.availability) && resource.availability.length
-        ? resource.availability
-        : defaultAvailability;
-
-    const maxHours =
-      typeof resource.maxBookingDuration === "number" &&
-      resource.maxBookingDuration > 0
-        ? Math.floor(resource.maxBookingDuration)
-        : 8;
-
-    const now = new Date();
-
-    for (let attempt = 0; attempt < maxTries; attempt++) {
-      const avail = availArr[getRandomInt(availArr.length)];
-      if (!avail?.day || !avail.startTime || !avail.endTime) continue;
-
-      // Find a day within the next 14 days matching availability
-      const offsets = [];
-      for (let o = 0; o < 14; o++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() + o);
-        if (weekdayName(d).toLowerCase() === String(avail.day).toLowerCase()) {
-          offsets.push(o);
-        }
-      }
-
-      const offset =
-        offsets.length > 0
-          ? offsets[getRandomInt(offsets.length)]
-          : getRandomInt(14);
-      const chosenDay = new Date(now);
-      chosenDay.setDate(now.getDate() + offset);
-
-      const startHour = parseHour(avail.startTime);
-      const endHour = parseHour(avail.endTime);
-      if (endHour <= startHour) continue;
-
-      const windowLength = endHour - startHour;
-      if (windowLength <= 0) continue;
-
-      const durationHours = Math.min(maxHours, windowLength);
-      if (durationHours <= 0) continue;
-
-      // Choose random start hour aligned to full-hour boundary
-      const possibleStartRange = windowLength - durationHours;
-      const randomOffset = getRandomInt(possibleStartRange + 1);
-      const startH = startHour + randomOffset;
-      const endH = startH + durationHours;
-
-      const start = new Date(
-        chosenDay.getFullYear(),
-        chosenDay.getMonth(),
-        chosenDay.getDate(),
-        startH,
-        0,
-        0,
-        0
-      );
-      const end = new Date(
-        chosenDay.getFullYear(),
-        chosenDay.getMonth(),
-        chosenDay.getDate(),
-        endH,
-        0,
-        0,
-        0
-      );
-
-      // Sanity check
-      if (!(end > start)) continue;
-
-      // Ensure no overlaps
-      const conflict = await Request.findOne({
-        resourceId: resource._id,
-        status: { $in: ["pending", "approved"] },
-        $or: [
-          { startTime: { $lt: end, $gte: start } },
-          { endTime: { $gt: start, $lte: end } },
-          { startTime: { $lte: start }, endTime: { $gte: end } },
-        ],
-      }).lean();
-
-      if (!conflict) {
-        return { startTime: start, endTime: end };
-      }
-    }
-
-    return null;
-  } catch (err) {
-    console.error("Slot generation error:", err);
-    return null;
-  }
-}
-
-/* =======================
    REQUESTS SEEDER
 ======================= */
 export const seedRequestsRandom = async (req, res) => {
   try {
-    const { count = 120 } = req.body || {};
+    const {
+      count = 120, // number of bookings to create
+      workingHours = { start: 9, end: 17 }, // 9 AM – 5 PM
+      windowDays = 14, // next 14 calendar days
+    } = req.body || {};
 
+    // Fetch users & active resources
     const users = await User.find({
       role: { $in: ["student", "faculty"] },
-    }).select("_id");
-    if (users.length === 0)
-      return fail(res, 400, "No student/faculty users available");
-
+    }).select("_id role");
     const resources = await Resource.find({
       isActive: true,
       status: { $ne: "disabled" },
-    }).select("_id name requiresApproval maxBookingDuration availability");
-    if (resources.length === 0)
-      return fail(res, 400, "No active resources available");
+    }).select("_id name maxBookingDuration requiresApproval availability");
 
+    if (users.length === 0 || resources.length === 0) {
+      return fail(res, 400, "No eligible users or active resources found");
+    }
+
+    const requests = [];
     const createdIds = [];
-    for (let i = 0; i < Number(count) || 0; i++) {
+
+    // Helper — generates a random valid slot in IST & ensures no conflict
+    const getRandomValidSlot = async (resource) => {
+      const maxHrs = Math.max(1, Number(resource.maxBookingDuration) || 1);
+      const startDayOffset = Math.floor(Math.random() * windowDays);
+
+      // Pick random future day
+      const baseDay = dayjs().add(startDayOffset, "day").tz("Asia/Kolkata");
+
+      // Random whole-hour start between 9–16
+      const randomStartHr =
+        workingHours.start +
+        Math.floor(Math.random() * (workingHours.end - workingHours.start));
+
+      // Construct start time (Day.js object in IST)
+      const startIst = dayjs
+        .tz(
+          `${baseDay.format("YYYY-MM-DD")} ${randomStartHr}:00`,
+          "YYYY-MM-DD HH:mm",
+          "Asia/Kolkata"
+        )
+        .minute(0)
+        .second(0)
+        .millisecond(0);
+
+      // Random duration (1 → maxBookingDuration hours)
+      const durationHrs = 1 + Math.floor(Math.random() * maxHrs);
+      const endIst = startIst.add(durationHrs, "hour");
+
+      // ensure within working hours
+      if (endIst.hour() > workingHours.end || endIst.isBefore(startIst))
+        return null;
+
+      // Convert to UTC Date objects for Mongo
+      const startUtc = startIst.utc().toDate();
+      const endUtc = endIst.utc().toDate();
+
+      // Conflict check
+      const overlap = await Request.exists({
+        resourceId: resource._id,
+        $or: [{ startTime: { $lt: endUtc }, endTime: { $gt: startUtc } }],
+      });
+      if (overlap) return null;
+
+      return { start: startUtc, end: endUtc };
+    };
+
+    // Generate random requests
+    while (requests.length < count) {
       const user = users[getRandomInt(users.length)];
       const resource = resources[getRandomInt(resources.length)];
 
-      const slot = await generateValidSlot(resource);
+      const slot = await getRandomValidSlot(resource);
       if (!slot) continue;
 
-      const requiresApproval = !!resource.requiresApproval;
+      const { start, end } = slot;
+
+      // Determine booking status based on approval rule
       let status = "approved";
-      if (requiresApproval) {
+      let approvedBy = null;
+      let approvedAt = null;
+      if (resource.requiresApproval) {
         status = Math.random() < 0.5 ? "pending" : "approved";
       }
+      if (status === "approved") {
+        approvedAt = new Date();
+      }
 
-      const doc = await Request.create({
+      requests.push({
         userId: user._id,
         resourceId: resource._id,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        purpose: "Auto-seeded request",
+        startTime: start,
+        endTime: end,
+        purpose: `Demo booking for ${resource.name}`,
         status,
-        approvedBy: status === "approved" ? req.user?.id || null : null,
-        approvedAt: status === "approved" ? new Date() : null,
+        approvedBy,
+        approvedAt,
       });
-
-      createdIds.push(doc._id);
     }
 
+    // Insert all at once
+    const inserted = await Request.insertMany(requests, { ordered: false });
+    inserted.forEach((r) => createdIds.push(r._id));
+
     return created(res, {
-      message:
-        "Requests seeded randomly within availability and duration limits",
-      insertedCount: createdIds.length,
-      requestIds: createdIds,
+      message: "Random booking requests seeded successfully (IST 9AM–5PM)",
+      totalCreated: inserted.length,
+      ids: createdIds,
     });
   } catch (err) {
     console.error("Seed requests error:", err);

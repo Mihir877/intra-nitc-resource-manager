@@ -1,4 +1,3 @@
-// components/NotificationBell.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,6 @@ export default function NotificationBell({
     // Fetch recent notifications
     api.get("/notifications/recent?limit=20").then((res) => {
       if (res.data.success) setNotifs(res.data.notifications);
-      console.log("res.data: ", res.data)
     });
 
     const socket = io(import.meta.env.VITE_API_URL ?? "http://localhost:8080", {
@@ -53,6 +51,7 @@ export default function NotificationBell({
       };
       (map[type] ?? notify.info)(title ?? "Notification", message ?? "");
 
+      // Prepend new notification
       setNotifs((prev) => [
         {
           ...payload,
@@ -71,24 +70,33 @@ export default function NotificationBell({
     };
   }, [userId]);
 
+  // Do NOT auto-clear unread count when opening the dropdown
   const handleOpenChange = (open) => {
     if (open) {
-      // Optimistically mark all as read.
-      setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
-      // TODO: Optionally call API to persist "mark all read".
+      // just show notifications — do NOT mark read
+      // This allows badge count to remain visible until "Clear all"
     }
   };
 
-  const handleMarkAllAsRead = async (open) => {
-    if (open) {
+  // Mark all as read and clear badge
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.patch("/notifications/mark-all-read");
       setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
-      try {
-        await api.patch("/notifications/mark-all-read");
-      } catch {}
+    } catch (err) {
+      console.error("Error marking notifications as read:", err);
     }
   };
 
-  const clearAll = () => setNotifs([]);
+  // Clear all notifications
+  const handleClearAll = async () => {
+    try {
+      await handleMarkAllAsRead();
+      setNotifs([]); // clear the list
+    } catch (err) {
+      console.error("Error clearing notifications:", err);
+    }
+  };
 
   const empty = notifs.length === 0;
 
@@ -102,14 +110,12 @@ export default function NotificationBell({
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />
-          {unreadCount > 0 ? (
+          {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 px-[3px] rounded-full bg-yellow-400 text-[10px] text-yellow-950 flex items-center justify-center">
               <span className="pt-px">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             </span>
-          ) : (
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-accent rounded-full" />
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -119,6 +125,7 @@ export default function NotificationBell({
           Notifications {unreadCount > 0 ? `(${unreadCount} new)` : ""}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+
         <div className="max-h-80 overflow-auto">
           {empty ? (
             <div className="px-3 py-6 text-sm text-muted-foreground text-center">
@@ -128,10 +135,9 @@ export default function NotificationBell({
             notifs.slice(0, 20).map((n, idx) => (
               <div
                 key={idx}
-                className={
-                  "px-3 py-2 text-sm cursor-pointer hover:bg-muted/60 " +
-                  (!n.read ? "bg-muted/40" : "")
-                }
+                className={`px-3 py-2 text-sm cursor-pointer hover:bg-muted/60 ${
+                  !n.read ? "bg-muted/40" : ""
+                }`}
                 onClick={() => {
                   if (onItemClick) onItemClick(n);
                 }}
@@ -158,7 +164,12 @@ export default function NotificationBell({
           <>
             <DropdownMenuSeparator />
             <div className="flex items-center justify-between px-3 py-2">
-              <Button variant="ghost" size="sm" onClick={clearAll}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAll}
+                className="text-destructive hover:text-destructive/90"
+              >
                 Clear all
               </Button>
               <Button variant="outline" size="sm" onClick={onViewAll}>

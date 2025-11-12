@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, ArrowUp, ArrowDown, ArrowUpDown, Eye } from "lucide-react";
+import {
+  Plus,
+  Search,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Eye,
+} from "lucide-react";
 import api from "@/api/axios";
 import PageTitle from "../common/PageTitle";
 import { toast } from "sonner";
@@ -30,7 +37,6 @@ import {
   Lock,
   X,
   Filter,
-  BarChart,
 } from "lucide-react";
 
 import {
@@ -60,13 +66,7 @@ import {
 import { Label } from "../ui/label";
 import ConfirmDialog from "../common/ConfirmDialog";
 import useAuth from "@/hooks/useAuth";
-
-const STATUS_COLORS = {
-  available: "text-green-700 bg-green-50 border-green-200",
-  in_use: "text-orange-700 bg-orange-50 border-orange-200",
-  maintenance: "text-yellow-800 bg-yellow-50 border-yellow-200",
-  disabled: "text-gray-600 bg-gray-50 border-gray-200",
-};
+import StatusBadge from "../common/StatusBadge";
 
 function ResourceActions({ id, name, type, department, location }) {
   const { user } = useAuth();
@@ -74,12 +74,8 @@ function ResourceActions({ id, name, type, department, location }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 🛡️ Allow edit/delete only for:
-  // - Superadmins
-  // - Department admins managing their own department
   const canEdit = user.role === "superadmin" || user.department === department;
 
-  // 🗑️ Handle delete
   const handleDelete = async () => {
     try {
       setLoading(true);
@@ -101,7 +97,7 @@ function ResourceActions({ id, name, type, department, location }) {
   return (
     <>
       <div className="flex justify-end gap-2">
-        {/* 👁️ View Button - always visible */}
+        {/* 👁️ View Button */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -110,7 +106,7 @@ function ResourceActions({ id, name, type, department, location }) {
                 variant="outline"
                 onClick={() => navigate(`/admin/resources/${id}`)}
               >
-                <Eye className="w-4 h-4 text-blue-600" />
+                <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -119,7 +115,7 @@ function ResourceActions({ id, name, type, department, location }) {
           </Tooltip>
         </TooltipProvider>
 
-        {/* ✏️ Edit/Delete only if permitted */}
+        {/* ✏️ Edit/Delete */}
         {canEdit ? (
           <>
             <TooltipProvider>
@@ -161,7 +157,7 @@ function ResourceActions({ id, name, type, department, location }) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button size="sm" variant="ghost" disabled>
-                  <Lock className="w-4 h-4 text-gray-400" />
+                  <Lock className="w-4 h-4 text-muted-foreground" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -172,7 +168,6 @@ function ResourceActions({ id, name, type, department, location }) {
         )}
       </div>
 
-      {/* 🗑️ Confirm Delete Dialog */}
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
@@ -221,7 +216,6 @@ export default function ResourceManager() {
     fetchResources();
   }, []);
 
-  /* ----------------------- Table Columns ----------------------- */
   const columns = [
     {
       accessorKey: "images",
@@ -233,11 +227,11 @@ export default function ResourceManager() {
           <img
             src={img}
             alt={row.original.name}
-            className="w-12 h-12 object-cover rounded-md border"
+            className="w-12 h-12 object-cover rounded-md border border-border"
           />
         ) : (
-          <div className="w-12 h-12 bg-gray-100 flex items-center justify-center rounded-md">
-            <ImageIcon className="w-5 h-5 text-gray-400" />
+          <div className="w-12 h-12 bg-muted flex items-center justify-center rounded-md border border-border">
+            <ImageIcon className="w-5 h-5 text-muted-foreground" />
           </div>
         );
       },
@@ -248,13 +242,14 @@ export default function ResourceManager() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-gray-700"
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           Name
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
@@ -265,69 +260,44 @@ export default function ResourceManager() {
           <TooltipProvider>
             <Tooltip delayDuration={150}>
               <TooltipTrigger asChild>
-                <div className="font-medium min-w-[180px] max-w-[240px] truncate cursor-help">
+                <div className="font-medium min-w-[180px] max-w-[240px] truncate cursor-help text-foreground">
                   {r.name || "Untitled Resource"}
                 </div>
               </TooltipTrigger>
-
               <TooltipContent
                 side="right"
-                className="max-w-xs p-3 space-y-3 text-xs leading-relaxed"
+                className="max-w-xs p-3 space-y-3 text-xs leading-relaxed bg-popover text-popover-foreground border border-border rounded-md"
               >
-                {/* Header */}
-                <div className="font-semibold border-b pb-2">
+                <div className="font-semibold border-b border-border pb-2">
                   {r.name || "Unnamed Resource"}
                 </div>
-
-                {/* Core Info */}
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-3 w-3 text-gray-500" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
                     <span>{r.location || "No location specified"}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Box className="h-3 w-3 text-gray-500" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Box className="h-3 w-3" />
                     <span className="capitalize">{r.type || "N/A"}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <CircleDot className="h-3 w-3 text-gray-500" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <CircleDot className="h-3 w-3" />
                     <span className="capitalize">{r.status}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-3 w-3 text-gray-500" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="h-3 w-3" />
                     <span>
                       Max Duration:{" "}
                       {r.maxBookingDuration ? `${r.maxBookingDuration}h` : "—"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-3 w-3 text-gray-500" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <ShieldCheck className="h-3 w-3" />
                     <span>
                       Requires Approval: {r.requiresApproval ? "Yes" : "No"}
                     </span>
                   </div>
                 </div>
-
-                {/* 🔹 Description Section */}
-                {r.description && (
-                  <div className="pt-2 border-t">
-                    <div className="font-semibold mb-1">Description:</div>
-                    <p className="text-xs leading-relaxed">{r.description}</p>
-                  </div>
-                )}
-
-                {/* 🔹 Usage Rules Section */}
-                {Array.isArray(r?.usageRules) && r.usageRules.length > 0 && (
-                  <div className="">
-                    <div className="font-semibold mb-1">Rules:</div>
-                    <ul className="list-disc list-inside  space-y-0.5">
-                      {r.usageRules.map((rule, i) => {
-                        const trimmed = rule.trim();
-                        return trimmed ? <li key={i}>{trimmed}</li> : null;
-                      })}
-                    </ul>
-                  </div>
-                )}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -340,19 +310,22 @@ export default function ResourceManager() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-gray-700"
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           Type
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
       ),
       cell: ({ row }) => (
-        <span className="capitalize">{row.original.type || "—"}</span>
+        <span className="capitalize text-foreground">
+          {row.original.type || "—"}
+        </span>
       ),
     },
     {
@@ -361,19 +334,22 @@ export default function ResourceManager() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-gray-700"
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           Department
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
       ),
       cell: ({ row }) => (
-        <span className="capitalize">{row.original.department || "—"}</span>
+        <span className="capitalize text-foreground">
+          {row.original.department || "—"}
+        </span>
       ),
     },
     {
@@ -382,46 +358,32 @@ export default function ResourceManager() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           Location
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
       ),
       cell: ({ row }) => (
-        <div className="truncate min-w-[140px] max-w-[200px]">
+        <div className="truncate min-w-[140px] max-w-[200px] text-muted-foreground">
           {row.original.location || "—"}
         </div>
       ),
     },
     {
       accessorKey: "status",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-gray-700"
-        >
+      header: (
+        <div className="flex items-center gap-2 font-semibold text-foreground">
           Status
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
-            <ArrowUpDown className="w-4 h-4 opacity-40" />
-          )}
-        </Button>
+        </div>
       ),
-      cell: ({ row }) => {
-        const statusKey = (row.original.status || "disabled").toLowerCase();
-        const color = STATUS_COLORS[statusKey] || STATUS_COLORS.disabled;
-        return (
-          <Badge className={`border ${color}`}>{row.original.status}</Badge>
-        );
-      },
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
       accessorKey: "maxBookingDuration",
@@ -429,20 +391,21 @@ export default function ResourceManager() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-1 font-semibold text-gray-700"
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           <Clock className="w-4 h-4" />
           Duration (h)
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
       ),
       cell: ({ row }) => (
-        <div className="text-center">
+        <div className="text-center text-muted-foreground">
           {row.original.maxBookingDuration
             ? `${row.original.maxBookingDuration}h`
             : "—"}
@@ -452,7 +415,6 @@ export default function ResourceManager() {
     {
       id: "actions",
       header: "Actions",
-      enableSorting: false,
       cell: ({ row }) => {
         const r = row.original;
         return (
@@ -469,7 +431,7 @@ export default function ResourceManager() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background text-foreground">
       <PageTitle
         title="Resource Management"
         subtitle="Add, update, and monitor shared NITC assets in real time."
@@ -487,9 +449,7 @@ export default function ResourceManager() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* --------------------------- DataTable ----------------------------- */
-/* ------------------------------------------------------------------ */
+/* -------------------- DataTable -------------------- */
 
 function DataTable({ columns, data, searchColumn = "name" }) {
   const [sorting, setSorting] = useState([]);
@@ -518,10 +478,10 @@ function DataTable({ columns, data, searchColumn = "name" }) {
 
   return (
     <div>
-      {/* Toolbar with filters */}
+      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
         <div className="flex items-center gap-2 w-full relative">
-          <Search className="w-4 h-4 absolute left-3 text-gray-500" />
+          <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
           <Input
             placeholder="Search resources..."
             value={table.getColumn(searchColumn)?.getFilterValue() ?? ""}
@@ -539,15 +499,15 @@ function DataTable({ columns, data, searchColumn = "name" }) {
             </Button>
           </PopoverTrigger>
 
-          <PopoverContent className="w-[320px] p-4 space-y-4 bg-white shadow-lg border rounded-xl">
-            <div className="flex items-center justify-between border-b pb-2">
-              <h4 className="font-semibold text-sm text-gray-800">
+          <PopoverContent className="w-[320px] p-4 space-y-4 bg-popover text-popover-foreground border border-border rounded-xl">
+            <div className="flex items-center justify-between border-b border-border pb-2">
+              <h4 className="font-semibold text-sm text-foreground">
                 Filter Resources
               </h4>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-gray-500"
+                className="h-6 w-6 text-muted-foreground"
                 onClick={() => setOpen(false)}
               >
                 <X className="w-4 h-4" />
@@ -618,7 +578,7 @@ function DataTable({ columns, data, searchColumn = "name" }) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border bg-white">
+      <div className="rounded-md border border-border bg-card text-card-foreground">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
@@ -649,7 +609,7 @@ function DataTable({ columns, data, searchColumn = "name" }) {
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="text-center py-6"
+                  className="text-center py-6 text-muted-foreground"
                 >
                   No results found.
                 </TableCell>

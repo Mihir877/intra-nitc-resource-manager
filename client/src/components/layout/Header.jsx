@@ -1,5 +1,4 @@
-// Header.jsx
-import React from "react";
+import React, { useState } from "react";
 import { Menu, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,14 +13,19 @@ import { useNavigate } from "react-router-dom";
 import { useSidebar } from "@/hooks/useSidebar";
 import useAuth from "@/hooks/useAuth";
 import NotificationBell from "@/components/layout/NotificationBell";
+import ThemeToggle from "../common/ThemeToggle";
+import NITCLogo from "../common/NITCLogo";
 
 export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { setOpen } = useSidebar();
 
+  // 👇 NEW: dropdown open state
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
+    <header className="sticky top-0 z-40 w-full border-b bg-sidebar text-sidebar-foreground backdrop-blur">
       <div className="flex h-14 items-center px-3 md:px-4">
         <div className="flex items-center gap-2">
           <Button
@@ -34,24 +38,7 @@ export function Header() {
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div
-            className="flex items-center space-x-2 select-none cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            <div className="h-11 rounded-lg flex items-center justify-center p-1">
-              <img
-                src="/assets/nitc_logo.png"
-                alt="NITC Logo"
-                className="h-full object-contain"
-              />
-            </div>
-            <div>
-              <h1 className="font-bold text-xl">NITC Resources</h1>
-              <p className="text-xs text-muted-foreground -mt-[4px]">
-                Resource Management System
-              </p>
-            </div>
-          </div>
+          <NITCLogo />
         </div>
 
         <div className="ml-auto flex items-center gap-2">
@@ -65,7 +52,8 @@ export function Header() {
             onViewAll={() => navigate("/notifications")}
           />
 
-          <DropdownMenu>
+          {/* 👇 Control the open state */}
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <div
                 variant="ghost"
@@ -96,12 +84,21 @@ export function Header() {
                 </p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate(user.role==="admin" ? "/admin/profile/me" : "/profile/me")}>
+              <DropdownMenuItem
+                onClick={() =>
+                  navigate(
+                    user.role === "admin" ? "/admin/profile/me" : "/profile/me"
+                  )
+                }
+              >
                 <User className="mr-2 h-4 w-4" /> Profile
               </DropdownMenuItem>
-              {/* <DropdownMenuItem onClick={() => navigate("/settings")}>
-                <Settings className="mr-2 h-4 w-4" /> Settings
-              </DropdownMenuItem> */}
+
+              {/* 👇 Pass setDropdownOpen down */}
+              <DropdownMenuItem asChild>
+                <ThemeToggle />
+              </DropdownMenuItem>
+
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" /> Logout

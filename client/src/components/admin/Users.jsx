@@ -32,7 +32,6 @@ import {
   Mail,
   CheckCircle2,
   XCircle,
-  Building2,
   BarChart,
   ArrowUpDown,
   ArrowUp,
@@ -51,10 +50,6 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import api from "@/api/axios";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-
-/* ------------------------------------------------------------------ */
-/* ---------------------------- MAIN VIEW ---------------------------- */
-/* ------------------------------------------------------------------ */
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -77,7 +72,6 @@ export default function UserManagement() {
     fetchUsers();
   }, []);
 
-  /* ----------------------- Table Columns ----------------------- */
   const columns = [
     {
       accessorKey: "username",
@@ -85,13 +79,14 @@ export default function UserManagement() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-gray-700"
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           Name
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
@@ -99,7 +94,7 @@ export default function UserManagement() {
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium">{row.original.username}</span>
-          <span className="text-xs text-gray-500 flex items-center gap-1">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
             <Mail className="w-3 h-3" /> {row.original.email}
           </span>
         </div>
@@ -111,13 +106,14 @@ export default function UserManagement() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-gray-700"
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           Role
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
@@ -126,10 +122,10 @@ export default function UserManagement() {
         <Badge
           className={`capitalize ${
             row.original.role === "admin"
-              ? "bg-purple-50 text-purple-700 border-purple-200"
+              ? "bg-purple-100 text-purple-800 dark:bg-purple-300/20 dark:text-purple-300"
               : row.original.role === "faculty"
-              ? "bg-blue-50 text-blue-700 border-blue-200"
-              : "bg-green-50 text-green-700 border-green-200"
+              ? "bg-blue-100 text-blue-800 dark:bg-blue-300/20 dark:text-blue-300"
+              : "bg-green-100 text-green-800 dark:bg-green-300/20 dark:text-green-300"
           }`}
         >
           {row.original.role}
@@ -142,44 +138,53 @@ export default function UserManagement() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-gray-700"
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           Department
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
       ),
       cell: ({ row }) => (
-        <div className="flex items-center gap-1 text-gray-700">
+        <div className="flex items-center gap-1 text-foreground">
           {row.original.department ? (
             <span>{row.original.department}</span>
           ) : (
-            <span className="text-center w-full">-</span>
+            <span className="text-center w-full text-muted-foreground">-</span>
           )}
         </div>
       ),
     },
     {
       accessorKey: "isEmailVerified",
-      header: "Verified",
+      header: (
+        <div className="flex items-center gap-2 font-semibold text-foreground">
+          Verified
+        </div>
+      ),
       size: 40,
       cell: ({ row }) => (
         <div className="w-full h-full flex items-center justify-center">
           {row.original.isEmailVerified ? (
-            <CheckCircle2 className="w-4 h-4 text-green-600" />
+            <CheckCircle2 className="w-4 h-4 text-green-500" />
           ) : (
-            <XCircle className="w-4 h-4 text-gray-500" />
+            <XCircle className="w-4 h-4 text-muted-foreground" />
           )}
         </div>
       ),
     },
     {
       accessorKey: "loginType",
-      header: "Login",
+      header: (
+        <div className="flex items-center gap-2 font-semibold text-foreground">
+          Login
+        </div>
+      ),
       cell: ({ row }) => (
         <Badge variant="outline" className="text-xs font-medium capitalize">
           {row.original.loginType?.replace("_", " ") || "—"}
@@ -192,22 +197,23 @@ export default function UserManagement() {
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-gray-700"
+          className="flex items-center gap-2 font-semibold text-foreground"
         >
           <BarChart className="w-4 h-4" />
           Bookings
-          {{
-            asc: <ArrowUp className="w-4 h-4" />,
-            desc: <ArrowDown className="w-4 h-4" />,
-          }[column.getIsSorted()] || (
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="w-4 h-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="w-4 h-4" />
+          ) : (
             <ArrowUpDown className="w-4 h-4 opacity-40" />
           )}
         </Button>
       ),
       cell: ({ row }) => (
-        <div className="flex items-center gap-1 text-gray-700">
+        <div className="flex justify-center items-center gap-1 text-foreground">
           <span className="font-medium">{row.original.totalBookings}</span>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted-foreground mt-0.5">
             ({row.original.activeBookings} active)
           </span>
         </div>
@@ -223,7 +229,7 @@ export default function UserManagement() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background text-foreground ">
       <PageTitle
         title="User Management"
         subtitle="Monitor users, activity, and access levels"
@@ -233,7 +239,7 @@ export default function UserManagement() {
   );
 }
 
-/* --------------------------- Sub Components --------------------------- */
+/* ---------------------- UserActions ---------------------- */
 
 function UserActions({ user, onRefresh }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -257,17 +263,14 @@ function UserActions({ user, onRefresh }) {
   return (
     <>
       <div className="flex gap-2 justify-end">
-        {/* 🔹 View Profile Button */}
         <Button
           size="icon"
           variant="outline"
           className="h-8 w-8"
           onClick={() => navigate(`/admin/users/${user._id}`)}
         >
-          <Eye className="w-4 h-4 text-blue-600" />
+          <Eye className="w-4 h-4 text-primary" />
         </Button>
-
-        {/* 🔹 Delete User Button */}
         <Button
           size="icon"
           variant="destructive"
@@ -278,7 +281,6 @@ function UserActions({ user, onRefresh }) {
         </Button>
       </div>
 
-      {/* 🔸 Confirmation Dialog for Delete */}
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
@@ -293,7 +295,7 @@ function UserActions({ user, onRefresh }) {
   );
 }
 
-/* ------------------------------ DataTable ----------------------------- */
+/* ---------------------- DataTable ---------------------- */
 
 function DataTable({ columns, data, searchColumn = "username" }) {
   const [sorting, setSorting] = useState([]);
@@ -319,11 +321,11 @@ function DataTable({ columns, data, searchColumn = "username" }) {
   const roleOptions = ["student", "faculty", "admin"];
 
   return (
-    <div>
+    <div className="transition-colors">
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
         <div className="flex items-center gap-2 w-full relative">
-          <Search className="w-4 h-4 absolute left-3 text-gray-500" />
+          <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
           <Input
             placeholder="Search users..."
             value={table.getColumn(searchColumn)?.getFilterValue() ?? ""}
@@ -341,8 +343,8 @@ function DataTable({ columns, data, searchColumn = "username" }) {
             </Button>
           </PopoverTrigger>
 
-          <PopoverContent className="w-[280px] p-4 space-y-4 border rounded-xl bg-white">
-            <div className="flex items-center justify-between border-b pb-2">
+          <PopoverContent className="w-[280px] p-4 space-y-4 border border-border rounded-xl bg-popover text-popover-foreground">
+            <div className="flex items-center justify-between border-b border-border pb-2">
               <h4 className="text-sm font-semibold">Filter Users</h4>
               <Button
                 variant="ghost"
@@ -354,7 +356,6 @@ function DataTable({ columns, data, searchColumn = "username" }) {
               </Button>
             </div>
 
-            {/* Role Filter */}
             <div className="flex flex-col gap-2">
               <Label>Role</Label>
               <Select
@@ -392,7 +393,7 @@ function DataTable({ columns, data, searchColumn = "username" }) {
       </div>
 
       {/* Table */}
-      <div className="rounded-md border bg-white">
+      <div className="rounded-md border border-border bg-card text-card-foreground">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
@@ -423,7 +424,7 @@ function DataTable({ columns, data, searchColumn = "username" }) {
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="text-center py-6"
+                  className="text-center py-6 text-muted-foreground"
                 >
                   No users found.
                 </TableCell>
@@ -433,10 +434,9 @@ function DataTable({ columns, data, searchColumn = "username" }) {
         </Table>
       </div>
 
-      {/* Pagination with enhanced UI */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 border-t mt-4">
-        {/* Left side — page info */}
-        <div className="text-sm text-gray-600">
+      {/* Pagination */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 border-t border-border mt-4 text-sm text-muted-foreground">
+        <div>
           {(() => {
             const pageSize = table.getState().pagination.pageSize;
             const pageIndex = table.getState().pagination.pageIndex;
@@ -448,17 +448,19 @@ function DataTable({ columns, data, searchColumn = "username" }) {
             return (
               <span>
                 Showing{" "}
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-foreground">
                   {start}-{end}
                 </span>{" "}
                 of{" "}
-                <span className="font-semibold text-gray-900">{totalRows}</span>{" "}
+                <span className="font-semibold text-foreground">
+                  {totalRows}
+                </span>{" "}
                 users • Page{" "}
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-foreground">
                   {pageIndex + 1}
                 </span>{" "}
                 of{" "}
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-foreground">
                   {totalPages}
                 </span>
               </span>
@@ -466,11 +468,9 @@ function DataTable({ columns, data, searchColumn = "username" }) {
           })()}
         </div>
 
-        {/* Right side — controls */}
         <div className="flex flex-wrap items-center justify-end gap-3">
-          {/* Page size selector */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600">Rows per page:</span>
+          <div className="flex items-center gap-2">
+            <span>Rows per page:</span>
             <Select
               value={String(table.getState().pagination.pageSize)}
               onValueChange={(value) => table.setPageSize(Number(value))}
@@ -488,9 +488,8 @@ function DataTable({ columns, data, searchColumn = "username" }) {
             </Select>
           </div>
 
-          {/* Go to page */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600">Go to:</span>
+          <div className="flex items-center gap-2">
+            <span>Go to:</span>
             <Input
               type="number"
               min={1}
@@ -504,7 +503,6 @@ function DataTable({ columns, data, searchColumn = "username" }) {
             />
           </div>
 
-          {/* Pagination buttons */}
           <div className="flex items-center gap-1">
             <Button
               variant="outline"

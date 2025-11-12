@@ -666,3 +666,75 @@ export const getPendingRequests = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc Fetch booking requests (pending/approved/rejected)
+ * @route GET /requests/pending
+ * @access Admin (filtered by department)
+ */
+export const getRequestsForReview = async (req, res) => {
+  try {
+    const { role, department } = req.user;
+    const { status, search } = req.query;
+
+    // 🧩 Base query
+    const query = {
+      status: { $in: ["pending", "approved", "rejected"] },
+    };
+
+    // 🎯 Department admin restriction
+    if (role === "admin" && department) {
+      const deptResourceIds = await Resource.find({ department }).distinct(
+        "_id"
+      );
+      query.resourceId = { $in: deptResourceIds };
+    }
+
+    // 🔍 Optional filter by status (if provided)
+    if (status && status !== "all") {
+      query.status = status.toLowerCase();
+    }
+
+    // 🔍 Optional search (matches resource name, type, or user)
+    const searchFilter = search
+      ? {
+          $or: [
+            { purpose: { $regex: search, $options: "i" } },
+            { remarks: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {};
+
+    // ⚡ Fetch results
+    const requests = await Request.find({ ...query, ...searchFilter })
+      .sort({ createdAt: -1 }) // newest first
+      .populate("userId", "username email role department")
+      .populate("resourceId", "name type location department requiresApproval");
+
+    // 📊 Stats summary for dashboard
+    const counts = {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+    };
+    for (const r of requests) {
+      const s = r.status?.toLowerCase();
+      if (counts[s] !== undefined) counts[s]++;
+    }
+
+    return res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: "Requests fetched successfully",
+      count: requests.length,
+      stats: counts,
+      data: requests,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching admin requests:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};

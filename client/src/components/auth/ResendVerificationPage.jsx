@@ -37,31 +37,40 @@ export default function ResendVerificationPage() {
   };
 
   return (
-    <div className="min-h-screen grid place-items-center bg-gray-50">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen grid place-items-center bg-background text-foreground  ">
+      <Card className="w-full max-w-md bg-card text-card-foreground border-border shadow-sm">
         <div className="pt-8 text-center mb-6">
           <CardTitle className="text-3xl font-bold">
             Resend verification
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-muted-foreground">
             Send a new verification email to your inbox.
           </CardDescription>
         </div>
 
         <CardContent>
           {info && (
-            <Alert className="mb-4">
+            <Alert className="mb-4 border-border bg-accent text-accent-foreground">
               <AlertTitle>Sent</AlertTitle>
               <AlertDescription>{info}</AlertDescription>
             </Alert>
           )}
+
           {error && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert
+              variant="destructive"
+              className="mb-4 border-border text-destructive-foreground"
+            >
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <Button onClick={onResend} disabled={busy} className="w-full">
+
+          <Button
+            onClick={onResend}
+            disabled={busy}
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition"
+          >
             {busy ? "Sending..." : "Send verification email"}
           </Button>
         </CardContent>

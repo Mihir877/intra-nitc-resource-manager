@@ -141,7 +141,7 @@ const Profile = () => {
     setShowPasswordModal(true);
   };
 
-  // ✅ Change password API call
+  // Change password API call
   const handleSubmitPasswordChange = async () => {
     if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match!");
@@ -177,39 +177,38 @@ const Profile = () => {
       setChanging(false);
     }
   };
-
   if (loading)
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
 
   if (!user)
     return (
-      <div className="flex items-center justify-center h-[60vh] text-gray-500">
+      <div className="flex items-center justify-center h-[60vh] text-muted-foreground">
         No user data found
       </div>
     );
 
   return (
-    <div>
+    <div className="text-foreground">
       <PageTitle title="Profile" subtitle="Manage your profile information" />
 
-      <Card className="mx-auto border border-gray-200 shadow-sm relative">
+      <Card className="mx-auto border border-border bg-card text-card-foreground relative">
         <CardHeader className="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-4 text-center sm:text-left relative">
-          <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mx-auto sm:mx-0">
-            <UserCircle className="w-12 h-12 text-gray-500" />
+          <div className="flex items-center justify-center w-20 h-20 rounded-full bg-muted mx-auto sm:mx-0">
+            <UserCircle className="w-12 h-12 text-muted-foreground" />
           </div>
 
           <div className="flex flex-col items-center sm:items-start">
-            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-800">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">
               {user.username}
             </CardTitle>
-            <CardDescription className="text-gray-500">
+            <CardDescription className="text-muted-foreground">
               {user.role === "admin" ? "Administrator" : "Student"} Account
             </CardDescription>
-            <div className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+            <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
               <Mail className="w-4 h-4" />
               {user.email}
               {user.isEmailVerified ? (
@@ -231,7 +230,10 @@ const Profile = () => {
                           <MoreVertical className="w-5 h-5" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent
+                        align="end"
+                        className="bg-popover text-popover-foreground border-border"
+                      >
                         {!editable && (
                           <DropdownMenuItem onClick={() => setEditable(true)}>
                             <Edit3 className="w-4 h-4 mr-2" /> Edit Profile
@@ -253,7 +255,7 @@ const Profile = () => {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={handleLogout}
-                          className="text-red-600 focus:text-red-700"
+                          className="text-destructive focus:text-destructive"
                         >
                           <LogOut className="w-4 h-4 mr-2" /> Logout
                         </DropdownMenuItem>
@@ -300,7 +302,7 @@ const Profile = () => {
               />
 
               <div>
-                <Label className="mb-1 block text-gray-600 text-sm">
+                <Label className="mb-1 block text-sm text-muted-foreground">
                   Department
                 </Label>
                 {editable ? (
@@ -313,14 +315,14 @@ const Profile = () => {
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover text-popover-foreground">
                       {DEPARTMENTS.map((d) => (
                         <SelectItem key={d.code} value={d.code}>
                           <div className="flex gap-2 items-center">
                             {d.code}
                             <Separator
                               orientation="vertical"
-                              className="h-4 bg-gray-400"
+                              className="h-4 bg-border"
                             />
                             {d.name}
                           </div>
@@ -363,17 +365,17 @@ const Profile = () => {
               />
             </Section>
 
-            <div className="bg-gray-50 sm:bg-transparent p-4 sm:p-0 rounded-lg">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 text-center sm:text-left">
+            <div className="bg-muted/50 sm:bg-transparent p-4 sm:p-0 rounded-lg">
+              <h3 className="text-base sm:text-lg font-semibold text-foreground mb-3 text-center sm:text-left">
                 Account Details
               </h3>
-              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 text-gray-600 text-sm text-center sm:text-left">
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 text-sm text-muted-foreground text-center sm:text-left">
                 <div className="flex justify-center sm:justify-start items-center gap-2">
-                  <Shield className="w-4 h-4 text-gray-500" />
+                  <Shield className="w-4 h-4 text-muted-foreground" />
                   Login Type: {user.loginType}
                 </div>
                 <div className="flex justify-center sm:justify-start items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
                   Joined: {new Date(user.createdAt).toLocaleDateString()}
                 </div>
               </div>
@@ -382,7 +384,7 @@ const Profile = () => {
         </CardContent>
 
         {canEdit && editable && (
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex justify-end rounded-b-md">
+          <div className="sticky bottom-0 bg-background border-t border-border p-4 flex justify-end rounded-b-md">
             <Button
               variant="outline"
               onClick={() => {
@@ -396,7 +398,7 @@ const Profile = () => {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto"
             >
               {saving ? (
                 <>
@@ -414,9 +416,9 @@ const Profile = () => {
         )}
       </Card>
 
-      {/* ✅ Password Change Modal */}
+      {/* Password Change Modal */}
       <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-popover text-popover-foreground border-border">
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
@@ -467,15 +469,17 @@ const Profile = () => {
   );
 };
 
+// 🧩 Section Component
 const Section = ({ title, children }) => (
-  <div className="bg-gray-50 sm:bg-transparent p-4 sm:p-0 rounded-lg">
-    <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 text-center sm:text-left">
+  <div className="bg-muted/50 sm:bg-transparent p-4 sm:p-0 rounded-lg">
+    <h3 className="text-base sm:text-lg font-semibold text-foreground mb-3 text-center sm:text-left">
       {title}
     </h3>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{children}</div>
   </div>
 );
 
+// 🧩 InfoField Component
 const InfoField = ({
   label,
   name,
@@ -486,7 +490,7 @@ const InfoField = ({
   type,
 }) => (
   <div className="flex flex-col sm:text-left">
-    <Label className="text-gray-600 text-sm">{label}</Label>
+    <Label className="text-sm text-muted-foreground">{label}</Label>
     <Input
       type={type || "text"}
       name={name}

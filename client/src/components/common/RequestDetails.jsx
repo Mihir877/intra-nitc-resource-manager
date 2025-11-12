@@ -6,7 +6,6 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Calendar,
@@ -15,10 +14,7 @@ import {
   Info,
   CheckCircle,
   XCircle,
-  MessageCircle,
   Mail,
-  ToolCase,
-  Settings,
   ClipboardCheck,
   BadgeCheck,
 } from "lucide-react";
@@ -30,20 +26,13 @@ import utc from "dayjs/plugin/utc";
 import useAuth from "@/hooks/useAuth";
 import { humanDate } from "@/utils/dateUtils";
 import ResourceCard from "@/components/common/resource/ResourceCard";
+import StatusBadge from "@/components/common/StatusBadge"; // Reuse shared component
 
 dayjs.extend(relativeTime);
 dayjs.extend(localizedFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("Asia/Kolkata");
-
-const statusStyles = {
-  approved: "bg-green-100 text-green-800 border-green-200",
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  rejected: "bg-red-100 text-red-800 border-red-200",
-  cancelled: "bg-gray-100 text-gray-700 border-gray-200",
-  completed: "bg-blue-100 text-blue-800 border-blue-200",
-};
 
 const RequestDetails = () => {
   const { id } = useParams();
@@ -126,14 +115,14 @@ const RequestDetails = () => {
 
   if (authLoading || loading)
     return (
-      <div className="flex justify-center items-center h-[60vh] text-gray-500">
+      <div className="flex justify-center items-center h-[60vh] text-muted-foreground">
         Loading request details...
       </div>
     );
 
   if (!request)
     return (
-      <div className="flex justify-center items-center h-[60vh] text-gray-500">
+      <div className="flex justify-center items-center h-[60vh] text-muted-foreground">
         Request not found
       </div>
     );
@@ -142,19 +131,13 @@ const RequestDetails = () => {
 
   return (
     <div className="flex justify-center">
-      <Card className="w-full border border-gray-200 shadow-md">
+      <Card className="w-full border border-border bg-card text-card-foreground shadow-md">
         <CardHeader>
           <div className="flex items-start justify-between">
-            <CardTitle className="text-2xl font-bold text-gray-800">
+            <CardTitle className="text-2xl font-bold">
               Request Details
             </CardTitle>
-            <Badge
-              className={`capitalize ${
-                statusStyles[request?.status] ?? "bg-gray-100 text-gray-700"
-              }`}
-            >
-              {request?.status}
-            </Badge>
+            <StatusBadge status={request?.status} className="text-sm" />
           </div>
         </CardHeader>
 
@@ -163,22 +146,18 @@ const RequestDetails = () => {
         <CardContent className="space-y-6 pt-4">
           {/* Admin Actions */}
           {isAdmin && request.status === "pending" && (
-            <div className="rounded-2xl border border-gray-200 bg-gradient-to-b from-white to-gray-50 p-5 shadow-sm">
-              {/* Header */}
+            <div className="rounded-2xl border border-border bg-gradient-to-b from-card to-muted/30 dark:from-card dark:to-muted/10 p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold text-gray-800 text-lg flex items-center gap-2">
+                <h4 className="font-semibold flex items-center gap-2 text-foreground text-lg">
                   <ClipboardCheck /> Admin Actions
                 </h4>
-                <span className="text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded-md border border-yellow-200">
-                  Pending Review
-                </span>
+                <StatusBadge status="pending" />
               </div>
 
-              {/* Remarks */}
               <div className="space-y-2 mb-4">
                 <label
                   htmlFor="remarks"
-                  className="text-sm font-medium text-gray-700 flex items-center gap-1"
+                  className="text-sm font-medium text-muted-foreground flex items-center gap-1"
                 >
                   Remarks
                   <span className="text-red-500">*</span>
@@ -188,22 +167,21 @@ const RequestDetails = () => {
                   placeholder="Write your remarks here"
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
-                  className="resize-none border-gray-300 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 min-h-[90px]"
+                  className="resize-none border-border bg-background text-foreground focus:border-orange-400 focus:ring-1 focus:ring-orange-400 min-h-[90px] dark:placeholder:text-muted-foreground/60"
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Remarks are required only when rejecting a request.
                 </p>
               </div>
 
-              {/* Buttons */}
               <div className="flex justify-end gap-3">
                 <Button
                   variant="outline"
                   onClick={() => handleDecision("reject")}
                   disabled={submitting}
-                  className="border-red-500 text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30"
                 >
-                  <XCircle className="w-4 h-4" />
+                  <XCircle className="w-4 h-4 mr-1" />
                   {submitting ? "Rejecting..." : "Reject"}
                 </Button>
 
@@ -224,12 +202,12 @@ const RequestDetails = () => {
             <ResourceCard resource={request.resourceId} />
 
             {/* Request Info */}
-            <div className="sm:col-span-2 rounded-xl border p-4">
+            <div className="sm:col-span-2 rounded-xl border border-border bg-background p-4">
               <div className="flex items-start justify-between">
-                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground">
                   <Info className="w-4 h-4" /> Request Information
                 </h3>
-                <div className="text-right text-sm text-gray-500">
+                <div className="text-right text-xs text-muted-foreground">
                   <div>{humanDate(request.createdAt)}</div>
                   <div>Submitted {dayjs(request.createdAt).fromNow()}</div>
                 </div>
@@ -237,62 +215,60 @@ const RequestDetails = () => {
 
               <Separator className="my-4" />
 
-              {/* 🗓 Request Details */}
-              <div className="grid sm:grid-cols-2 gap-4 text-sm border-b pb-4">
+              {/* Request Details */}
+              <div className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4">
                 <div>
                   <Label>Purpose</Label>
-                  <p className="mt-1 text-gray-800">{request.purpose}</p>
+                  <p className="mt-1 text-foreground">{request.purpose}</p>
                 </div>
                 <div>
                   <Label>Duration</Label>
-                  <p className="mt-1 text-gray-800">
+                  <p className="mt-1 text-foreground">
                     {request.durationHours} hour(s)
                   </p>
                 </div>
                 <div>
                   <Label>Start</Label>
-                  <p className="mt-1 flex items-center gap-2 text-gray-800">
+                  <p className="mt-1 flex items-center gap-2 text-foreground">
                     <Clock className="w-4 h-4" />
                     <span>{humanDate(request.startTime)}</span>
                   </p>
                 </div>
                 <div>
                   <Label>End</Label>
-                  <p className="mt-1 flex items-center gap-2 text-gray-800">
+                  <p className="mt-1 flex items-center gap-2 text-foreground">
                     <Calendar className="w-4 h-4" />
                     <span>{humanDate(request.endTime)}</span>
                   </p>
                 </div>
               </div>
 
-              {/* 🧑 Requested By Section */}
+              {/* Requested By */}
               <div className="mb-3 pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                   Requested By
                 </h4>
 
-                <div className="flex items-center gap-3 p-4 rounded-xl">
-                  {/* Avatar or Icon */}
-                  <div className="shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-orange-100 border border-orange-200">
-                    <User className="w-5 h-5 text-orange-600" />
+                <div className="flex items-center gap-3 p-4 mt-3 rounded-xl bg-muted/30 border border-border">
+                  <div className="shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/40 border border-orange-200 dark:border-orange-800">
+                    <User className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   </div>
 
-                  {/* Info */}
                   <div className="flex flex-col text-sm">
-                    <p className="font-semibold text-gray-900 flex items-center gap-1.5">
+                    <p className="font-semibold text-foreground flex items-center gap-1.5">
                       {requester?.username}
                       {requester?.role === "admin" && (
-                        <BadgeCheck className="w-4 h-4 text-blue-500" />
+                        <BadgeCheck className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                       )}
                     </p>
-                    <p className="text-xs text-gray-500 mb-1">
+                    <p className="text-xs text-muted-foreground mb-1">
                       {requester?.role
                         ? requester.role.charAt(0).toUpperCase() +
                           requester.role.slice(1)
                         : ""}
                     </p>
 
-                     <p className="text-gray-600 flex items-center gap-1">
+                    <p className="text-muted-foreground flex items-center gap-1">
                       <Mail size={16} className="mt-0.5" />
                       <a
                         href={`mailto:${requester?.email}`}
@@ -316,11 +292,11 @@ const RequestDetails = () => {
             className="absolute inset-0 bg-black/40"
             onClick={() => setShowConfirm(false)}
           />
-          <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full p-6 z-10">
+          <div className="relative bg-card text-card-foreground border border-border rounded-lg shadow-lg max-w-md w-full p-6 z-10">
             <h3 className="text-lg font-semibold">
               Confirm {decisionPending === "approve" ? "approval" : "rejection"}
             </h3>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Are you sure you want to {decisionPending} this request?
             </p>
             <div className="mt-4 flex justify-end gap-3">

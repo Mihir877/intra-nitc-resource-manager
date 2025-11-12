@@ -97,16 +97,17 @@ export default function AdminDashboard() {
 
   if (loading) return <LoadingPage />;
   if (!stats || !stats.success)
-    return <div className="p-8">Failed to load dashboard</div>;
+    return (
+      <div className="p-8 text-muted-foreground">Failed to load dashboard</div>
+    );
 
   const d = stats.stats;
   const pendingList = stats.pendingRequests ?? [];
   const activityList = stats.recentActivity ?? [];
 
   return (
-    <div className="min-h-screen flex">
-      <main className="flex-1 flex flex-col">
-        {/* Header */}
+    <div className="min-h-screen flex bg-background text-foreground ">
+      <main className="flex-1 flex flex-col space-y-4">
         <PageTitle
           title="Admin Dashboard"
           subtitle="Resource management and system overview"
@@ -119,21 +120,21 @@ export default function AdminDashboard() {
               label: "Total Resources",
               value: d.totalResources,
               subtitle: (
-                <span className="text-gray-600 text-xs flex items-center gap-1 -my-1">
-                  <span className="font-bold text-orange-500 text-xl">
+                <span className="text-muted-foreground text-xs flex items-center gap-1 -my-1">
+                  <span className="font-bold text-primary text-xl">
                     {d.deptResources}
                   </span>
                   <span className="mt-[3px]">belong to {d.department}</span>
                 </span>
               ),
-              icon: <Server className="w-5 h-5 text-gray-500" />,
+              icon: <Server className="w-5 h-5 text-muted-foreground" />,
             },
             {
               label: "Available",
               value: d.availableResources,
               subtitle: (
-                <span className="text-gray-600 text-xs flex items-center gap-1 -my-1">
-                  <span className="font-bold text-purple-500 text-xl">
+                <span className="text-muted-foreground text-xs flex items-center gap-1 -my-1">
+                  <span className="font-bold text-green-500 text-xl">
                     {d.availableDeptResources}
                   </span>
                   <span className="mt-[3px]">available in {d.department}</span>
@@ -141,7 +142,6 @@ export default function AdminDashboard() {
               ),
               icon: <CheckCircle className="w-5 h-5 text-green-500" />,
             },
-
             {
               label: "Pending Requests",
               value: d.pendingRequests,
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
               label: "Total Users",
               value: d.totalUsers,
               subtitle: "Active accounts",
-              icon: <Users className="w-5 h-5 text-gray-500" />,
+              icon: <Users className="w-5 h-5 text-muted-foreground" />,
             },
           ]}
         />
@@ -160,18 +160,20 @@ export default function AdminDashboard() {
         {/* Main Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Pending Requests */}
-          <Card>
+          <Card className="bg-card text-card-foreground border border-border">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-bold mb-0">
                 Pending Requests
               </CardTitle>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Requests awaiting your approval (FIFO)
               </p>
             </CardHeader>
             <CardContent>
               {pendingList.length === 0 && (
-                <div className="text-gray-500 py-2">No pending requests.</div>
+                <div className="text-muted-foreground py-2">
+                  No pending requests.
+                </div>
               )}
               {pendingList.map((req, i) => (
                 <PendingRequest
@@ -191,7 +193,7 @@ export default function AdminDashboard() {
               ))}
               <Button
                 variant="link"
-                className="px-0 mt-2 text-blue-600"
+                className="px-0 mt-2 text-primary hover:underline"
                 onClick={() => navigate("/admin/requests")}
               >
                 View All Requests
@@ -200,12 +202,14 @@ export default function AdminDashboard() {
           </Card>
 
           {/* Recent Activity */}
-          <Card>
+          <Card className="bg-card text-card-foreground border border-border">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-bold mb-0">
                 Recent Activity
               </CardTitle>
-              <p className="text-sm text-gray-500">Latest system activity</p>
+              <p className="text-sm text-muted-foreground">
+                Latest system activity
+              </p>
             </CardHeader>
             <CardContent>
               {activityList.map((act, i) => (
@@ -233,7 +237,7 @@ export default function AdminDashboard() {
 
       {/* Reject Modal */}
       <Dialog open={rejectModal} onOpenChange={setRejectModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-card text-card-foreground">
           <DialogHeader>
             <DialogTitle>Reject Booking Request</DialogTitle>
             <DialogDescription>
@@ -265,7 +269,7 @@ export default function AdminDashboard() {
             <Button
               onClick={handleRejectConfirm}
               disabled={refreshing || !remarks.trim()}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive text-destructive-foreground hover:opacity-90"
             >
               {refreshing ? "Rejecting..." : "Reject Request"}
             </Button>
@@ -295,11 +299,11 @@ function PendingRequest({
   return (
     <div
       onClick={handleNavigate}
-      className="flex items-center justify-between border-b last:border-b-0 py-3 px-2 rounded-md cursor-pointer transition-all hover:bg-gray-50 hover:shadow-sm"
+      className="flex items-center justify-between border-b border-border last:border-b-0 py-3 px-2 rounded-md cursor-pointer transition-all hover:bg-muted/40"
     >
       <div>
-        <span className="font-medium text-gray-800">{name}</span>
-        <div className="text-xs text-gray-500">
+        <span className="font-medium text-foreground">{name}</span>
+        <div className="text-xs text-muted-foreground">
           {resource} • {date} • {duration}
         </div>
       </div>
@@ -358,15 +362,16 @@ function ActivityItem({ type, action, user, detail, ago }) {
       ? "text-green-500"
       : type === "rejected"
       ? "text-red-500"
-      : "text-gray-400";
+      : "text-muted-foreground";
+
   return (
-    <div className="border border-gray-200 rounded-md p-3 mb-3 last:mb-0 flex items-start gap-3 bg-white">
+    <div className="border border-border rounded-md p-3 mb-3 last:mb-0 flex items-start gap-3 bg-card text-card-foreground">
       <span
         className={`w-2 h-2 rounded-full block ${iconColor} mt-1.5 shrink`}
       />
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-semibold text-gray-900">{action}</span>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm font-semibold text-foreground">{action}</span>
+        <span className="text-sm text-muted-foreground">
           {user && `${user} •`} {detail} • {ago}
         </span>
       </div>

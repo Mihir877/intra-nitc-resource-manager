@@ -97,38 +97,31 @@ export default function ResourceFormPage() {
         const { data } = await api.get(`/resources/${id}`);
         const resource = data.resource;
 
-        // Normalize availability data
         const normalizedAvailability = defaultAvailability.map((dayObj) => {
           const existing = resource.availability?.find(
             (a) => a.day === dayObj.day
           );
-
-          if (!existing) {
-            return { ...dayObj, enabled: false };
-          }
-
-          return {
-            day: existing.day,
-            startTime: existing.startTime || "09:00",
-            endTime: existing.endTime || "17:00",
-            enabled: true,
-          };
+          return existing
+            ? {
+                day: existing.day,
+                startTime: existing.startTime || "09:00",
+                endTime: existing.endTime || "17:00",
+                enabled: true,
+              }
+            : { ...dayObj, enabled: false };
         });
 
-        // Reset form with normalized data
         reset({
           ...resource,
           usageRules: resource.usageRules || [],
           availability: normalizedAvailability,
         });
 
-        // Set image previews
         setPreviewUrls(resource.images || []);
       } catch (error) {
         const message = isAxiosError(error)
           ? error.response?.data?.message || "Failed to load resource"
           : "An unexpected error occurred";
-
         toast.error(message);
         navigate("/admin/resources");
       }
@@ -158,13 +151,10 @@ export default function ResourceFormPage() {
     setSaving(true);
 
     try {
-      // Wrap the *entire async process* inside toast.promise and await it
       const result = await toast.promise(
         (async () => {
-          // 1️⃣ Upload images first
           const uploadedUrls = await uploadImagesToCloudinary();
 
-          // 2️⃣ Prepare payload
           const payload = {
             ...data,
             images: [
@@ -181,7 +171,6 @@ export default function ResourceFormPage() {
               })),
           };
 
-          // 3️⃣ Call API
           if (id) {
             await api.patch(`/resources/${id}`, payload);
             return "Resource updated successfully";
@@ -197,10 +186,8 @@ export default function ResourceFormPage() {
         }
       );
 
-      // ✅ Navigate only after success toast
       if (result) navigate("/admin/resources");
     } catch (error) {
-      // optional: fallback toast if something unexpected happens
       console.error(error);
       toast.error("Something went wrong.");
     } finally {
@@ -210,38 +197,37 @@ export default function ResourceFormPage() {
 
   const handleAddRule = (rule) => {
     if (rule.trim()) {
-      const updated = [...(usageRules || []), rule.trim()];
-      setValue("usageRules", updated);
+      setValue("usageRules", [...(usageRules || []), rule.trim()]);
     }
   };
 
   const handleRemoveRule = (index) => {
-    const updated = (usageRules || []).filter((_, i) => i !== index);
-    setValue("usageRules", updated);
+    setValue(
+      "usageRules",
+      (usageRules || []).filter((_, i) => i !== index)
+    );
   };
 
   return (
-    <div className="mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6 bg-gray-100 p-4 rounded-md -mx-3">
-        {id ? "Edit Resource" : "Add New Resource"}
-      </h1>
+    <div className="mx-auto bg-background text-foreground ">
+      <header className="flex justify-between items-center px-3 sm:px-4 py-3 bg-muted rounded-md mb-4 -mx-3">
+        <h1 className="text-3xl font-bold">
+          {id ? "Edit Resource" : "Add New Resource"}
+        </h1>
+      </header>
 
       <div
         className="lg:grid lg:grid-cols-5 lg:gap-8 space-y-6 lg:space-y-0"
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            // Optional: allow Ctrl+Enter to submit
             handleSubmit(onSubmit)();
           }
         }}
       >
-        {/* LEFT COLUMN — Basic Info & Availability */}
+        {/* LEFT COLUMN */}
         <div className="lg:col-span-3 space-y-6">
-          {/* --- Basic Info --- */}
           <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Basic Information
-            </h2>
+            <h2 className="text-xl font-semibold">Basic Information</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -251,7 +237,7 @@ export default function ResourceFormPage() {
                   placeholder="E.g., GPU Server - A"
                 />
                 {errors.name && (
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     {errors.name.message}
                   </p>
                 )}
@@ -303,11 +289,9 @@ export default function ResourceFormPage() {
             </div>
           </section>
 
-          {/* --- Availability --- */}
-          <section className="space-y-4 border-t pt-6">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Availability
-            </h2>
+          {/* Availability */}
+          <section className="space-y-4 border-t border-border pt-6">
+            <h2 className="text-xl font-semibold">Availability</h2>
             <Controller
               name="availability"
               control={control}
@@ -318,15 +302,12 @@ export default function ResourceFormPage() {
           </section>
         </div>
 
-        {/* RIGHT COLUMN — Configuration, Images, Usage Rules */}
+        {/* RIGHT COLUMN */}
         <div className="lg:col-span-2 space-y-6">
-          {/* --- Configuration --- */}
-          <section className="space-y-4 border-t pt-6 lg:border-none lg:pt-0">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Configuration
-            </h2>
+          <section className="space-y-4 border-t border-border pt-6 lg:border-none lg:pt-0">
+            <h2 className="text-xl font-semibold">Configuration</h2>
 
-            <div className="flex flex-col sm:flex-row  lg:flex-col gap-4">
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-4">
               <div className="flex-1">
                 <Label>Capacity</Label>
                 <Input type="number" min={1} {...register("capacity")} />
@@ -341,10 +322,8 @@ export default function ResourceFormPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between border rounded-md p-3 mt-6">
-              <Label className="text-sm text-gray-700">
-                Requires Admin Approval
-              </Label>
+            <div className="flex items-center justify-between border border-border rounded-md p-3 mt-6 bg-muted/50">
+              <Label className="text-sm">Requires Admin Approval</Label>
               <Controller
                 name="requiresApproval"
                 control={control}
@@ -358,9 +337,9 @@ export default function ResourceFormPage() {
             </div>
           </section>
 
-          {/* --- Images --- */}
-          <section className="border-t pt-6 lg:border-none lg:pt-0 space-y-4">
-            <h2 className="text-xl font-semibold text-gray-800">Images</h2>
+          {/* Images */}
+          <section className="border-t border-border pt-6 lg:border-none lg:pt-0 space-y-4">
+            <h2 className="text-xl font-semibold">Images</h2>
             <ImageUploader
               title="Resource Images"
               onChange={(files, urls, removedUrls) => {
@@ -374,9 +353,9 @@ export default function ResourceFormPage() {
             />
           </section>
 
-          {/* --- Usage Rules --- */}
-          <section className="border-t pt-6 lg:border-none lg:pt-0 space-y-3">
-            <h2 className="text-xl font-semibold text-gray-800">Usage Rules</h2>
+          {/* Usage Rules */}
+          <section className="border-t border-border pt-6 lg:border-none lg:pt-0 space-y-3">
+            <h2 className="text-xl font-semibold">Usage Rules</h2>
             <div className="flex gap-2 items-center">
               <Input
                 placeholder="Enter a rule and press Add"
@@ -399,21 +378,21 @@ export default function ResourceFormPage() {
                     input.value = "";
                   }
                 }}
-                className="bg-blue-500 hover:bg-blue-600 text-white h-8 w-8"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8"
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
 
             {(usageRules || []).length > 0 && (
-              <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-gray-700">
+              <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-foreground">
                 {usageRules.map((rule, i) => (
                   <li key={i} className="flex justify-between items-center">
                     <span>{rule}</span>
                     <Button
                       type="button"
                       variant="ghost"
-                      className="text-red-500 h-6 px-2"
+                      className="text-destructive h-6 px-2"
                       onClick={() => handleRemoveRule(i)}
                     >
                       ✕
@@ -424,13 +403,13 @@ export default function ResourceFormPage() {
             )}
           </section>
 
-          {/* --- Save Button --- */}
-          <div className="flex justify-end pt-6 border-t lg:border-t">
+          {/* Save Button */}
+          <div className="flex justify-end pt-6 border-t border-border lg:border-t">
             <Button
               type="submit"
               disabled={saving}
               onClick={handleSubmit(onSubmit)}
-              className="bg-orange-500 hover:bg-orange-600 text-white w-full"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saving
                 ? id

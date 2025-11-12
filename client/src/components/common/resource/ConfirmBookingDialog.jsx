@@ -75,7 +75,7 @@ const fmtDate = (d) =>
 const DateChip = ({ label, d, h }) => {
   if (!d)
     return (
-      <div className="flex items-center gap-2 rounded-lg border bg-muted px-3 py-2 text-sm text-muted-foreground">
+      <div className="group inline-flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm hover:shadow-md transition-shadow">
         <Calendar className="h-4 w-4" />
         <span>{label}</span>
         <span className="ml-1">—</span>
@@ -121,7 +121,7 @@ export function ConfirmBookingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-xl p-0 overflow-hidden bg-card text-card-foreground border border-border">
         <DialogHeader className="px-6 gap-1 pt-4">
           <DialogTitle className="text-xl">Review your request</DialogTitle>
           <DialogDescription>
@@ -129,7 +129,7 @@ export function ConfirmBookingDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="border-t p-6 space-y-6 max-h-[70vh] overflow-y-auto scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className="border-t p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           <div className="space-y-6">
             <div className="space-y-3">
               <div>
@@ -181,17 +181,18 @@ export function ConfirmBookingDialog({
               </Label>
               <Textarea
                 id="purpose"
-                placeholder="Describe the purpose (e.g., Deep Learning training, Circuit Analysis)…"
+                placeholder="Describe the purpose..."
                 value={purpose}
                 onChange={(e) => onPurposeChange?.(e.target.value)}
-                className="min-h-20 mt-2"
+                className="min-h-20 mt-2 border-border bg-background text-foreground dark:placeholder:text-muted-foreground/60"
               />
+
               <p className="text-xs text-muted-foreground">
                 Provide a clear academic justification.
               </p>
             </div>
 
-            <div className="rounded-xl border bg-muted/40 p-4">
+            <div className="rounded-xl border border-border bg-muted/40 dark:bg-muted/20 p-4">
               <div className="font-medium mb-2">Request Guidelines</div>
               <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
                 <li>Requests are subject to admin approval.</li>
@@ -209,7 +210,7 @@ export function ConfirmBookingDialog({
             <Button variant="outline">Cancel</Button>
           </DialogClose>
           <Button
-            className="gap-2"
+            className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={submitting || !purpose?.trim()}
             onClick={onSubmit}
           >

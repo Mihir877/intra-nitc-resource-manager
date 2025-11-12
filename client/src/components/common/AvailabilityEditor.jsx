@@ -14,20 +14,20 @@ export default function AvailabilityEditor({ control, name = "availability" }) {
   ];
 
   return (
-    <div className="border rounded-lg px-3 py-2 bg-gray-50 text-sm">
+    <div className="border border-border rounded-lg px-3 py-2 bg-muted text-sm ">
       {days.map((day, i) => (
         <Controller
           key={day}
           name={`${name}.${i}`}
           control={control}
           render={({ field: { value, onChange } }) => (
-            <div className="flex items-center justify-between flex-wrap gap-2 border-b last:border-none py-2">
+            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-border/60 last:border-none py-2">
               {/* Day label */}
-              <span className="w-20 font-medium text-gray-700 text-xs">
+              <span className="w-20 font-medium text-foreground text-xs">
                 {day}
               </span>
 
-              {/* Time + Toggle wrapper (always flex) */}
+              {/* Time + Toggle wrapper */}
               <div className="flex items-center justify-between flex-1 gap-3 min-w-[200px]">
                 {/* Time pickers */}
                 <div className="flex items-center gap-1">
@@ -40,7 +40,7 @@ export default function AvailabilityEditor({ control, name = "availability" }) {
                     disabled={!value?.enabled}
                     className="w-20 h-8 text-xs"
                   />
-                  <span className="text-gray-400 text-xs">–</span>
+                  <span className="text-muted-foreground text-xs">–</span>
                   <Input
                     type="time"
                     value={value?.endTime || ""}

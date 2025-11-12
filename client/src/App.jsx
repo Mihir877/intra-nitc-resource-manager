@@ -18,7 +18,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import BrowseResources from "./components/student/BrowseResources";
 import MyRequests from "./components/student/MyRequests";
-import History from "./components/student/History";
 import Users from "./components/admin/Users";
 import Profile from "./components/common/Profile";
 import Preferences from "./components/admin/Preferences";
@@ -34,6 +33,7 @@ import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import AuthLayout from "./components/auth/AuthLayout";
 import ResourceFormPage from "./components/common/resource/ResourceFormPage";
 import RequestDetails from "./components/common/RequestDetails";
+import { useTheme } from "./contexts/ThemeContext";
 
 const PageTitle = ({ children }) => (
   <h1 className="text-3xl font-bold text-gray-900">{children}</h1>
@@ -77,8 +77,6 @@ function AppRoutes() {
               path: "requests/:id",
               element: <RequestDetails />,
             },
-
-            { path: "history", element: <History /> },
             {
               path: "request-resource",
               element: <PageTitle>Request Resource</PageTitle>,
@@ -125,6 +123,7 @@ function AppRoutes() {
 }
 
 const App = () => {
+  const { isDark } = useTheme();
   setupInterceptors();
 
   return (
@@ -132,12 +131,14 @@ const App = () => {
       <SidebarProvider>
         <BrowserRouter>
           <AppRoutes />
+
           <Toaster
             richColors
             closeButton
             position="bottom-left"
             expand
             duration={3500}
+            theme={isDark ? "dark" : "light"}
             toastOptions={{
               classNames: {
                 toast: "border shadow-sm",

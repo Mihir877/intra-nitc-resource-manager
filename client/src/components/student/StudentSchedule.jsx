@@ -1,3 +1,4 @@
+// app/components/user/UserSchedule.jsx
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import api from "@/api/axios";
 import { cn } from "@/lib/utils";
@@ -42,37 +43,41 @@ import PageTitle from "../common/PageTitle";
 const VIEW_START_HOUR = 8;
 const VIEW_END_HOUR = 22;
 
+// 🌙 Adaptive dark-mode styles (preserve vivid light mode feel)
 const BOOKING_STATUS = {
   available: {
-    style: "bg-white border-green-500/20 text-gray-600",
+    style:
+      "bg-white border-green-500/20 text-gray-600 hover:bg-green-50 dark:bg-gray-900 dark:border-green-900/40 dark:text-gray-300 dark:hover:bg-green-950/20",
     label: "",
   },
   booked: {
     style:
-      "bg-red-50 hover:bg-red-100 border-red-200 text-red-600 font-semibold",
+      "bg-red-50 hover:bg-red-100 border-red-200 text-red-600 font-semibold dark:bg-red-950/40 dark:hover:bg-red-900/50 dark:border-red-800 dark:text-red-400",
     label: "Booked",
   },
   pendingMine: {
     style:
-      "bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-700 font-medium",
+      "bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-700 font-medium dark:bg-amber-950/40 dark:hover:bg-amber-900/40 dark:border-amber-900 dark:text-amber-400",
     label: "Pending",
   },
   pendingOther: {
     style:
-      "bg-yellow-50 hover:bg-yellow-100 border-yellow-300 text-yellow-700 font-medium",
+      "bg-yellow-50 hover:bg-yellow-100 border-yellow-300 text-yellow-700 font-medium dark:bg-yellow-950/30 dark:hover:bg-yellow-900/50 dark:border-yellow-900 dark:text-yellow-400",
     label: "Pending",
   },
   softBlocked: {
     style:
-      "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 font-medium",
+      "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-600 font-medium dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-slate-400",
     label: "Maint.",
   },
   cooldown: {
-    style: "bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600",
+    style:
+      "bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600 dark:bg-blue-950/30 dark:hover:bg-blue-900/40 dark:border-blue-900 dark:text-blue-400",
     label: "Cool",
   },
   unavailable: {
-    style: "bg-gray-50 border-gray-100 text-gray-400",
+    style:
+      "bg-gray-50 border-gray-100 text-gray-400 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-500",
     label: "",
   },
 };
@@ -85,7 +90,6 @@ export default function UserSchedule() {
   const [error, setError] = useState("");
   const abortRef = useRef(null);
 
-  // Track selected filters
   const [filters, setFilters] = useState({
     pending: true,
     approved: true,
@@ -167,7 +171,9 @@ export default function UserSchedule() {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-56">
             <div className="space-y-2">
-              <div className="text-xs text-gray-500">Status</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Status
+              </div>
               <div className="space-y-1">
                 <Button
                   variant={filters.pending ? "secondary" : "ghost"}
@@ -180,7 +186,7 @@ export default function UserSchedule() {
                     Pending
                   </div>
                   {filters.pending && (
-                    <Check className="h-3 w-3 text-gray-700" />
+                    <Check className="h-3 w-3 text-gray-700 dark:text-gray-300" />
                   )}
                 </Button>
 
@@ -195,7 +201,7 @@ export default function UserSchedule() {
                     Approved
                   </div>
                   {filters.approved && (
-                    <Check className="h-3 w-3 text-gray-700" />
+                    <Check className="h-3 w-3 text-gray-700 dark:text-gray-300" />
                   )}
                 </Button>
               </div>
@@ -205,7 +211,7 @@ export default function UserSchedule() {
       </PageTitle>
 
       {!filters.pending && !filters.approved && (
-        <div className="text-center text-sm text-gray-500 border p-3 rounded-md">
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400 border p-3 rounded-md">
           No filters active — enable a status to view bookings.
         </div>
       )}
@@ -214,7 +220,7 @@ export default function UserSchedule() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Schedule Grid */}
         <div className="lg:col-span-8 xl:col-span-8">
-          <div className="border rounded-md overflow-hidden overflow-x-auto">
+          <div className="border rounded-md overflow-hidden overflow-x-auto dark:border-gray-800">
             <div style={{ width: "max-content" }}>
               {/* Header Row */}
               <div
@@ -224,7 +230,7 @@ export default function UserSchedule() {
                 }}
               >
                 <div
-                  className="sticky left-0 top-0 z-30 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground border-b border-r"
+                  className="sticky left-0 top-0 z-30 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground border-b border-r border-border dark:bg-gray-800"
                   style={{ width: firstColPx }}
                 >
                   Time
@@ -233,10 +239,10 @@ export default function UserSchedule() {
                   <div
                     key={d.key}
                     className={cn(
-                      "sticky top-0 z-20 px-3 py-2 text-xs font-medium text-center border-b",
+                      "sticky top-0 z-20 px-3 py-2 text-xs font-medium text-center border-b border-border",
                       d.isToday
-                        ? "bg-blue-50 text-blue-700"
-                        : "bg-muted/40 text-muted-foreground"
+                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+                        : "bg-muted/40 text-muted-foreground dark:bg-gray-800 dark:text-gray-400"
                     )}
                     style={{ width: otherColPx }}
                   >
@@ -257,7 +263,7 @@ export default function UserSchedule() {
                   >
                     {/* Hour Label */}
                     <div
-                      className="sticky left-0 z-20 bg-background px-3 py-2 text-xs border-r border-b"
+                      className="sticky left-0 z-20 bg-background px-3 py-2 text-xs border-r border-b dark:bg-gray-900 dark:border-gray-800"
                       style={{ width: firstColPx }}
                     >
                       {slot.label}
@@ -273,7 +279,7 @@ export default function UserSchedule() {
                         return (
                           <div
                             key={slotKey}
-                            className="h-9 bg-gray-50 border border-gray-100"
+                            className="h-9 bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700"
                             title="Unavailable"
                           />
                         );
@@ -287,7 +293,7 @@ export default function UserSchedule() {
                         return (
                           <div
                             key={slotKey}
-                            className="h-9 bg-gray-50 border border-gray-100"
+                            className="h-9 bg-gray-50 border border-gray-100 dark:bg-gray-800 dark:border-gray-700"
                             title="Filtered out"
                           />
                         );
@@ -322,9 +328,9 @@ export default function UserSchedule() {
 
                             <TooltipContent
                               side="right"
-                              className="max-w-xs p-3 space-y-2 text-xs"
+                              className="max-w-xs p-3 space-y-2 text-xs dark:bg-gray-900 dark:text-gray-300"
                             >
-                              <div className="font-medium border-b pb-2">
+                              <div className="font-medium border-b pb-2 dark:border-gray-700">
                                 {entry?.resource}
                               </div>
 
@@ -401,10 +407,10 @@ function AgendaView({ schedule, filters }) {
   }, [schedule, filters]);
 
   return (
-    <div className="border rounded-md p-3 space-y-2">
+    <div className="border rounded-md p-3 space-y-2 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
       <div className="text-sm font-medium">Agenda (14 days)</div>
       {items.length === 0 ? (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-muted-foreground dark:text-gray-500">
           No upcoming bookings
         </div>
       ) : (
@@ -412,16 +418,16 @@ function AgendaView({ schedule, filters }) {
           {items.map((it, idx) => (
             <li
               key={idx}
-              className="text-xs flex items-center justify-between p-2 border rounded"
+              className="text-xs flex items-center justify-between p-2 border rounded dark:border-gray-700"
             >
               <div>
                 <div className="font-medium">
                   {it.entry.resource || "Booking"}
                 </div>
-                <div className="text-muted-foreground">
+                <div className="text-muted-foreground dark:text-gray-400">
                   {it.entry.purpose || "No purpose specified"}
                 </div>
-                <div className="text-muted-foreground">
+                <div className="text-muted-foreground dark:text-gray-400">
                   {it.entry.location || ""}
                 </div>
               </div>
@@ -433,28 +439,28 @@ function AgendaView({ schedule, filters }) {
                     <>
                       {t.isSameDay ? (
                         <>
-                          <div className="text-muted-foreground">
+                          <div className="text-muted-foreground dark:text-gray-400">
                             {t.startDate}
                           </div>
-                          <div className="text-muted-foreground">
+                          <div className="text-muted-foreground dark:text-gray-400">
                             {t.startTime} – {t.endTime}
                           </div>
                         </>
                       ) : (
                         <>
-                          <div className="flex gap-1 text-muted-foreground">
+                          <div className="flex gap-1 text-muted-foreground dark:text-gray-400">
                             {t.startDate}
                             <Separator
                               orientation="vertical"
-                              className="h-4 w-0.5 bg-gray-300"
+                              className="h-4 w-0.5 bg-gray-300 dark:bg-gray-700"
                             />
                             {t.startTime}
                           </div>
-                          <div className="flex gap-1 justify-end text-muted-foreground">
+                          <div className="flex gap-1 justify-end text-muted-foreground dark:text-gray-400">
                             {t.endDate}{" "}
                             <Separator
                               orientation="vertical"
-                              className="h-4 w-0.5 bg-gray-300"
+                              className="h-4 w-0.5 bg-gray-300 dark:bg-gray-700"
                             />{" "}
                             {t.endTime}
                           </div>

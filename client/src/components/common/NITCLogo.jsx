@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const NITCLogo = () => {
   const navigate = useNavigate();
+
   return (
     <div
       className="flex items-center space-x-2 select-none cursor-pointer"
@@ -12,11 +13,12 @@ const NITCLogo = () => {
         <img
           src="/assets/nitc_logo.png"
           alt="NITC Logo"
-          className="h-full object-contain"
+          className="h-full object-contain dark:invert transition "
         />
       </div>
-      <div>
-        <h1 className="font-bold text-xl">NITC Resources</h1>
+
+      <div className="hidden md:block">
+        <h1 className="font-bold text-xl text-foreground">NITC Resources</h1>
         <p className="text-xs text-muted-foreground -mt-1">
           Resource Management System
         </p>

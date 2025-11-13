@@ -21,8 +21,8 @@ const sendEmail = async (options) => {
     theme: "default",
     product: {
       name: "Intra NITC Resource Management (IRMS)",
-      link: "http://localhost:3000", // Replace with actual domain or localhost
-      // logo: "http://localhost:8080/public/logos/nitc_logo.png",
+      link: process.env.CLIENT_URL, // Replace with actual domain or localhost
+      // logo: `${process.env.SERVER_URL}/public/logos/nitc_logo.png`,
       logoHeight: "60px",
     },
   });

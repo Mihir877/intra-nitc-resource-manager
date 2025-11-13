@@ -50,6 +50,7 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import api from "@/api/axios";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { Skeleton } from "../ui/skeleton";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -234,7 +235,7 @@ export default function UserManagement() {
         title="User Management"
         subtitle="Monitor users, activity, and access levels"
       />
-      <DataTable columns={columns} data={users} searchColumn="username" />
+      <DataTable columns={columns} data={users} searchColumn="username"loading={loading} />
     </div>
   );
 }
@@ -297,7 +298,7 @@ function UserActions({ user, onRefresh }) {
 
 /* ---------------------- DataTable ---------------------- */
 
-function DataTable({ columns, data, searchColumn = "username" }) {
+function DataTable({ columns, data, searchColumn = "username" , loading}) {
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
   const [open, setOpen] = useState(false);
@@ -318,12 +319,11 @@ function DataTable({ columns, data, searchColumn = "username" }) {
     },
   });
 
-  const roleOptions = ["student", "faculty", "admin"];
-
   return (
     <div className="transition-colors">
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
+      {/* ------------------ Search + Filters ------------------ */}
+      <div className="flex flex-row items-center justify-between gap-3 pb-4">
+        {/* Search Input */}
         <div className="flex items-center gap-2 w-full relative">
           <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
           <Input
@@ -336,10 +336,18 @@ function DataTable({ columns, data, searchColumn = "username" }) {
           />
         </div>
 
+        {/* Filter Button */}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" /> Filters
+            <Button
+              variant="outline"
+              className="shrink-0 flex items-center justify-center gap-2 h-10 w-10 sm:w-auto"
+            >
+              {/* Icon always visible */}
+              <Filter className="w-4 h-4" />
+
+              {/* Text only on desktop */}
+              <span className="hidden sm:inline">Filters</span>
             </Button>
           </PopoverTrigger>
 
@@ -356,6 +364,7 @@ function DataTable({ columns, data, searchColumn = "username" }) {
               </Button>
             </div>
 
+            {/* Role Filter */}
             <div className="flex flex-col gap-2">
               <Label>Role</Label>
               <Select
@@ -369,7 +378,7 @@ function DataTable({ columns, data, searchColumn = "username" }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  {roleOptions.map((r) => (
+                  {["student", "faculty", "admin"].map((r) => (
                     <SelectItem key={r} value={r}>
                       {r}
                     </SelectItem>
@@ -392,6 +401,108 @@ function DataTable({ columns, data, searchColumn = "username" }) {
         </Popover>
       </div>
 
+      {/* ------------------ Pagination ------------------ */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2 text-xs text-muted-foreground">
+        {/* Page Summary — bottom on mobile */}
+        <div className="order-2 sm:order-1 w-full sm:w-auto">
+          {(() => {
+            const pageSize = table.getState().pagination.pageSize;
+            const pageIndex = table.getState().pagination.pageIndex;
+            const totalRows = table.getFilteredRowModel().rows.length;
+            const start = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
+            const end = Math.min((pageIndex + 1) * pageSize, totalRows);
+            const totalPages = table.getPageCount();
+
+            return (
+              <span>
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {start}-{end}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-foreground">
+                  {totalRows}
+                </span>{" "}
+                users • Page{" "}
+                <span className="font-semibold text-foreground">
+                  {pageIndex + 1}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-foreground">
+                  {totalPages}
+                </span>
+              </span>
+            );
+          })()}
+        </div>
+
+        {/* Controls — top on mobile */}
+        <div className="order-1 sm:order-2 flex items-center gap-3 ml-auto">
+          {/* Rows */}
+          <div className="flex items-center gap-1">
+            <span className="inline sm:hidden">Rows:</span>
+            <span className="hidden sm:inline">Rows per page:</span>
+
+            <Select
+              value={String(table.getState().pagination.pageSize)}
+              onValueChange={(value) => table.setPageSize(Number(value))}
+            >
+              <SelectTrigger className="h-7 w-[60px] text-xs bg-background/50 dark:bg-background/20 rounded-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 20, 50].map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Go to */}
+          <div className="flex items-center gap-1">
+            <span className="inline sm:hidden">Go:</span>
+            <span className="hidden sm:inline">Go to:</span>
+
+            <Input
+              type="number"
+              min={1}
+              max={table.getPageCount()}
+              value={table.getState().pagination.pageIndex + 1}
+              onChange={(e) => {
+                const page = e.target.value ? Number(e.target.value) - 1 : 0;
+                table.setPageIndex(page);
+              }}
+              className="h-7 w-12 text-center text-xs bg-background/50 dark:bg-background/20 rounded-md"
+            />
+          </div>
+
+          {/* Prev / Next */}
+          <div className="flex items-center rounded-md overflow-hidden border bg-background/60 dark:bg-background/30">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-3 rounded-none border-r"
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
+            >
+              Prev
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-3 rounded-none"
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Table */}
       <div className="rounded-md border border-border bg-card text-card-foreground">
         <Table>
@@ -406,31 +517,43 @@ function DataTable({ columns, data, searchColumn = "username" }) {
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-center py-6 text-muted-foreground"
-                >
-                  No users found.
-                </TableCell>
-              </TableRow>
+         <TableBody>
+  {loading ? (
+    // ---------- SKELETON PLACEHOLDERS ----------
+    [...Array(8)].map((_ , i) => (
+      <TableRow key={i} className="animate-pulse">
+        {columns.map((_, ci) => (
+          <TableCell key={ci}>
+            <Skeleton className="h-6 w-full rounded-md" />
+          </TableCell>
+        ))}
+      </TableRow>
+    ))
+  ) : table.getRowModel().rows?.length ? (
+    table.getRowModel().rows.map((row) => (
+      <TableRow key={row.id}>
+        {row.getVisibleCells().map((cell) => (
+          <TableCell key={cell.id}>
+            {flexRender(
+              cell.column.columnDef.cell,
+              cell.getContext()
             )}
-          </TableBody>
+          </TableCell>
+        ))}
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell
+        colSpan={columns.length}
+        className="text-center py-6 text-muted-foreground"
+      >
+        No users found.
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
+
         </Table>
       </div>
 

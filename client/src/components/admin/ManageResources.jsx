@@ -67,6 +67,7 @@ import { Label } from "../ui/label";
 import ConfirmDialog from "../common/ConfirmDialog";
 import useAuth from "@/hooks/useAuth";
 import StatusBadge from "../common/StatusBadge";
+import { Skeleton } from "../ui/skeleton";
 
 function ResourceActions({ id, name, type, department, location }) {
   const { user } = useAuth();
@@ -388,24 +389,33 @@ export default function ResourceManager() {
     {
       accessorKey: "maxBookingDuration",
       header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="flex items-center gap-2 font-semibold text-foreground"
-        >
-          <Clock className="w-4 h-4" />
-          Duration (h)
-          {column.getIsSorted() === "asc" ? (
-            <ArrowUp className="w-4 h-4" />
-          ) : column.getIsSorted() === "desc" ? (
-            <ArrowDown className="w-4 h-4" />
-          ) : (
-            <ArrowUpDown className="w-4 h-4 opacity-40" />
-          )}
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  column.toggleSorting(column.getIsSorted() === "asc")
+                }
+                className="flex items-center gap-2 font-semibold text-foreground"
+              >
+                <Clock className="w-4 h-4" />
+                {column.getIsSorted() === "asc" ? (
+                  <ArrowUp className="w-4 h-4" />
+                ) : column.getIsSorted() === "desc" ? (
+                  <ArrowDown className="w-4 h-4" />
+                ) : (
+                  <ArrowUpDown className="w-4 h-4 opacity-40" />
+                )}
+              </Button>
+            </TooltipTrigger>
+
+            <TooltipContent>Duration (h)</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       ),
       cell: ({ row }) => (
-        <div className="text-center text-muted-foreground">
+        <div className="pl-3.5 text-muted-foreground">
           {row.original.maxBookingDuration
             ? `${row.original.maxBookingDuration}h`
             : "—"}
@@ -437,21 +447,26 @@ export default function ResourceManager() {
         subtitle="Add, update, and monitor shared NITC assets in real time."
       >
         <Button
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+          className="flex items-center self-end gap-2 bg-orange-500 hover:bg-orange-600 text-white"
           onClick={() => navigate("/admin/resources/add")}
         >
           <Plus className="w-4 h-4" /> Add Resource
         </Button>
       </PageTitle>
 
-      <DataTable columns={columns} data={resources} searchColumn="name" />
+      <DataTable
+        columns={columns}
+        data={resources}
+        searchColumn="name"
+        loading={loading}
+      />
     </div>
   );
 }
 
 /* -------------------- DataTable -------------------- */
 
-function DataTable({ columns, data, searchColumn = "name" }) {
+function DataTable({ columns, data, searchColumn = "name", loading }) {
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
   const [open, setOpen] = useState(false);
@@ -478,8 +493,9 @@ function DataTable({ columns, data, searchColumn = "name" }) {
 
   return (
     <div>
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
+      {/* ------------------ Toolbar (Search + Filters) ------------------ */}
+      <div className="flex flex-row flex-nowrap sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
+        {/* Search */}
         <div className="flex items-center gap-2 w-full relative">
           <Search className="w-4 h-4 absolute left-3 text-muted-foreground" />
           <Input
@@ -492,10 +508,15 @@ function DataTable({ columns, data, searchColumn = "name" }) {
           />
         </div>
 
+        {/* Filter Button */}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Filter className="w-4 h-4" /> Filters
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 shrink-0"
+            >
+              <Filter className="w-4 h-4" />
+              <span className="hidden sm:inline">Filters</span>
             </Button>
           </PopoverTrigger>
 
@@ -577,7 +598,116 @@ function DataTable({ columns, data, searchColumn = "name" }) {
         </Popover>
       </div>
 
-      {/* Table */}
+      {/* ------------------ TOP Pagination Bar ------------------ */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2 text-xs text-muted-foreground">
+        {/* Page Summary - bottom on mobile */}
+        <div className="order-2 sm:order-1 w-full sm:w-auto text-xs text-muted-foreground">
+          {(() => {
+            const pageSize = table.getState().pagination.pageSize;
+            const pageIndex = table.getState().pagination.pageIndex;
+            const totalRows = table.getFilteredRowModel().rows.length;
+            const start = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
+            const end = Math.min((pageIndex + 1) * pageSize, totalRows);
+            const totalPages = table.getPageCount();
+
+            return (
+              <span>
+                Showing{" "}
+                <span className="font-semibold text-foreground">
+                  {start}-{end}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-foreground">
+                  {totalRows}
+                </span>{" "}
+                • Page{" "}
+                <span className="font-semibold text-foreground">
+                  {pageIndex + 1}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-foreground">
+                  {totalPages}
+                </span>
+              </span>
+            );
+          })()}
+        </div>
+
+        {/* Controls - top on mobile */}
+        <div className="order-1 sm:order-2 flex items-center gap-3 ml-auto">
+          {/* Rows per page */}
+          <div className="flex items-center gap-1">
+            {/* Mobile label */}
+            <span className="inline sm:hidden">Rows:</span>
+
+            {/* Desktop label */}
+            <span className="hidden sm:inline">Rows per page:</span>
+
+            <Select
+              value={String(table.getState().pagination.pageSize)}
+              onValueChange={(value) => table.setPageSize(Number(value))}
+            >
+              <SelectTrigger className="h-7 w-[60px] text-xs bg-background/50 dark:bg-background/20 rounded-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 20, 50].map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Go to page */}
+          <div className="flex items-center gap-1">
+            {/* Mobile label */}
+            <span className="inline sm:hidden">Go:</span>
+
+            {/* Desktop label */}
+            <span className="hidden sm:inline">Go to:</span>
+
+            <Input
+              type="number"
+              min={1}
+              max={table.getPageCount()}
+              value={table.getState().pagination.pageIndex + 1}
+              onChange={(e) => {
+                const page = e.target.value ? Number(e.target.value) - 1 : 0;
+                table.setPageIndex(page);
+              }}
+              className="h-7 w-12 text-center text-xs bg-background/50 dark:bg-background/20 rounded-md"
+            />
+          </div>
+
+          {/* Prev / Next */}
+          {/* Right: Segmented Prev/Next */}
+          <div className="flex items-center rounded-md overflow-hidden border bg-background/60 dark:bg-background/30">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-3 rounded-none border-r"
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
+            >
+              Prev
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-3 rounded-none"
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ------------------ TABLE ------------------ */}
       <div className="rounded-md border border-border bg-card text-card-foreground">
         <Table>
           <TableHeader>
@@ -591,8 +721,20 @@ function DataTable({ columns, data, searchColumn = "name" }) {
               </TableRow>
             ))}
           </TableHeader>
+
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              // ---------- SKELETON ROWS ----------
+              [...Array(8)].map((_, i) => (
+                <TableRow key={i} className="animate-pulse">
+                  {columns.map((col, ci) => (
+                    <TableCell key={ci}>
+                      <Skeleton className="h-6 w-full rounded-md" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
@@ -619,94 +761,24 @@ function DataTable({ columns, data, searchColumn = "name" }) {
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 border-t mt-4">
-        <div className="text-sm text-gray-600">
-          {(() => {
-            const pageSize = table.getState().pagination.pageSize;
-            const pageIndex = table.getState().pagination.pageIndex;
-            const totalRows = table.getFilteredRowModel().rows.length;
-            const start = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
-            const end = Math.min((pageIndex + 1) * pageSize, totalRows);
-            const totalPages = table.getPageCount();
-
-            return (
-              <span>
-                Showing{" "}
-                <span className="font-semibold text-gray-900">
-                  {start}-{end}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-gray-900">{totalRows}</span>{" "}
-                resources • Page{" "}
-                <span className="font-semibold text-gray-900">
-                  {pageIndex + 1}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-gray-900">
-                  {totalPages}
-                </span>
-              </span>
-            );
-          })()}
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600">Rows per page:</span>
-            <Select
-              value={String(table.getState().pagination.pageSize)}
-              onValueChange={(value) => table.setPageSize(Number(value))}
-            >
-              <SelectTrigger className="h-8 w-[80px] text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[10, 20, 50].map((size) => (
-                  <SelectItem key={size} value={String(size)}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-600">Go to:</span>
-            <Input
-              type="number"
-              min={1}
-              max={table.getPageCount()}
-              value={table.getState().pagination.pageIndex + 1}
-              onChange={(e) => {
-                const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                table.setPageIndex(page);
-              }}
-              className="h-8 w-[70px] text-center"
-            />
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              disabled={!table.getCanPreviousPage()}
-              onClick={() => table.previousPage()}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8"
-              disabled={!table.getCanNextPage()}
-              onClick={() => table.nextPage()}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+      {/* ------------------ BOTTOM Pagination (simple) ------------------ */}
+      <div className="flex justify-end gap-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!table.getCanPreviousPage()}
+          onClick={() => table.previousPage()}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!table.getCanNextPage()}
+          onClick={() => table.nextPage()}
+        >
+          Next
+        </Button>
       </div>
     </div>
   );

@@ -39,6 +39,7 @@ import {
 } from "@/utils/dateUtils";
 import { Separator } from "../ui/separator";
 import PageTitle from "../common/PageTitle";
+import { useMediaQuery } from "@react-hookz/web";
 
 const VIEW_START_HOUR = 8;
 const VIEW_END_HOUR = 22;
@@ -82,13 +83,15 @@ const BOOKING_STATUS = {
   },
 };
 
-const firstColPx = 80;
-const otherColPx = 100;
-
 export default function UserSchedule() {
   const [scheduleData, setScheduleData] = useState(null);
   const [error, setError] = useState("");
   const abortRef = useRef(null);
+
+  const isMobile = useMediaQuery("(max-width: 640px)");
+
+  const firstColPx = isMobile ? 55 : 80;
+  const otherColPx = 100;
 
   const [filters, setFilters] = useState({
     pending: true,
@@ -154,12 +157,109 @@ export default function UserSchedule() {
     );
   }
 
-  if (!scheduleData) return null;
+  if (!scheduleData) {
+    return (
+      <div className="w-full mx-auto space-y-4">
+        {/* Page Title Skeleton */}
+        <PageTitle
+          title="Schedule Calendar"
+          subtitle="View your upcoming bookings schedule"
+        />
+        {/* Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4  animate-pulse">
+          {/* Schedule Skeleton */}
+          <div className="lg:col-span-8 xl:col-span-8">
+            <div className="border rounded-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <div style={{ width: "max-content" }}>
+                  {/* Header Row */}
+                  <div
+                    className="grid bg-muted/40"
+                    style={{
+                      gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
+                    }}
+                  >
+                    <div
+                      className="px-3 py-2 border-r border-b bg-muted"
+                      style={{ width: firstColPx }}
+                    >
+                      <div className="h-3 w-10 bg-muted-foreground/20 rounded"></div>
+                    </div>
+
+                    {Array.from({ length: 14 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="px-3 py-2 border-b"
+                        style={{ width: otherColPx }}
+                      >
+                        <div className="h-3 w-12 bg-muted-foreground/20 rounded mx-auto"></div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Time Rows */}
+                  {Array.from({ length: 10 }).map((_, row) => (
+                    <div
+                      key={row}
+                      className="grid"
+                      style={{
+                        gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
+                      }}
+                    >
+                      {/* Time Label */}
+                      <div
+                        className="px-3 py-2 border-r border-b bg-background"
+                        style={{ width: firstColPx }}
+                      >
+                        <div className="h-3 w-8 bg-muted-foreground/20 rounded"></div>
+                      </div>
+
+                      {/* Cells */}
+                      {Array.from({ length: 14 }).map((_, col) => (
+                        <div
+                          key={col}
+                          className="h-9 border bg-muted-foreground/10 dark:bg-muted-foreground/20"
+                          style={{ width: otherColPx }}
+                        ></div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Agenda Skeleton */}
+          <aside className="lg:col-span-4 xl:col-span-4">
+            <div className="border rounded-md p-4 space-y-3">
+              <div className="h-4 w-32 bg-muted-foreground/20 rounded"></div>
+
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="border rounded p-3 space-y-2 bg-muted/10 dark:bg-muted-foreground/10"
+                >
+                  <div className="h-3 w-32 bg-muted-foreground/20 rounded"></div>
+                  <div className="h-3 w-48 bg-muted-foreground/20 rounded"></div>
+                  <div className="h-3 w-24 bg-muted-foreground/20 rounded"></div>
+
+                  <div className="flex justify-end gap-2">
+                    <div className="h-3 w-20 bg-muted-foreground/20 rounded"></div>
+                    <div className="h-3 w-16 bg-muted-foreground/20 rounded"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full mx-auto space-y-4">
       <PageTitle
-        title="Calendar"
+        title="Schedule Calendar"
         subtitle="View your upcoming bookings schedule"
       >
         <Popover>

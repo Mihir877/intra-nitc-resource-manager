@@ -3,7 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, User, Clock, CheckCircle, XCircle } from "lucide-react";
+import {
+  Search,
+  User,
+  Clock,
+  CheckCircle,
+  XCircle,
+  MapPin,
+} from "lucide-react";
 import api from "@/api/axios";
 import PageTitle from "../common/PageTitle";
 import useAuth from "@/hooks/useAuth";
@@ -13,10 +20,9 @@ import DashboardStats from "../common/DashboardStats";
 import { StatusFilter } from "../common/StatusFilter";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "../ui/separator";
 
-/* -------------------------------------------------------------------------- */
-/*                               Helper functions                             */
-/* -------------------------------------------------------------------------- */
 const fmtDateTime = (iso) => format(new Date(iso), "dd MMM yyyy, HH:mm");
 
 const STATUS_LABEL = {
@@ -26,35 +32,27 @@ const STATUS_LABEL = {
   rejected: "Rejected",
 };
 
-/* -------------------------------------------------------------------------- */
-/*                            Pending Requests Page                           */
-/* -------------------------------------------------------------------------- */
 export default function PendingRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [dialog, setDialog] = useState({
+  const [actionLoading, setActionLoading] = useState(null);
+  const [rejectDialog, setRejectDialog] = useState({
     open: false,
     requestId: null,
-    action: "",
+    remark: "",
+    loading: false,
   });
-  const [remark, setRemark] = useState("");
-  const [dialogLoading, setDialogLoading] = useState(false);
+
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
 
-  /* ---------------------------- Fetch Data ---------------------------- */
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get("/requests/pending");
-      const data = res.data.data || [];
-      setRequests(data);
-    } catch (err) {
-      console.error("Error fetching requests:", err);
+      setRequests(res.data.data || []);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
@@ -62,7 +60,6 @@ export default function PendingRequests() {
     fetchRequests();
   }, [fetchRequests]);
 
-  /* ---------------------------- Stats for dashboard ---------------------------- */
   const stats = useMemo(() => {
     const base = { all: requests.length, pending: 0, approved: 0, rejected: 0 };
     for (const r of requests) {
@@ -90,7 +87,6 @@ export default function PendingRequests() {
     },
   ];
 
-  /* ---------------------------- Search & Filter ---------------------------- */
   const searched = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return requests;
@@ -114,29 +110,92 @@ export default function PendingRequests() {
       : searched.filter((r) => r.status?.toLowerCase() === statusFilter);
   }, [searched, statusFilter]);
 
-  /* ---------------------------- Approve / Reject ---------------------------- */
-  const handleDecision = async (id, nextStatus, remark = "") => {
+  const refreshList = async () => {
     try {
-      setDialogLoading(true);
-      const endpoint =
-        nextStatus === "approved"
-          ? `/requests/${id}/approve`
-          : `/requests/${id}/reject`;
+      const res = await api.get("/requests/pending");
+      setRequests(res.data.data || []);
+    } catch {}
+  };
 
-      await api.patch(endpoint, { remark });
-      await fetchRequests();
-      setDialog({ open: false, requestId: null, action: "" });
-      setRemark("");
-    } catch (err) {
-      console.error(`Failed to ${nextStatus} request ${id}`, err);
+  const approveRequest = async (id) => {
+    try {
+      setActionLoading(id);
+      await api.patch(`/requests/${id}/approve`, { remark: "" });
+      await refreshList();
     } finally {
-      setDialogLoading(false);
+      setActionLoading(null);
     }
   };
 
-  const handleOpenDialog = (id, action) => {
-    setDialog({ open: true, requestId: id, action });
+  const openRejectDialog = (id) => {
+    setRejectDialog({ open: true, requestId: id, remark: "", loading: false });
   };
+
+  const submitRejection = async () => {
+    const { requestId, remark } = rejectDialog;
+    if (!remark.trim()) return;
+
+    try {
+      setRejectDialog((p) => ({ ...p, loading: true }));
+      await api.patch(`/requests/${requestId}/reject`, { remark });
+      setRejectDialog({
+        open: false,
+        requestId: null,
+        remark: "",
+        loading: false,
+      });
+      await refreshList();
+    } finally {
+      setRejectDialog((p) => ({ ...p, loading: false }));
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <PageTitle
+          title="Pending Requests"
+          subtitle="Review and manage resource allocation requests"
+        />
+
+        <div className="hidden sm:grid grid-cols-3 gap-4 mb-4 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="border border-border bg-card p-4">
+              <Skeleton className="h-4 w-28 mb-2" />
+              <Skeleton className="h-7 w-10" />
+            </Card>
+          ))}
+        </div>
+
+        <div className="sm:hidden p-3 bg-card border rounded-lg space-y-2 animate-pulse mb-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex justify-between">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-10" />
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 mb-4 animate-pulse">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+
+        <div className="flex flex-col gap-6 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="border border-border bg-card">
+              <CardContent className="p-6 space-y-4">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -145,18 +204,16 @@ export default function PendingRequests() {
         subtitle="Review and manage resource allocation requests"
       />
 
-      {/* Dashboard summary */}
       <DashboardStats stats={dashboardStats} layout="responsive" />
 
-      {/* Search + Filter Row */}
       <div className="mb-4 flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by resource, status, or purpose..."
-            className={cn("pl-9 placeholder:text-muted-foreground/80")}
+            placeholder="Search by resource, status or purpose..."
+            className={cn("pl-9")}
           />
         </div>
 
@@ -169,16 +226,15 @@ export default function PendingRequests() {
         />
       </div>
 
-      {/* Requests List */}
-      {loading ? (
-        <p className="text-muted-foreground text-sm">Loading requests...</p>
-      ) : filtered.length > 0 ? (
+      {filtered.length > 0 ? (
         <div className="flex flex-col gap-6">
           {filtered.map((req) => (
             <RequestCard
               key={req._id}
               request={req}
-              onDecision={handleOpenDialog}
+              approveRequest={approveRequest}
+              openRejectDialog={openRejectDialog}
+              actionLoading={actionLoading}
             />
           ))}
         </div>
@@ -188,39 +244,24 @@ export default function PendingRequests() {
         </p>
       )}
 
-      {refreshing && (
-        <p className="text-xs text-primary mt-4 italic animate-pulse">
-          Updating request list...
-        </p>
-      )}
-
-      {/* Confirm Dialog */}
       <ConfirmDialog
-        open={dialog.open}
-        onOpenChange={(v) => setDialog({ ...dialog, open: v })}
-        title={
-          dialog.action === "approved" ? "Approve Request" : "Reject Request"
-        }
-        description={
-          dialog.action === "approved"
-            ? "Are you sure you want to approve this booking request?"
-            : "Please confirm rejection and optionally add a remark."
-        }
-        onConfirm={() =>
-          handleDecision(dialog.requestId, dialog.action, remark)
-        }
-        loading={dialogLoading}
-        confirmText={dialog.action === "approved" ? "Approve" : "Reject"}
-        variant={dialog.action === "approved" ? "default" : "destructive"}
+        open={rejectDialog.open}
+        onOpenChange={(v) => setRejectDialog((p) => ({ ...p, open: v }))}
+        title="Reject Request"
+        description="Provide a remark before rejecting this request."
+        onConfirm={submitRejection}
+        loading={rejectDialog.loading}
+        confirmText="Reject"
+        variant="destructive"
       >
-        {dialog.action === "rejected" && (
-          <textarea
-            value={remark}
-            onChange={(e) => setRemark(e.target.value)}
-            placeholder="Add remarks for rejection (optional)"
-            className="w-full mt-3 p-2 border rounded-md text-sm bg-background"
-          />
-        )}
+        <textarea
+          value={rejectDialog.remark}
+          onChange={(e) =>
+            setRejectDialog((p) => ({ ...p, remark: e.target.value }))
+          }
+          placeholder="Enter rejection remark..."
+          className="w-full mt-3 p-2 border rounded-md text-sm bg-background"
+        />
       </ConfirmDialog>
     </div>
   );
@@ -229,39 +270,68 @@ export default function PendingRequests() {
 /* -------------------------------------------------------------------------- */
 /*                               Request Card                                 */
 /* -------------------------------------------------------------------------- */
-function RequestCard({ request, onDecision }) {
+
+function RequestCard({
+  request,
+  approveRequest,
+  openRejectDialog,
+  actionLoading,
+}) {
   const { user } = useAuth();
   const isDeptAdmin =
     user?.role === "admin" &&
     user?.department === request?.resourceId?.department;
 
   return (
-    <Card className="bg-card text-card-foreground">
+    <Card className="bg-card text-card-foreground border">
       <CardContent className="p-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 w-full">
-            <h2 className="text-lg font-semibold whitespace-nowrap">
-              {request.resourceId?.name}
+            <h2 className="text-lg font-semibold text-foreground whitespace-nowrap">
+              {request.resourceId?.name || "Resource"}
             </h2>
 
             <div className="flex justify-between items-center w-full mt-1 sm:mt-0">
               <div className="flex gap-2">
-                <Badge variant="outline" className="text-xs font-medium">
-                  {request.resourceId?.type}
+                <Badge
+                  variant="outline"
+                  className="text-xs font-medium capitalize bg-background border-border text-muted-foreground"
+                >
+                  {request.resourceId?.type || "resource"}
                 </Badge>
-                <Badge variant="secondary" className="text-xs">
-                  {request.resourceId?.department}
+
+                <Badge variant="secondary" className="text-xs capitalize">
+                  {request.resourceId?.department || "Dept"}
                 </Badge>
               </div>
 
-              <StatusBadge status={request.status} />
+              <div className="flex items-center">
+                <StatusBadge status={request.status} />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Requester Info */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4 mb-4">
+        {/* Location + Request date */}
+        <div className="flex flex-col sm:flex-row sm:justify-between mt-1 text-xs text-muted-foreground">
+          {request.resourceId?.location ? (
+            <div className="flex items-center">
+              <MapPin className="inline h-3 w-3 mr-1 mt-px" />
+              <span>{request.resourceId.location}</span>
+            </div>
+          ) : (
+            <span />
+          )}
+          <span className="mt-1 sm:mt-0">
+            Request Date:{" "}
+            {format(new Date(request.createdAt), "dd-MM-yyyy HH:mm")}
+          </span>
+        </div>
+
+        <Separator className="my-3 border-border" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4">
           <div className="flex items-start gap-2">
             <User className="w-5 h-5 text-muted-foreground mt-1" />
             <div>
@@ -295,7 +365,6 @@ function RequestCard({ request, onDecision }) {
           </div>
         </div>
 
-        {/* Purpose */}
         <div className="mb-5">
           <p className="text-sm text-muted-foreground font-medium mb-1.5">
             Purpose
@@ -305,40 +374,42 @@ function RequestCard({ request, onDecision }) {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        {request?.status === "pending" && (
-          <div className="flex flex-col sm:flex-row gap-3">
+        {/* Approve / Reject */}
+        {request.status === "pending" && (
+          <div className="flex gap-3">
             <Button
-              disabled={!isDeptAdmin}
+              disabled={!isDeptAdmin || actionLoading === request._id}
               variant="outline"
-              className={`flex-1 ${
+              className={cn(
+                "flex-1",
                 isDeptAdmin
                   ? "bg-primary/10 text-primary hover:bg-primary/20"
                   : "opacity-50 cursor-not-allowed"
-              }`}
-              onClick={() => isDeptAdmin && onDecision(request._id, "approved")}
+              )}
+              onClick={() => isDeptAdmin && approveRequest(request._id)}
             >
-              ✓ Approve
+              {actionLoading === request._id ? "Approving..." : "✓ Approve"}
             </Button>
+
             <Button
               disabled={!isDeptAdmin}
               variant="outline"
-              className={`flex-1 ${
+              className={cn(
+                "flex-1",
                 isDeptAdmin
                   ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
                   : "opacity-50 cursor-not-allowed"
-              }`}
-              onClick={() => isDeptAdmin && onDecision(request._id, "rejected")}
+              )}
+              onClick={() => isDeptAdmin && openRejectDialog(request._id)}
             >
               ✗ Reject
             </Button>
           </div>
         )}
 
-        {!isDeptAdmin && request?.status === "pending" && (
+        {!isDeptAdmin && request.status === "pending" && (
           <p className="text-xs text-muted-foreground mt-2 italic">
-            You can view this request but cannot approve/reject — it belongs to
-            another department.
+            You cannot approve/reject — different department.
           </p>
         )}
       </CardContent>

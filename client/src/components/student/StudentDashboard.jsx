@@ -7,6 +7,7 @@ import PageTitle from "../common/PageTitle";
 import DashboardStats from "../common/DashboardStats";
 import { Server, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import StatusBadge from "@/components/common/StatusBadge"; // import your reusable badge
+import { Separator } from "../ui/separator";
 
 const hoverRow =
   "flex items-center justify-between border-b border-border last:border-b-0 py-3 px-2 -mx-2  cursor-pointer hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
@@ -59,6 +60,98 @@ const StudentDashboard = () => {
     () => approvedRequests.slice(0, MAX_ITEMS),
     [approvedRequests]
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex bg-background text-foreground">
+        <main className="flex-1">
+          <PageTitle
+            title="Dashboard"
+            subtitle="Overview of your resource usage and requests"
+          />
+
+          {/* 🌟 Dashboard Stats Skeleton */}
+          <div className="hidden sm:grid grid-cols-4 gap-4 mb-5 animate-pulse">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="border border-border bg-card">
+                <CardHeader className="pb-2">
+                  <div className="h-4 w-28 bg-muted rounded mb-2"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-7 w-16 bg-muted rounded mb-2"></div>
+                  <div className="h-3 w-24 bg-muted rounded"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Mobile Stats Skeleton */}
+          <div className="sm:hidden space-y-2 mb-5 p-3 rounded-lg shadow border border-border bg-card animate-pulse">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <React.Fragment key={i}>
+                <div className="flex justify-between items-center">
+                  <div className="h-4 w-32 bg-muted rounded"></div>
+                  <div className="h-4 w-10 bg-muted rounded"></div>
+                </div>
+                {i !== 3 && <Separator className="my-1.5 bg-border" />}
+              </React.Fragment>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 🌟 Recent Requests Skeleton */}
+            <Card className="border border-border bg-card">
+              <CardHeader className="border-b border-border p-3 sm:px-6">
+                <CardTitle className="h-5 w-40 bg-muted rounded"></CardTitle>
+                <div className="h-4 w-60 bg-muted rounded mt-2"></div>
+              </CardHeader>
+
+              <CardContent className="px-3 sm:px-6 py-4 space-y-4 animate-pulse">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex justify-between items-center py-3 border-b border-border last:border-none"
+                  >
+                    <div className="space-y-2">
+                      <div className="h-4 w-40 bg-muted rounded"></div>
+                      <div className="h-3 w-28 bg-muted rounded"></div>
+                    </div>
+                    <div className="h-5 w-14 bg-muted rounded"></div>
+                  </div>
+                ))}
+
+                <div className="h-10 w-full bg-muted rounded"></div>
+              </CardContent>
+            </Card>
+
+            {/* 🌟 Upcoming Bookings Skeleton */}
+            <Card className="border border-border bg-card">
+              <CardHeader className="border-b border-border p-3 sm:px-6">
+                <CardTitle className="h-5 w-48 bg-muted rounded"></CardTitle>
+                <div className="h-4 w-44 bg-muted rounded mt-2"></div>
+              </CardHeader>
+
+              <CardContent className="px-3 sm:px-6 py-4 space-y-4 animate-pulse">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex justify-between items-center py-3 border-b border-border last:border-none"
+                  >
+                    <div className="space-y-2">
+                      <div className="h-4 w-40 bg-muted rounded"></div>
+                      <div className="h-3 w-32 bg-muted rounded"></div>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="h-10 w-full bg-muted rounded"></div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">

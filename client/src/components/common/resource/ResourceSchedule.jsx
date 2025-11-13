@@ -205,7 +205,80 @@ const ResourceSchedule = ({ resourceId }) => {
       </div>
     );
   }
-  if (!scheduleData) return null;
+  if (!scheduleData) {
+    return (
+      <div className="w-full max-w-5xl mx-auto space-y-4 animate-pulse">
+        {/* Top bar skeleton */}
+        <div className="flex items-center justify-between px-4 py-3 bg-muted rounded-md">
+          <div className="h-4 w-48 bg-muted-foreground/20 rounded"></div>
+          <div className="flex gap-2">
+            <div className="h-8 w-16 bg-muted-foreground/20 rounded"></div>
+            <div className="h-8 w-28 bg-muted-foreground/20 rounded"></div>
+          </div>
+        </div>
+
+        {/* Grid skeleton */}
+        <div className="border border-border rounded-md overflow-hidden bg-card">
+          <div className="overflow-x-auto scrollbar-thin">
+            <div className="min-w-max">
+              {/* Header row skeleton */}
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
+                }}
+              >
+                <div
+                  className="sticky left-0 top-0 bg-muted px-3 py-3 border-b border-r"
+                  style={{ width: firstColPx }}
+                >
+                  <div className="h-3 w-10 bg-muted-foreground/20 rounded"></div>
+                </div>
+
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="px-3 py-3 border-b bg-muted/40 text-center"
+                    style={{ width: otherColPx }}
+                  >
+                    <div className="h-3 w-12 bg-muted-foreground/20 rounded mx-auto"></div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Time row skeletons */}
+              {Array.from({ length: 10 }).map((_, row) => (
+                <div
+                  key={row}
+                  className="grid"
+                  style={{
+                    gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
+                  }}
+                >
+                  {/* Time label */}
+                  <div
+                    className="sticky left-0 bg-background px-3 py-2 border-b border-r"
+                    style={{ width: firstColPx }}
+                  >
+                    <div className="h-3 w-8 bg-muted-foreground/20 rounded"></div>
+                  </div>
+
+                  {/* Cells */}
+                  {Array.from({ length: 14 }).map((_, col) => (
+                    <div
+                      key={col}
+                      className="h-9 border bg-muted-foreground/10 dark:bg-muted-foreground/20"
+                      style={{ width: otherColPx }}
+                    ></div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const schedule = scheduleData.schedule || {};
   const { actualStart, actualEnd } = getActualStartEnd();

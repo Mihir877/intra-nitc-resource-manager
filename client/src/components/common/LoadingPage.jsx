@@ -1,24 +1,26 @@
 import React from "react";
-import { Loader2 } from "lucide-react";
+import { Grid, ThreeDots } from "react-loader-spinner";
 
-const LoadingPage = ({
-  message = "Loading...",
-  fullScreen = true,
-  compact = false,
-}) => {
+const LoadingPage = ({ message = "Loading...", fullScreen = false }) => {
   const containerClass = fullScreen
-    ? "min-h-120 flex flex-col items-center justify-center"
-    : "flex flex-col items-center justify-center py-10";
-
-  const sizeClass = compact ? "w-5 h-5" : "w-8 h-8";
+    ? "h-screen flex flex-col items-center justify-center"
+    : "min-h-[calc(100vh-64px)] flex flex-col items-center justify-center";
 
   return (
-    <div className={`${containerClass} text-muted-foreground  `}>
-      <Loader2
-        className={`${sizeClass} animate-spin text-foreground mb-3`}
-        strokeWidth={2}
+    <div className={`${containerClass} text-muted-foreground`}>
+      <ThreeDots
+        visible={true}
+        height="80"
+        width="80"
+        color="hsl(var(--primary))"
+        radius="9"
+        ariaLabel="three-dots-loading"
+        wrapperStyle={{}}
+        wrapperClass=""
       />
-      <p className="text-sm text-muted-foreground font-medium">{message}</p>
+      <p className="text-sm text-muted-foreground font-medium mt-4">
+        {message}
+      </p>
     </div>
   );
 };

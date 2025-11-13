@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import PageTitle from "../common/PageTitle";
-import LoadingPage from "../common/LoadingPage";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -95,18 +95,87 @@ export default function AdminDashboard() {
     }
   }
 
-  if (loading) return <LoadingPage />;
-  if (!stats || !stats.success)
+  if (loading) {
     return (
-      <div className="p-8 text-muted-foreground">Failed to load dashboard</div>
-    );
+      <div className="min-h-screen flex bg-background text-foreground">
+        <main className="flex-1 flex flex-col space-y-4">
+          <PageTitle
+            title="Admin Dashboard"
+            subtitle="Resource management and system overview"
+          />
 
-  const d = stats.stats;
-  const pendingList = stats.pendingRequests ?? [];
-  const activityList = stats.recentActivity ?? [];
+          {/* Stats Skeleton */}
+          <div className="hidden sm:grid grid-cols-4 gap-4 mb-5 animate-pulse">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="border border-border bg-card">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-28 mb-2" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-7 w-16 mb-2" />
+                  <Skeleton className="h-3 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Mobile Stats */}
+          <div className="sm:hidden space-y-2 mb-5 p-3 rounded-lg shadow border border-border bg-card animate-pulse">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex justify-between items-center">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-10" />
+              </div>
+            ))}
+          </div>
+
+          {/* Pending + Activity Skeleton Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Pending Requests Skeleton */}
+            <Card className="border border-border bg-card">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-40 mb-2" />
+                <Skeleton className="h-4 w-52" />
+              </CardHeader>
+              <CardContent className="space-y-4 animate-pulse">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="py-3 border-b border-border">
+                    <Skeleton className="h-4 w-40 mb-2" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
+                ))}
+                <Skeleton className="h-10 w-36" />
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card className="border border-border bg-card">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-36 mb-2" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent className="space-y-3 animate-pulse">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="rounded-md p-3 border border-border">
+                    <Skeleton className="h-4 w-40 mb-2" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Null-safe access after loading
+  const d = stats?.stats || {};
+  const pendingList = stats?.pendingRequests || [];
+  const activityList = stats?.recentActivity || [];
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground ">
+    <div className="min-h-screen flex bg-background text-foreground">
       <main className="flex-1 flex flex-col space-y-4">
         <PageTitle
           title="Admin Dashboard"
@@ -169,28 +238,31 @@ export default function AdminDashboard() {
                 Requests awaiting your approval (FIFO)
               </p>
             </CardHeader>
+
             <CardContent>
-              {pendingList.length === 0 && (
+              {pendingList.length === 0 ? (
                 <div className="text-muted-foreground py-2">
                   No pending requests.
                 </div>
+              ) : (
+                pendingList.map((req, i) => (
+                  <PendingRequest
+                    key={req._id || i}
+                    id={req._id}
+                    name={req.userId?.username || "Unknown"}
+                    resource={req.resourceId?.name || ""}
+                    date={req.startTime?.slice(0, 10)}
+                    duration={req.duration ? `${req.duration}h` : ""}
+                    onApprove={() => handleApprove(req._id)}
+                    onReject={() => {
+                      setSelectedId(req._id);
+                      setRejectModal(true);
+                    }}
+                    loading={refreshing}
+                  />
+                ))
               )}
-              {pendingList.map((req, i) => (
-                <PendingRequest
-                  key={req._id || i}
-                  id={req._id}
-                  name={req.userId?.username || "Unknown"}
-                  resource={req.resourceId?.name || ""}
-                  date={req.startTime?.slice(0, 10)}
-                  duration={req.duration ? `${req.duration}h` : ""}
-                  onApprove={() => handleApprove(req._id)}
-                  onReject={() => {
-                    setSelectedId(req._id);
-                    setRejectModal(true);
-                  }}
-                  loading={refreshing}
-                />
-              ))}
+
               <Button
                 variant="link"
                 className="px-0 mt-2 text-primary hover:underline"
@@ -211,6 +283,7 @@ export default function AdminDashboard() {
                 Latest system activity
               </p>
             </CardHeader>
+
             <CardContent>
               {activityList.map((act, i) => (
                 <ActivityItem
@@ -308,10 +381,7 @@ function PendingRequest({
         </div>
       </div>
 
-      <div
-        className="flex gap-2"
-        onClick={(e) => e.stopPropagation()} // Prevent parent click
-      >
+      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

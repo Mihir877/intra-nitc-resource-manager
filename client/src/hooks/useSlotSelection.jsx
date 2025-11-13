@@ -166,7 +166,7 @@ export const useSlotSelection = (resourceId, noOfDays = 14) => {
 
       if (!startSlot) {
         setStartSlot(slotKey);
-        setEndSlot(null);
+        setEndSlot(slotKey);
         setSelectedSlots(new Set([slotKey]));
         return;
       }

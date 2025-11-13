@@ -6,7 +6,7 @@ import LoadingPage from "./LoadingPage";
 const ProtectedRoute = ({ requiredRole }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <LoadingPage />;
+  if (loading) return <LoadingPage fullScreen />;
 
   if (!user) return <Navigate to="/login" />;
 

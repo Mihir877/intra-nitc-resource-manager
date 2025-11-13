@@ -177,12 +177,97 @@ const Profile = () => {
       setChanging(false);
     }
   };
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6 animate-pulse">
+        <PageTitle title="Profile" subtitle="Manage your profile information" />
+
+        <Card className="mx-auto border border-border bg-card text-card-foreground">
+          {/* Header Skeleton */}
+          <CardHeader className="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-4">
+            {/* Avatar */}
+            <div className="w-20 h-20 rounded-full bg-muted"></div>
+
+            {/* Name + Email */}
+            <div className="flex flex-col items-center sm:items-start gap-2 w-full max-w-xs">
+              <div className="h-6 w-40 bg-muted rounded"></div>
+              <div className="h-4 w-28 bg-muted rounded"></div>
+              <div className="h-4 w-48 bg-muted rounded"></div>
+            </div>
+
+            {/* More button */}
+            <div className="absolute right-4 top-4 h-8 w-8 bg-muted rounded"></div>
+          </CardHeader>
+
+          <Separator />
+
+          <CardContent className="px-4 sm:px-6 py-6 space-y-10">
+            {/* --- Personal Information --- */}
+            <div>
+              <div className="h-5 w-48 bg-muted rounded mb-4"></div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-4 w-24 bg-muted rounded"></div>
+                    <div className="h-10 w-full bg-muted rounded"></div>
+                  </div>
+                ))}
+
+                {/* Department Select */}
+                <div className="space-y-2 sm:col-span-2">
+                  <div className="h-4 w-24 bg-muted rounded"></div>
+                  <div className="h-10 w-full bg-muted rounded"></div>
+                </div>
+
+                {/* Role (read-only) */}
+                <div className="space-y-2">
+                  <div className="h-4 w-24 bg-muted rounded"></div>
+                  <div className="h-10 w-full bg-muted rounded"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* --- Contact Information --- */}
+            <div>
+              <div className="h-5 w-48 bg-muted rounded mb-4"></div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-4 w-24 bg-muted rounded"></div>
+                    <div className="h-10 w-full bg-muted rounded"></div>
+                  </div>
+                ))}
+
+                {/* Address full width */}
+                <div className="space-y-2 sm:col-span-2">
+                  <div className="h-4 w-24 bg-muted rounded"></div>
+                  <div className="h-10 w-full bg-muted rounded"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* --- Account Details --- */}
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <div className="h-5 w-40 bg-muted rounded mb-4"></div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-4 w-32 bg-muted rounded"></div>
+                <div className="h-4 w-32 bg-muted rounded"></div>
+              </div>
+            </div>
+          </CardContent>
+
+          {/* Sticky Save Bar Skeleton */}
+          <div className="p-4 border-t border-border flex justify-end gap-3">
+            <div className="h-10 w-24 bg-muted rounded"></div>
+            <div className="h-10 w-28 bg-muted rounded"></div>
+          </div>
+        </Card>
       </div>
     );
+  }
 
   if (!user)
     return (

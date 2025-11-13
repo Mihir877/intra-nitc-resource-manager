@@ -132,33 +132,35 @@ const LoginPage = () => {
       </div>
 
       {/* Demo Users */}
-      <div className="mt-6 flex items-center justify-center gap-2">
-        <span className="text-sm font-semibold text-muted-foreground">
-          Demo users
-        </span>
+      {import.meta.env.DEV && (
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <span className="text-sm font-semibold text-muted-foreground">
+            Demo users
+          </span>
 
-        <span
-          className="cursor-pointer inline-flex items-center px-3 py-1 rounded-full bg-accent text-accent-foreground font-medium text-sm border border-border hover:bg-accent/80 transition"
-          onClick={() => {
-            if (isSubmitting) return;
-            setEmail("student_m25@nitc.ac.in");
-            setPassword("Student@123");
-          }}
-        >
-          student
-        </span>
+          <span
+            className="cursor-pointer inline-flex items-center px-3 py-1 rounded-full bg-accent text-accent-foreground font-medium text-sm border border-border hover:bg-accent/80 transition"
+            onClick={() => {
+              if (isSubmitting) return;
+              setEmail("student_m25@nitc.ac.in");
+              setPassword("Student@123");
+            }}
+          >
+            student
+          </span>
 
-        <span
-          className="cursor-pointer inline-flex items-center px-3 py-1 rounded-full bg-secondary text-secondary-foreground font-medium text-sm border border-border hover:bg-secondary/80 transition"
-          onClick={() => {
-            if (isSubmitting) return;
-            setEmail("admin_m25@nitc.ac.in");
-            setPassword("Admin@25");
-          }}
-        >
-          admin
-        </span>
-      </div>
+          <span
+            className="cursor-pointer inline-flex items-center px-3 py-1 rounded-full bg-secondary text-secondary-foreground font-medium text-sm border border-border hover:bg-secondary/80 transition"
+            onClick={() => {
+              if (isSubmitting) return;
+              setEmail("admin_m25@nitc.ac.in");
+              setPassword("Admin@25");
+            }}
+          >
+            admin
+          </span>
+        </div>
+      )}
     </div>
   );
 };

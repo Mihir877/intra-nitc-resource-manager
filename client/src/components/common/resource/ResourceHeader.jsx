@@ -45,8 +45,52 @@ const ResourceHeader = ({ resourceId }) => {
 
   if (loading) {
     return (
-      <Card className="p-6 border border-border shadow-sm bg-card text-card-foreground">
-        <div className="text-sm text-muted-foreground">Loading resource...</div>
+      <Card className="border border-border shadow-md overflow-hidden bg-card text-card-foreground p-6 animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
+          <div className="space-y-2">
+            <div className="h-6 w-40 bg-muted rounded"></div>
+            <div className="h-4 w-64 bg-muted rounded"></div>
+          </div>
+          <div className="h-6 w-24 bg-muted rounded"></div>
+        </div>
+
+        {/* Image + Details */}
+        <div className="p-5 flex flex-col sm:flex-row gap-5">
+          {/* Left image skeleton */}
+          <div className="w-full sm:w-52 h-52 bg-muted rounded-xl border border-border"></div>
+
+          {/* Right content skeleton */}
+          <div className="flex-1 flex flex-col gap-4">
+            {/* Badges row */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="h-6 w-20 bg-muted rounded"></div>
+              <div className="h-6 w-20 bg-muted rounded"></div>
+              <div className="h-6 w-24 bg-muted rounded"></div>
+              <div className="h-6 w-16 bg-muted rounded"></div>
+            </div>
+
+            {/* Details line skeletons */}
+            <div className="flex items-center gap-3 text-sm">
+              <div className="h-4 w-32 bg-muted rounded"></div>
+              <Separator orientation="vertical" className="h-4" />
+              <div className="h-4 w-32 bg-muted rounded"></div>
+              <Separator orientation="vertical" className="h-4" />
+              <div className="h-4 w-36 bg-muted rounded"></div>
+            </div>
+
+            {/* Availability skeleton */}
+            <div className="h-28 w-full bg-muted rounded"></div>
+          </div>
+        </div>
+
+        {/* Rules section skeleton */}
+        <div className="bg-muted/40 border-t border-border p-5 space-y-2">
+          <div className="h-4 w-40 bg-muted rounded"></div>
+          <div className="h-3 w-full bg-muted rounded"></div>
+          <div className="h-3 w-4/5 bg-muted rounded"></div>
+          <div className="h-3 w-2/3 bg-muted rounded"></div>
+        </div>
       </Card>
     );
   }
@@ -171,19 +215,18 @@ const ResourceHeader = ({ resourceId }) => {
         </div>
       </CardContent>
 
-      <div className="bg-muted/40 border-t border-border text-sm p-5 text-muted-foreground">
-        <p className="font-medium text-foreground mb-2">Usage Rules:</p>
-        {resource.usageRules?.length > 0 &&
-        resource.usageRules.some((r) => r.trim()) ? (
-          <ul className="list-disc pl-5 space-y-1">
-            {resource.usageRules.map((rule, idx) => (
-              <li key={idx}>{rule}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No specific usage rules defined.</p>
+      {resource.usageRules &&
+        resource.usageRules.length > 0 &&
+        resource.usageRules.some((r) => r.trim()) && (
+          <div className="bg-muted/40 border-t border-border text-sm p-5 text-muted-foreground">
+            <p className="font-medium text-foreground mb-2">Usage Rules:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              {resource.usageRules.map((rule, idx) => (
+                <li key={idx}>{rule}</li>
+              ))}
+            </ul>
+          </div>
         )}
-      </div>
     </Card>
   );
 };

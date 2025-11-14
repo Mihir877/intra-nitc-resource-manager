@@ -72,13 +72,6 @@ export const getUserSchedule = async (req, res) => {
   }
 };
 
-// Helper
-function toIsoHour(date) {
-  const d = new Date(date);
-  d.setUTCMinutes(0, 0, 0);
-  return d.toISOString();
-}
-``;
 // GET: 14-day schedule for a resource as ISO-hour keyed map
 export const getScheduleForResource = async (req, res) => {
   try {
@@ -95,6 +88,20 @@ export const getScheduleForResource = async (req, res) => {
         .json({ success: false, message: "Resource not found" });
     }
 
+    // ⛔ STOP HERE if inactive
+    if (!resource.isActive) {
+      return res.status(200).json({
+        success: true,
+        statusCode: 200,
+        resource,
+        isActive: false,
+        schedule: null,
+        timeRange: null,
+        message: "Resource is inactive. Schedule disabled.",
+      });
+    }
+
+    // ✔ Continue if active
     const requests = await Request.find({
       resourceId,
       endTime: { $gte: startDate },
@@ -117,8 +124,9 @@ export const getScheduleForResource = async (req, res) => {
       success: true,
       statusCode: 200,
       resource,
-      schedule, // { [isoHour]: { status, user, purpose, isStartSlot, isEndSlot, isRequestable } }
-      timeRange, // { startHour, endHour }
+      isActive: true,
+      schedule,
+      timeRange,
       message: "Schedule fetched for next 14 days",
     });
   } catch (error) {
@@ -129,20 +137,6 @@ export const getScheduleForResource = async (req, res) => {
     });
   }
 };
-
-// Helpers
-
-function isoHourKey(d) {
-  const x = new Date(d);
-  x.setUTCMinutes(0, 0, 0);
-  return x.toISOString();
-}
-
-function startOfDayUtc(d) {
-  const x = new Date(d);
-  x.setUTCHours(0, 0, 0, 0);
-  return x;
-}
 
 /**
  * Build UTC-keyed hourly schedule for 14 days.

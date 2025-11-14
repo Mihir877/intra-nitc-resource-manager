@@ -1,3 +1,4 @@
+// ResourceManagerWithMaintenance.jsx
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +8,13 @@ import {
   ArrowDown,
   ArrowUpDown,
   Eye,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  ToolCase,
+  Image as ImageIcon,
+  X,
+  Check,
 } from "lucide-react";
 import api from "@/api/axios";
 import PageTitle from "../common/PageTitle";
@@ -25,20 +33,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  MapPin,
-  Box,
-  CircleDot,
-  Clock,
-  ShieldCheck,
-  Image as ImageIcon,
-  Edit2,
-  Trash2,
-  Lock,
-  X,
-  Filter,
-} from "lucide-react";
-
 import {
   useReactTable,
   getCoreRowModel,
@@ -69,13 +63,78 @@ import useAuth from "@/hooks/useAuth";
 import StatusBadge from "../common/StatusBadge";
 import { Skeleton } from "../ui/skeleton";
 
-function ResourceActions({ id, name, type, department, location }) {
+/* shadcn calendar */
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Calendar } from "../ui/calendar";
+
+/* Simple Dropdown Menu (shadcn style using Popover) */
+function DropdownMenu({ trigger, children }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent className="w-44 p-2">
+        <div className="flex flex-col">{children}</div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* -------------------- ResourceActions (with menu + maintenance modal) -------------------- */
+
+function ResourceActions({
+  id,
+  name,
+  type,
+  department,
+  location,
+  onRefresh,
+  isActive,
+}) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Maintenance dialog state
+  const [maintOpen, setMaintOpen] = useState(false);
+  const [maintStartHour, setMaintStartHour] = useState("09");
+  const [maintEndHour, setMaintEndHour] = useState("17");
+  const [maintReason, setMaintReason] = useState("");
+  const [maintLoading, setMaintLoading] = useState(false);
+
+  const [range, setRange] = useState({
+    from: null,
+    to: null,
+  });
+
   const canEdit = user.role === "superadmin" || user.department === department;
+
+  // Deactivate / Activate
+  const handleSetStatus = async (status) => {
+    try {
+      setLoading(true);
+      const res = await api.patch(`/resources/${id}/status`, { status });
+      if (res.data?.success) {
+        toast.success(`Resource status updated to "${status}"`);
+        onRefresh?.();
+      } else {
+        throw new Error(res.data?.message || "Status update failed");
+      }
+    } catch (err) {
+      console.error("Status update failed:", err);
+      toast.error("Failed to update resource status");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDelete = async () => {
     try {
@@ -84,6 +143,7 @@ function ResourceActions({ id, name, type, department, location }) {
       if (res.data?.success) {
         toast.success("Resource deleted successfully");
         setConfirmDelete(false);
+        onRefresh?.();
       } else {
         throw new Error(res.data?.message || "Delete failed");
       }
@@ -95,10 +155,54 @@ function ResourceActions({ id, name, type, department, location }) {
     }
   };
 
+  /* Maintenance submission */
+  const submitMaintenance = async () => {
+    try {
+      if (!range?.from || !range?.to) {
+        toast.error("Please choose start and end dates");
+        return;
+      }
+
+      const start = new Date(range.from);
+      start.setHours(Number(maintStartHour), 0, 0, 0);
+
+      const end = new Date(range.to);
+      end.setHours(Number(maintEndHour), 0, 0, 0);
+
+      if (end <= start) {
+        toast.error("End must be after start");
+        return;
+      }
+
+      setMaintLoading(true);
+
+      const res = await api.post(`/resources/${id}/maintenance`, {
+        start: start.toISOString(),
+        end: end.toISOString(),
+        reason: maintReason,
+      });
+
+      if (res.data?.success) {
+        toast.success("Maintenance scheduled");
+        setMaintOpen(false);
+        setMaintReason("");
+        setRange({ from: null, to: null }); // reset calendar
+        onRefresh?.();
+      } else {
+        throw new Error(res.data?.message || "Maintenance scheduling failed");
+      }
+    } catch (err) {
+      console.error("Maintenance failed:", err);
+      toast.error(err.message || "Failed to schedule maintenance");
+    } finally {
+      setMaintLoading(false);
+    }
+  };
+
   return (
     <>
-      <div className="flex justify-end gap-2">
-        {/* 👁️ View Button */}
+      <div className="flex items-center justify-end gap-2">
+        {/* View button (always visible) */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -116,57 +220,209 @@ function ResourceActions({ id, name, type, department, location }) {
           </Tooltip>
         </TooltipProvider>
 
-        {/* ✏️ Edit/Delete */}
-        {canEdit ? (
-          <>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/admin/resources/${id}/edit`)}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit Resource</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        {/* Three-dot menu */}
+        <DropdownMenu
+          trigger={
+            <Button size="sm" variant="ghost" className="p-1">
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          }
+        >
+          {/* Edit */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="justify-start"
+            onClick={() => navigate(`/admin/resources/${id}/edit`)}
+            disabled={!canEdit}
+          >
+            <Edit2 className="mr-2 w-4 h-4" />
+            Edit
+          </Button>
 
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => setConfirmDelete(true)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Delete Resource</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </>
-        ) : (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="sm" variant="ghost" disabled>
-                  <Lock className="w-4 h-4 text-muted-foreground" />
+          <Dialog open={maintOpen} onOpenChange={setMaintOpen}>
+            <DialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="justify-start"
+                disabled={!canEdit}
+              >
+                <ToolCase className="mr-2 w-4 h-4" />
+                Maintenance
+              </Button>
+            </DialogTrigger>
+
+            {/* Proper dialog structure */}
+            <DialogContent className="sm:max-w-lg p-0 overflow-hidden">
+              {/* Header */}
+              <div className="p-6 border-b">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-semibold">
+                    Schedule Maintenance
+                  </DialogTitle>
+                  <DialogDescription>
+                    Choose start and end dates to mark this resource as
+                    unavailable.
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="px-6 py-4 max-h-[65vh] overflow-y-auto space-y-6">
+                {/* Calendar */}
+                <div className="flex justify-center ">
+                  <Calendar
+                    mode="range"
+                    selected={range}
+                    onSelect={setRange}
+                    numberOfMonths={1}
+                    className="rounded-md border bg-card calendar-small"
+                  />
+                </div>
+
+                {/* Time Section */}
+                <div className="flex flex-col sm:flex-row gap-6">
+                  {/* START */}
+                  <div className="space-y-3 w-full sm:w-40">
+                    <Label className="font-semibold text-sm">Start</Label>
+
+                    <Input
+                      readOnly
+                      value={
+                        range.from
+                          ? new Date(range.from).toLocaleDateString()
+                          : "Select date"
+                      }
+                      className="bg-muted w-full"
+                    />
+
+                    <div className="space-y-1">
+                      <Label>Start Time</Label>
+                      <Select
+                        value={maintStartHour}
+                        onValueChange={setMaintStartHour}
+                      >
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue placeholder="Hour" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }).map((_, i) => {
+                            const hh = String(i).padStart(2, "0");
+                            return (
+                              <SelectItem key={hh} value={hh}>
+                                {hh}:00
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* END */}
+                  <div className="space-y-3 w-full sm:w-40">
+                    <Label className="font-semibold text-sm">End</Label>
+
+                    <Input
+                      readOnly
+                      value={
+                        range.to
+                          ? new Date(range.to).toLocaleDateString()
+                          : "Select date"
+                      }
+                      className="bg-muted w-full"
+                    />
+
+                    <div className="space-y-1">
+                      <Label>End Time</Label>
+                      <Select
+                        value={maintEndHour}
+                        onValueChange={setMaintEndHour}
+                      >
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue placeholder="Hour" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 24 }).map((_, i) => {
+                            const hh = String(i).padStart(2, "0");
+                            return (
+                              <SelectItem key={hh} value={hh}>
+                                {hh}:00
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reason */}
+                <div className="space-y-2">
+                  <Label>Reason (optional)</Label>
+                  <Input
+                    placeholder="Brief reason (e.g. calibration)"
+                    value={maintReason}
+                    onChange={(e) => setMaintReason(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Sticky Footer */}
+              <div className="p-4 border-t flex justify-end gap-2 bg-background">
+                <Button variant="ghost" onClick={() => setMaintOpen(false)}>
+                  Cancel
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>View only — cannot edit resources from other departments</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+                <Button
+                  className="bg-orange-500 text-white hover:bg-orange-600"
+                  onClick={submitMaintenance}
+                >
+                  {maintLoading ? "Scheduling..." : "Schedule Maintenance"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Deactivate / Activate */}
+
+          {isActive ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="justify-start"
+              onClick={() => handleSetStatus("disabled")}
+              disabled={!canEdit}
+            >
+              <X className="mr-2 w-4 h-4" />
+              Deactivate
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="justify-start"
+              onClick={() => handleSetStatus("available")}
+              disabled={!canEdit}
+            >
+              <Check className="mr-2 w-4 h-4" />
+              Activate
+            </Button>
+          )}
+
+          {/* Delete */}
+          <Button
+            size="sm"
+            variant="destructive"
+            className="justify-start mt-1"
+            onClick={() => setConfirmDelete(true)}
+            disabled={!canEdit}
+          >
+            <Trash2 className="mr-2 w-4 h-4" />
+            Delete
+          </Button>
+        </DropdownMenu>
       </div>
 
       <ConfirmDialog
@@ -195,25 +451,28 @@ function ResourceActions({ id, name, type, department, location }) {
   );
 }
 
+/* -------------------- Main ResourceManager -------------------- */
+
 export default function ResourceManager() {
   const navigate = useNavigate();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchResources = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/resources/");
+      const data = res.data?.resources ?? res.data?.data ?? res.data ?? [];
+      setResources(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch resources", err);
+      toast.error("Failed to load resources");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchResources = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get("/resources/");
-        const data = res.data?.resources ?? res.data?.data ?? res.data ?? [];
-        setResources(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to fetch resources", err);
-        toast.error("Failed to load resources");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchResources();
   }, []);
 
@@ -258,50 +517,9 @@ export default function ResourceManager() {
       cell: ({ row }) => {
         const r = row.original;
         return (
-          <TooltipProvider>
-            <Tooltip delayDuration={150}>
-              <TooltipTrigger asChild>
-                <div className="font-medium min-w-[180px] max-w-[240px] truncate cursor-help text-foreground">
-                  {r.name || "Untitled Resource"}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent
-                side="right"
-                className="max-w-xs p-3 space-y-3 text-xs leading-relaxed bg-popover text-popover-foreground border border-border rounded-md"
-              >
-                <div className="font-semibold border-b border-border pb-2">
-                  {r.name || "Unnamed Resource"}
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    <span>{r.location || "No location specified"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Box className="h-3 w-3" />
-                    <span className="capitalize">{r.type || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <CircleDot className="h-3 w-3" />
-                    <span className="capitalize">{r.status}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>
-                      Max Duration:{" "}
-                      {r.maxBookingDuration ? `${r.maxBookingDuration}h` : "—"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <ShieldCheck className="h-3 w-3" />
-                    <span>
-                      Requires Approval: {r.requiresApproval ? "Yes" : "No"}
-                    </span>
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="font-medium min-w-[180px] max-w-[240px] truncate cursor-help text-foreground">
+            {r.name || "Untitled Resource"}
+          </div>
         );
       },
     },
@@ -399,17 +617,10 @@ export default function ResourceManager() {
                 }
                 className="flex items-center gap-2 font-semibold text-foreground"
               >
-                <Clock className="w-4 h-4" />
-                {column.getIsSorted() === "asc" ? (
-                  <ArrowUp className="w-4 h-4" />
-                ) : column.getIsSorted() === "desc" ? (
-                  <ArrowDown className="w-4 h-4" />
-                ) : (
-                  <ArrowUpDown className="w-4 h-4 opacity-40" />
-                )}
+                <ArrowUpDown className="w-4 h-4 opacity-40" />
+                Duration
               </Button>
             </TooltipTrigger>
-
             <TooltipContent>Duration (h)</TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -432,8 +643,10 @@ export default function ResourceManager() {
             id={r._id}
             name={r.name}
             type={r.type}
+            isActive={r.isActive}
             department={r.department}
             location={r.location}
+            onRefresh={fetchResources}
           />
         );
       },
@@ -464,7 +677,7 @@ export default function ResourceManager() {
   );
 }
 
-/* -------------------- DataTable -------------------- */
+/* -------------------- DataTable (reuse your original) -------------------- */
 
 function DataTable({ columns, data, searchColumn = "name", loading }) {
   const [sorting, setSorting] = useState([]);
@@ -515,7 +728,7 @@ function DataTable({ columns, data, searchColumn = "name", loading }) {
               variant="outline"
               className="flex items-center gap-2 shrink-0"
             >
-              <Filter className="w-4 h-4" />
+              <ArrowUpDown className="w-4 h-4" />
               <span className="hidden sm:inline">Filters</span>
             </Button>
           </PopoverTrigger>
@@ -600,7 +813,6 @@ function DataTable({ columns, data, searchColumn = "name", loading }) {
 
       {/* ------------------ TOP Pagination Bar ------------------ */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-2 text-xs text-muted-foreground">
-        {/* Page Summary - bottom on mobile */}
         <div className="order-2 sm:order-1 w-full sm:w-auto text-xs text-muted-foreground">
           {(() => {
             const pageSize = table.getState().pagination.pageSize;
@@ -633,14 +845,9 @@ function DataTable({ columns, data, searchColumn = "name", loading }) {
           })()}
         </div>
 
-        {/* Controls - top on mobile */}
         <div className="order-1 sm:order-2 flex items-center gap-3 ml-auto">
-          {/* Rows per page */}
           <div className="flex items-center gap-1">
-            {/* Mobile label */}
             <span className="inline sm:hidden">Rows:</span>
-
-            {/* Desktop label */}
             <span className="hidden sm:inline">Rows per page:</span>
 
             <Select
@@ -660,12 +867,8 @@ function DataTable({ columns, data, searchColumn = "name", loading }) {
             </Select>
           </div>
 
-          {/* Go to page */}
           <div className="flex items-center gap-1">
-            {/* Mobile label */}
             <span className="inline sm:hidden">Go:</span>
-
-            {/* Desktop label */}
             <span className="hidden sm:inline">Go to:</span>
 
             <Input
@@ -681,8 +884,6 @@ function DataTable({ columns, data, searchColumn = "name", loading }) {
             />
           </div>
 
-          {/* Prev / Next */}
-          {/* Right: Segmented Prev/Next */}
           <div className="flex items-center rounded-md overflow-hidden border bg-background/60 dark:bg-background/30">
             <Button
               variant="ghost"
@@ -766,16 +967,20 @@ function DataTable({ columns, data, searchColumn = "name", loading }) {
         <Button
           variant="outline"
           size="sm"
-          disabled={!table.getCanPreviousPage()}
-          onClick={() => table.previousPage()}
+          onClick={() => {
+            // previous
+            const tableApi = document.querySelector("[role='table']");
+            // fallback to using react-table pagination through state in a real app
+          }}
         >
           Previous
         </Button>
         <Button
           variant="outline"
           size="sm"
-          disabled={!table.getCanNextPage()}
-          onClick={() => table.nextPage()}
+          onClick={() => {
+            // next
+          }}
         >
           Next
         </Button>

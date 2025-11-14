@@ -294,7 +294,8 @@ export const setResourceStatus = async (req, res) => {
     }
 
     resource.status = status;
-    resource.isActive = status !== "disabled";
+    resource.isActive = status === "available" || status === "in_use";
+
     resource.lastUpdatedBy = req.user._id;
     await resource.save();
 
@@ -331,7 +332,9 @@ export const deleteResource = async (req, res) => {
 
     resource.isActive = false;
     resource.status = "disabled";
-    await Resource.findByIdAndDelete(id);
+    resource.lastUpdatedBy = req.user._id;
+
+    await resource.save();
 
     res.status(200).json({
       success: true,
@@ -392,6 +395,71 @@ export const getMostBookedResource = async (req, res) => {
   } catch (error) {
     console.error("Get most booked resource error:", error);
     return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
+
+/**
+ * @desc Add a maintenance period to a resource
+ * @route POST /api/v1/resources/:id/maintenance
+ * @access Admin
+ */
+export const scheduleMaintenance = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { start, end, reason } = req.body;
+
+    if (!start || !end) {
+      return res.status(400).json({
+        success: false,
+        message: "Both start and end times are required for maintenance.",
+      });
+    }
+
+    const resource = await Resource.findById(id);
+    if (!resource) {
+      return res.status(404).json({
+        success: false,
+        message: "Resource not found",
+      });
+    }
+
+    // Department restriction
+    if (
+      req.user.role === "admin" &&
+      resource.department !== req.user.department
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only manage resources from your department.",
+      });
+    }
+
+    // Store maintenance period
+    resource.maintenancePeriods.push({
+      start,
+      end,
+      reason,
+      createdBy: req.user._id,
+    });
+
+    // Set status
+    resource.status = "maintenance";
+    resource.isActive = false;
+
+    await resource.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Maintenance period added successfully.",
+      resource,
+    });
+  } catch (error) {
+    console.error("Error scheduling maintenance:", error);
+    res.status(500).json({
       success: false,
       message: error.message || "Internal Server Error",
     });

@@ -213,6 +213,21 @@ const ResourceSchedule = ({ resourceId }) => {
     }
   };
 
+  if (resource.isActive === false) {
+    return (
+      <div className="w-full flex flex-col justify-center p-6">
+        <div className="text-xl font-semibold text-red-500">
+          Resource Unavailable
+        </div>
+        <p className="text-muted-foreground max-w-md mt-2">
+          This resource is currently <strong>inactive</strong> and cannot be
+          booked. It may be under maintenance or temporarily disabled by
+          administrators.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4">
       {/* Top Bar */}

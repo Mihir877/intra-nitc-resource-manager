@@ -32,6 +32,15 @@ const resourceSchema = new Schema(
       enum: ["available", "in_use", "maintenance", "disabled"],
       default: "available",
     },
+    maintenancePeriods: [
+      {
+        start: { type: Date, required: true },
+        end: { type: Date, required: true },
+        reason: { type: String, trim: true },
+        createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
+
     availability: [
       {
         day: {

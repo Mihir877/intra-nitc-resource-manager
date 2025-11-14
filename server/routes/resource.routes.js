@@ -7,6 +7,7 @@ import {
   setResourceStatus,
   deleteResource,
   getMostBookedResource,
+  scheduleMaintenance,
 } from "../controllers/resource.controller.js";
 
 import { requireAdmin, verifyJWT } from "../middlewares/auth.middleware.js";
@@ -55,5 +56,8 @@ router.patch("/:id/status", setResourceStatus);
 
 // Soft delete resource
 router.delete("/:id", deleteResource);
+
+router.post("/:id/maintenance", scheduleMaintenance);
+
 
 export default router;

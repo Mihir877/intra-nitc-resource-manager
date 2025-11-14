@@ -27,34 +27,48 @@ export const createRequest = async (req, res) => {
         .json({ success: false, message: "Resource not available" });
     }
 
-    // Enforce ISO inputs
+    // MAINTENANCE BLOCK CHECK
     const start = new Date(startTime);
     const end = new Date(endTime);
+
+    if (resource.maintenancePeriods?.length > 0) {
+      const isInMaintenance = resource.maintenancePeriods.some((p) => {
+        const ms = new Date(p.start);
+        const me = new Date(p.end);
+        return start < me && end > ms; // overlap check
+      });
+
+      if (isInMaintenance) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "This resource is under maintenance during the selected time window.",
+        });
+      }
+    }
+
+    // Validate time inputs
     if (isNaN(start) || isNaN(end) || end <= start) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid time range" });
     }
 
-    // VALIDATE: Slot must match whole hour in IST
-    // IST = UTC + 5:30 => valid UTC minutes = 30
-    const isISTAligned = (date) => {
-      return (
-        date.getUTCMinutes() === 30 &&
-        date.getUTCSeconds() === 0 &&
-        date.getUTCMilliseconds() === 0
-      );
-    };
+    // VALIDATE: Slot must match whole hour in IST (UTC minute = 30)
+    const isISTAligned = (date) =>
+      date.getUTCMinutes() === 30 &&
+      date.getUTCSeconds() === 0 &&
+      date.getUTCMilliseconds() === 0;
 
     if (!isISTAligned(start) || !isISTAligned(end)) {
       return res.status(400).json({
         success: false,
-        message: "Start/end must be aligned to the hour (UTC).",
+        message: "Start/end must align to the hour (e.g. 09:00–10:00 IST).",
       });
     }
 
     // Duration check
-    const durationHours = (end.getTime() - start.getTime()) / 36e5;
+    const durationHours = (end - start) / 36e5;
     const maxHours = Number(resource.maxBookingDuration || 0);
 
     if (maxHours > 0 && durationHours > maxHours) {
@@ -64,14 +78,14 @@ export const createRequest = async (req, res) => {
       });
     }
 
-    // Conflict check (pending + approved)
+    // Conflict check
     const conflict = await Request.findOne({
       resourceId,
-      status: { $in: ["pending", "approved"] },
+      status: { $in: ["approved"] },
       $or: [
         { startTime: { $lt: end, $gte: start } },
         { endTime: { $gt: start, $lte: end } },
-        { $and: [{ startTime: { $lte: start } }, { endTime: { $gte: end } }] },
+        { startTime: { $lte: start }, endTime: { $gte: end } },
       ],
     }).lean();
 

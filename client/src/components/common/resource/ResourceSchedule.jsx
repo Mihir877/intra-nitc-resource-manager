@@ -25,10 +25,20 @@ const STATUS_STYLES = {
     text: "text-gray-700 dark:text-gray-300",
     label: "",
   },
-  booked: {
+  bookedOthers: {
     bg: "bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800",
     text: "text-red-700 dark:text-red-400 font-semibold",
     label: "Booked",
+  },
+  booked: {
+    bg: "bg-green-100 border-green-200 dark:bg-green-950/40 dark:border-green-800",
+    text: "text-green-700 dark:text-green-400 font-semibold",
+    label: "Booked",
+  },
+  maintenance: {
+    bg: "bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-800",
+    text: "text-red-700 dark:text-red-400 font-semibold",
+    label: "Maint.",
   },
   pendingMine: {
     bg: "bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-900",

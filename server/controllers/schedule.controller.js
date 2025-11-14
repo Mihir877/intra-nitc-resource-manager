@@ -73,22 +73,29 @@ export const getUserSchedule = async (req, res) => {
 };
 
 // GET: 14-day schedule for a resource as ISO-hour keyed map
+
 export const getScheduleForResource = async (req, res) => {
   try {
     const resourceId = req.params.id;
+
+    // Window start → today (UTC midnight)
     const startDate = new Date();
     startDate.setUTCHours(0, 0, 0, 0);
+
+    // Window end → 14 days
     const endDate = new Date(startDate);
     endDate.setUTCDate(endDate.getUTCDate() + 14);
 
+    // Fetch resource
     const resource = await Resource.findById(resourceId).lean();
     if (!resource) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Resource not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Resource not found",
+      });
     }
 
-    // ⛔ STOP HERE if inactive
+    // Inactive? Don't send schedule
     if (!resource.isActive) {
       return res.status(200).json({
         success: true,
@@ -101,7 +108,16 @@ export const getScheduleForResource = async (req, res) => {
       });
     }
 
-    // ✔ Continue if active
+    // Extract maintenance periods ONLY inside schedule window
+    const maintenancePeriods = (resource.maintenancePeriods || []).filter(
+      (p) => {
+        const start = new Date(p.start);
+        const end = new Date(p.end);
+        return end >= startDate && start <= endDate; // overlapping
+      }
+    );
+
+    // Fetch requests (approved + pending)
     const requests = await Request.find({
       resourceId,
       endTime: { $gte: startDate },
@@ -112,15 +128,17 @@ export const getScheduleForResource = async (req, res) => {
       .populate("userId", "username email")
       .lean();
 
+    // Build schedule (with maintenance overlay)
     const { schedule, timeRange } = buildIsoHourSchedule({
       requests,
+      maintenancePeriods,
       availability: resource.availability || [],
       windowStart: startDate,
       windowEnd: endDate,
       currentUserId: req.user?._id?.toString?.() || null,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       statusCode: 200,
       resource,
@@ -131,19 +149,18 @@ export const getScheduleForResource = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching schedule:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message || "Internal Server Error",
     });
   }
 };
 
-/**
- * Build UTC-keyed hourly schedule for 14 days.
- * Availability in IST → converted EXACTLY to UTC (ex: 09:00 IST → 03:30 UTC)
- */
+// ==================== BUILD SCHEDULE (with maintenance overlay) ====================
+
 export function buildIsoHourSchedule({
   requests,
+  maintenancePeriods = [],
   availability,
   windowStart,
   windowEnd,
@@ -159,8 +176,8 @@ export function buildIsoHourSchedule({
     "saturday",
   ];
 
-  // Map availability by day name
-  const availMap = {}; // { monday: { startIst, endIst }, ... }
+  // Build availability map (IST strings)
+  const availMap = {};
   availability.forEach((a) => {
     availMap[a.day.toLowerCase()] = {
       startIst: a.startTime,
@@ -170,7 +187,7 @@ export function buildIsoHourSchedule({
 
   const schedule = {};
 
-  // Iterate across all days in the window
+  // 1) Generate AVAILABLE slots
   for (
     let d = dayjs(windowStart).startOf("day");
     d.isBefore(windowEnd);
@@ -178,16 +195,12 @@ export function buildIsoHourSchedule({
   ) {
     const dayName = dayNames[d.utc().day()];
     const avail = availMap[dayName];
-
     if (!avail) continue;
 
-    // Convert IST availability → exact UTC times
-    const startUtc = istTimeToUtc(d, avail.startIst); // exact minutes included
+    const startUtc = istTimeToUtc(d, avail.startIst);
     const endUtc = istTimeToUtc(d, avail.endIst);
 
-    // Generate hourly stepping: 03:30 → 04:30 → 05:30 → etc.
     let cursor = startUtc.clone();
-
     while (cursor.isBefore(endUtc)) {
       const isoKey = toIsoExactUTC(cursor);
 
@@ -204,18 +217,40 @@ export function buildIsoHourSchedule({
     }
   }
 
-  // Apply bookings (pending + approved)
-  for (const r of requests) {
-    const start = dayjs(r.startTime).utc();
-    const end = dayjs(r.endTime).utc();
+  // 2) Apply MAINTENANCE periods (same shape as booking)
+  for (const p of maintenancePeriods) {
+    const start = dayjs(p.start).utc();
+    const end = dayjs(p.end).utc();
 
-    // Normalize stepping: exact hour stepping from real start
     let cursor = start.clone();
 
     while (cursor.isBefore(end)) {
       const key = cursor.toISOString();
 
-      // skip if slot is not in availability map
+      if (schedule[key]) {
+        schedule[key] = {
+          status: "maintenance",
+          user: "",
+          purpose: p.reason || "Maintenance",
+          isStartSlot: cursor.isSame(start),
+          isEndSlot: cursor.add(1, "hour").isSame(end),
+          isRequestable: false,
+        };
+      }
+
+      cursor = cursor.add(1, "hour");
+    }
+  }
+
+  // 3) Apply BOOKINGS (pending + approved)
+  for (const r of requests) {
+    const start = dayjs(r.startTime).utc();
+    const end = dayjs(r.endTime).utc();
+    let cursor = start.clone();
+
+    while (cursor.isBefore(end)) {
+      const key = cursor.toISOString();
+
       if (!schedule[key]) {
         cursor = cursor.add(1, "hour");
         continue;
@@ -223,6 +258,7 @@ export function buildIsoHourSchedule({
 
       const owner =
         typeof r.userId === "object" ? r.userId?._id?.toString() : r.userId;
+
       const isSelf = currentUserId && owner === currentUserId;
 
       if (r.status === "approved") {
@@ -239,6 +275,7 @@ export function buildIsoHourSchedule({
         };
       } else if (r.status === "pending") {
         const status = isSelf ? "pendingMine" : "pendingOther";
+
         schedule[key] = {
           status,
           user: isSelf ? "You" : "",
@@ -255,6 +292,6 @@ export function buildIsoHourSchedule({
 
   return {
     schedule,
-    timeRange: { startHour: null, endHour: null }, // not needed anymore
+    timeRange: { startHour: null, endHour: null },
   };
 }

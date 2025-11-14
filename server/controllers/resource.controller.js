@@ -85,7 +85,20 @@ export const createResource = async (req, res) => {
     });
   }
 };
+// ------------------------ Utility ------------------------
+export function isResourceInMaintenance(resource) {
+  if (!resource.maintenancePeriods?.length) return false;
 
+  const now = new Date();
+
+  return resource.maintenancePeriods.some((period) => {
+    const start = new Date(period.start);
+    const end = new Date(period.end);
+    return now >= start && now <= end;
+  });
+}
+
+// ------------------------ Get All Resources ------------------------
 /**
  * @desc    Get all resources (with optional filters)
  * @route   GET /api/v1/resources
@@ -103,13 +116,10 @@ export const getAllResources = async (req, res) => {
     let resources;
     const user = req.user;
 
-    if (user.role === "admin" && user.department) {
-      const deptFilter = { ...filters, department: user.department };
-
-      // Fetch all resources once
+    // ---------- Department-based fetching ----------
+    if (user?.department) {
       const allResources = await Resource.find(filters).sort({ createdAt: -1 });
 
-      // Separate into department-first order
       const deptResources = allResources.filter(
         (r) => r.department === user.department
       );
@@ -117,14 +127,26 @@ export const getAllResources = async (req, res) => {
         (r) => r.department !== user.department
       );
 
-      // Merge (department resources first)
       resources = [...deptResources, ...otherResources];
     } else {
-      // Superadmins or system-level users see all resources normally
+      // superadmin / faculty / student
       resources = await Resource.find(filters).sort({ createdAt: -1 });
     }
 
-    res.status(200).json({
+    // ---------- Manipulate resource.status JUST FOR RESPONSE ----------
+    resources = resources.map((r) => {
+      const obj = r.toObject ? r.toObject() : r;
+
+      if (isResourceInMaintenance(obj)) {
+        // override status ONLY IN RESPONSE
+        obj.status = "maintenance";
+      }
+
+      return obj;
+    });
+
+    // ---------- Response ----------
+    return res.status(200).json({
       success: true,
       statusCode: 200,
       count: resources.length,
@@ -133,7 +155,7 @@ export const getAllResources = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching resources:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message || "Internal Server Error",
     });
@@ -401,7 +423,6 @@ export const getMostBookedResource = async (req, res) => {
   }
 };
 
-
 /**
  * @desc Add a maintenance period to a resource
  * @route POST /api/v1/resources/:id/maintenance
@@ -446,9 +467,9 @@ export const scheduleMaintenance = async (req, res) => {
       createdBy: req.user._id,
     });
 
-    // Set status
-    resource.status = "maintenance";
-    resource.isActive = false;
+    // // Set status
+    // resource.status = "maintenance";
+    // resource.isActive = false;
 
     await resource.save();
 

@@ -520,7 +520,7 @@ export default function UserSchedule() {
                             <div
                               className={cn(
                                 "absolute text-xs flex items-center justify-center px-2 py-1 border rounded-md pointer-events-auto overflow-hidden",
-                                style
+                                style, "-mt-0.5"
                               )}
                               style={{
                                 left,

@@ -1,36 +1,24 @@
 // app/components/resource/ResourceSchedule.jsx
+
 import { Button } from "@/components/ui/button";
 import { useSlotSelection } from "@/hooks/useSlotSelection";
 import { useState } from "react";
 import { ConfirmBookingDialog } from "./ConfirmBookingDialog";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import api from "@/api/axios";
-import { notify } from "@/lib/notify";
 import { cn } from "@/lib/utils";
-dayjs.extend(utc);
+import api from "@/api/axios";
 
-// Convert slot key to ISO timestamp
-const keyToIsoUtc = (key) => {
-  const [d, h] = key.split("_");
-  return dayjs.utc(`${d}T${String(h).padStart(2, "0")}:00:00Z`).toISOString();
-};
+// NEW timezone utilities
+import {
+  slotKeyToUtcIso,
+  addOneHourSlotKey,
+  utcIsoToIstLabel,
+} from "@/utils/timezone";
 
-// Add 1 hour to slot key
-const addOneHour = (slotKey) => {
-  const [date, hour] = slotKey.split("_");
-  const nextHour = parseInt(hour, 10) + 1;
-  if (nextHour >= 24) {
-    const nextDate = dayjs(date).add(1, "day").format("YYYY-MM-DD");
-    return `${nextDate}_0`;
-  }
-  return `${date}_${nextHour}`;
-};
-
+// Styling + layout constants
 const firstColPx = 80;
 const otherColPx = 100;
 
-// 🎨 STATUS styles — vivid, with dark-mode contrast
+// Status styles
 const STATUS_STYLES = {
   available: {
     bg: "bg-white border-green-200 hover:bg-green-50 dark:bg-gray-900 dark:border-green-900 dark:hover:bg-green-950/30",
@@ -69,52 +57,44 @@ const STATUS_STYLES = {
   },
 };
 
-// Tooltip text logic
 const getTooltipText = (entry) => {
   if (!entry) return "Unavailable";
-  const t = {
+  return {
     booked: `Booked${entry.purpose ? `: ${entry.purpose}` : ""}${
       entry.user ? ` - ${entry.user}` : ""
     }`,
     pendingMine: "Your pending request",
     pendingOther: "Requested by someone else",
     softBlocked: "Maintenance",
-    cooldown: "Cooldown period",
-    available: "Available - Click to select",
+    cooldown: "Cooldown",
+    available: "Available",
     unavailable: "Unavailable",
-  };
-  return t[entry.status] || t.unavailable;
+  }[entry.status];
 };
 
-// 💎 Classic vivid selection styling restored
 const getSlotClassName = ({ isSelected, isStart, isEnd, isSingle, status }) => {
   const base = "h-9 border text-xs font-medium select-none cursor-pointer";
 
   if (isSelected) {
     return cn(
       base,
-      // vivid gradient-like blue
       "bg-blue-400/40 text-white border-blue-500 dark:bg-blue-800/40 dark:border-blue-600",
       isSingle &&
         "rounded shadow-sm font-semibold border-2 border-blue-600 dark:border-blue-500",
-      // continuous look
       !isSingle && !isStart && !isEnd && "border-y-0",
-      // strong edge on first slot
       isStart &&
         "rounded-t border-b-0 border-l-4 border-l-blue-700/70 dark:border-l-blue-500/70",
-      // strong edge on last slot
       isEnd &&
-        "rounded-b border-t-0 border-r-4 border-r-blue-700/70 dark:border-r-blue-500/70",
-      // both (single slot)
-      isStart && isEnd && "border"
+        "rounded-b border-t-0 border-r-4 border-r-blue-700/70 dark:border-r-blue-500/70"
     );
   }
 
-  const s = STATUS_STYLES[status] ?? STATUS_STYLES.unavailable;
+  const st = STATUS_STYLES[status] ?? STATUS_STYLES.unavailable;
+
   return cn(
     base,
-    s.bg,
-    s.text,
+    st.bg,
+    st.text,
     "border",
     isStart && "rounded-t border-b-0",
     isEnd && "rounded-b border-t-0",
@@ -122,7 +102,6 @@ const getSlotClassName = ({ isSelected, isStart, isEnd, isSingle, status }) => {
   );
 };
 
-// SlotCell
 const SlotCell = ({
   slotKey,
   entry,
@@ -135,7 +114,6 @@ const SlotCell = ({
   if (!entry) {
     return (
       <div
-        key={slotKey}
         className="h-9 bg-gray-50 border border-gray-100 dark:bg-gray-700 dark:border-gray-800"
         title="Unavailable"
       />
@@ -153,25 +131,15 @@ const SlotCell = ({
     status: entry.status,
   });
 
-  const tooltip = getTooltipText(entry);
-  const label = isSelected ? (
-    <div className="flex items-center justify-center gap-1 text-blue-700 dark:text-blue-100">
-      ✓
-    </div>
-  ) : (
-    STATUS_STYLES[entry.status]?.label
-  );
-
   return (
     <button
-      key={slotKey}
       onClick={() => handleSlotClick(slotKey, isRequestable)}
       className={className}
       disabled={!isRequestable}
-      title={tooltip}
+      title={getTooltipText(entry)}
       style={{ cursor: isRequestable ? "pointer" : "not-allowed" }}
     >
-      {label}
+      {isSelected ? "✓" : STATUS_STYLES[entry.status]?.label}
     </button>
   );
 };
@@ -188,7 +156,7 @@ const ResourceSchedule = ({ resourceId }) => {
     clearSelection,
     getActualStartEnd,
     calculateDuration,
-    slotKeyToIso,
+    slotKeyToUtcIso, // already from hook
     refetchSchedule,
   } = useSlotSelection(resourceId);
 
@@ -199,122 +167,47 @@ const ResourceSchedule = ({ resourceId }) => {
   if (error) {
     return (
       <div className="w-full max-w-5xl mx-auto">
-        <div className="border rounded-md overflow-hidden">
-          <div className="p-4 text-center text-sm text-red-600">{error}</div>
+        <div className="border rounded-md overflow-hidden p-4 text-center text-red-600">
+          {error}
         </div>
       </div>
     );
   }
+
   if (!scheduleData) {
-    return (
-      <div className="w-full max-w-5xl mx-auto space-y-4 animate-pulse">
-        {/* Top bar skeleton */}
-        <div className="flex items-center justify-between px-4 py-3 bg-muted rounded-md">
-          <div className="h-4 w-48 bg-muted-foreground/20 rounded"></div>
-          <div className="flex gap-2">
-            <div className="h-8 w-16 bg-muted-foreground/20 rounded"></div>
-            <div className="h-8 w-28 bg-muted-foreground/20 rounded"></div>
-          </div>
-        </div>
-
-        {/* Grid skeleton */}
-        <div className="border border-border rounded-md overflow-hidden bg-card">
-          <div className="overflow-x-auto scrollbar-thin">
-            <div className="min-w-max">
-              {/* Header row skeleton */}
-              <div
-                className="grid"
-                style={{
-                  gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
-                }}
-              >
-                <div
-                  className="sticky left-0 top-0 bg-muted px-3 py-3 border-b border-r"
-                  style={{ width: firstColPx }}
-                >
-                  <div className="h-3 w-10 bg-muted-foreground/20 rounded"></div>
-                </div>
-
-                {Array.from({ length: 14 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="px-3 py-3 border-b bg-muted/40 text-center"
-                    style={{ width: otherColPx }}
-                  >
-                    <div className="h-3 w-12 bg-muted-foreground/20 rounded mx-auto"></div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Time row skeletons */}
-              {Array.from({ length: 10 }).map((_, row) => (
-                <div
-                  key={row}
-                  className="grid"
-                  style={{
-                    gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
-                  }}
-                >
-                  {/* Time label */}
-                  <div
-                    className="sticky left-0 bg-background px-3 py-2 border-b border-r"
-                    style={{ width: firstColPx }}
-                  >
-                    <div className="h-3 w-8 bg-muted-foreground/20 rounded"></div>
-                  </div>
-
-                  {/* Cells */}
-                  {Array.from({ length: 14 }).map((_, col) => (
-                    <div
-                      key={col}
-                      className="h-9 border bg-muted-foreground/10 dark:bg-muted-foreground/20"
-                      style={{ width: otherColPx }}
-                    ></div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <div className="w-full max-w-5xl mx-auto p-4">Loading...</div>;
   }
 
-  const schedule = scheduleData.schedule || {};
+  const schedule = scheduleData.schedule;
   const { actualStart, actualEnd } = getActualStartEnd();
   const duration = calculateDuration();
 
-  const handleConfirmClick = () => setConfirmOpen(true);
-
   const submitRequest = async () => {
     if (!actualStart) return;
+
     setSubmitting(true);
     try {
-      const endSlotKey = actualEnd || actualStart;
-      const endBoundaryKey = addOneHour(endSlotKey);
-      const startTime = keyToIsoUtc(actualStart);
-      const endTime = keyToIsoUtc(endBoundaryKey);
+      const endBoundary = actualEnd
+        ? addOneHourSlotKey(actualEnd)
+        : addOneHourSlotKey(actualStart);
 
-      const payload = {
+      const startTime = slotKeyToUtcIso(actualStart);
+      const endTime = slotKeyToUtcIso(endBoundary);
+
+      await api.post("/requests", {
         resourceId,
         startTime,
         endTime,
-        bookingDuration: duration?.hours || 1,
+        bookingDuration: duration.hours,
         purpose: purpose.trim(),
-      };
+      });
 
-      await api.post("/requests", payload);
-      notify.success("Request submitted", "Approval status will be emailed.");
       setConfirmOpen(false);
       clearSelection();
       setPurpose("");
       await refetchSchedule();
-    } catch (e) {
-      console.error(e);
-      notify.error(
-        "Submission failed",
-        e?.response?.data?.message || "Please try again later."
-      );
+    } catch (err) {
+      console.error(err);
     } finally {
       setSubmitting(false);
     }
@@ -322,27 +215,20 @@ const ResourceSchedule = ({ resourceId }) => {
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4">
+      {/* Top Bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-md">
-        <div className="flex items-center text-sm font-medium min-h-8">
-          {selectedSlots.size > 0 ? (
-            <span>
-              {selectedSlots.size} slot{selectedSlots.size !== 1 ? "s" : ""}{" "}
-              selected
+        <div className="text-sm font-medium">
+          {selectedSlots.size ? (
+            <>
+              {selectedSlots.size} slots selected
               {duration && (
-                <span className="ml-2 text-blue-600 dark:text-blue-400 font-semibold">
+                <span className="ml-2 text-blue-600">
                   Duration: {duration.formatted}
                 </span>
               )}
-              {actualStart && !actualEnd && (
-                <span className="text-muted-foreground ml-2">
-                  (Click to select end time)
-                </span>
-              )}
-            </span>
+            </>
           ) : (
-            <span className="text-blue-800 dark:text-blue-400">
-              Select your booking time from the schedule below
-            </span>
+            <span>Select your booking time</span>
           )}
         </div>
 
@@ -353,7 +239,7 @@ const ResourceSchedule = ({ resourceId }) => {
             </Button>
             <Button
               size="sm"
-              onClick={handleConfirmClick}
+              onClick={() => setConfirmOpen(true)}
               disabled={!actualStart}
             >
               Confirm Booking
@@ -362,9 +248,9 @@ const ResourceSchedule = ({ resourceId }) => {
         )}
       </div>
 
-      {/* Schedule Grid */}
-      <div className="border border-border rounded-md overflow-hidden bg-card text-card-foreground">
-        <div className="overflow-x-auto dark:scrollbar-thumb-gray-700 dark:scrollbar-track-gray-900 scrollbar-thin">
+      {/* Grid */}
+      <div className="border rounded-md overflow-hidden bg-card">
+        <div className="overflow-x-auto">
           <div style={{ width: "max-content" }}>
             {/* Header */}
             <div
@@ -374,19 +260,18 @@ const ResourceSchedule = ({ resourceId }) => {
               }}
             >
               <div
-                className="sticky left-0 top-0 z-30 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground border-b border-r"
+                className="sticky left-0 top-0 bg-muted px-3 py-2 border-b border-r text-xs font-medium"
                 style={{ width: firstColPx }}
               >
                 Time
               </div>
+
               {upcomingDays.map((d) => (
                 <div
                   key={d.key}
                   className={cn(
-                    "sticky top-0 z-20 px-3 py-2 text-xs font-medium text-center border-b",
-                    d.isToday
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                      : "bg-muted/40 text-muted-foreground"
+                    "border-b px-3 py-2 text-xs font-medium text-center",
+                    "bg-muted/40"
                   )}
                   style={{ width: otherColPx }}
                 >
@@ -395,59 +280,57 @@ const ResourceSchedule = ({ resourceId }) => {
               ))}
             </div>
 
-            {/* Time Rows */}
-            <div>
-              {timeSlots.map((slot) => (
+            {/* Rows */}
+            {timeSlots.map(({ time }) => (
+              <div
+                key={time}
+                className="grid"
+                style={{
+                  gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
+                }}
+              >
                 <div
-                  key={slot.h}
-                  className="grid items-stretch"
-                  style={{
-                    gridTemplateColumns: `${firstColPx}px repeat(14, ${otherColPx}px)`,
-                  }}
+                  className="sticky left-0 bg-background px-3 py-2 text-xs border-r border-b"
+                  style={{ width: firstColPx }}
                 >
-                  <div
-                    className="sticky left-0 z-20 bg-background px-3 py-2 text-xs border-r border-b"
-                    style={{ width: firstColPx }}
-                  >
-                    {slot.label}
-                  </div>
-
-                  {upcomingDays.map((d) => {
-                    const slotKey = `${d.key}_${slot.h}`;
-                    const isoKey = slotKeyToIso(slotKey);
-                    const entry = schedule[isoKey];
-
-                    return (
-                      <SlotCell
-                        key={slotKey}
-                        slotKey={slotKey}
-                        entry={entry}
-                        isSelected={selectedSlots.has(slotKey)}
-                        isActualStart={slotKey === actualStart}
-                        isActualEnd={slotKey === actualEnd}
-                        actualEnd={actualEnd}
-                        handleSlotClick={handleSlotClick}
-                      />
-                    );
-                  })}
+                  {time}
                 </div>
-              ))}
-            </div>
+
+                {upcomingDays.map((d) => {
+                  const slotKey = `${d.key}_${time}`;
+                  const entry = schedule[slotKey];
+
+                  return (
+                    <SlotCell
+                      key={slotKey}
+                      slotKey={slotKey}
+                      entry={entry}
+                      isSelected={selectedSlots.has(slotKey)}
+                      isActualStart={slotKey === actualStart}
+                      isActualEnd={slotKey === actualEnd}
+                      actualEnd={actualEnd}
+                      handleSlotClick={handleSlotClick}
+                    />
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
+      {/* Confirm dialog */}
       <ConfirmBookingDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
+        purpose={purpose}
+        onPurposeChange={setPurpose}
+        submitting={submitting}
         resourceName={resource?.name ?? "Resource"}
         actualStart={actualStart}
         actualEnd={actualEnd}
         duration={duration}
-        purpose={purpose}
-        onPurposeChange={setPurpose}
         onSubmit={submitRequest}
-        submitting={submitting}
         onChangeTime={() => setConfirmOpen(false)}
       />
     </div>

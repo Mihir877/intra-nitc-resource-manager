@@ -15,6 +15,7 @@ dayjs.tz.setDefault("Asia/Kolkata");
 const humanDate = (iso) =>
   iso ? dayjs(iso).tz().format("DD MMM YYYY, h:mm A") : "N/A";
 
+// CREATE REQUEST
 export const createRequest = async (req, res) => {
   try {
     const { resourceId, startTime, endTime, purpose } = req.body;
@@ -35,32 +36,31 @@ export const createRequest = async (req, res) => {
         .json({ success: false, message: "Invalid time range" });
     }
 
-    // Domain guard: enforce hour alignment (optional but recommended)
-    const alignedStart =
-      start.getUTCMinutes() === 0 &&
-      start.getUTCSeconds() === 0 &&
-      start.getUTCMilliseconds() === 0;
-    const alignedEnd =
-      end.getUTCMinutes() === 0 &&
-      end.getUTCSeconds() === 0 &&
-      end.getUTCMilliseconds() === 0;
+    // VALIDATE: Slot must match whole hour in IST
+    // IST = UTC + 5:30 => valid UTC minutes = 30
+    const isISTAligned = (date) => {
+      return (
+        date.getUTCMinutes() === 30 &&
+        date.getUTCSeconds() === 0 &&
+        date.getUTCMilliseconds() === 0
+      );
+    };
 
-    if (!alignedStart || !alignedEnd) {
+    if (!isISTAligned(start) || !isISTAligned(end)) {
       return res.status(400).json({
         success: false,
         message: "Start/end must be aligned to the hour (UTC).",
       });
     }
 
-    // Duration limit
+    // Duration check
     const durationHours = (end.getTime() - start.getTime()) / 36e5;
-    const maxHours = Number(resource.maxBookingDuration ?? 0);
+    const maxHours = Number(resource.maxBookingDuration || 0);
+
     if (maxHours > 0 && durationHours > maxHours) {
       return res.status(400).json({
         success: false,
-        message: `Requested duration (${durationHours.toFixed(
-          2
-        )}h) exceeds max allowed (${maxHours}h)`,
+        message: `Requested duration (${durationHours}h) exceeds max allowed (${maxHours}h).`,
       });
     }
 
@@ -82,6 +82,7 @@ export const createRequest = async (req, res) => {
     }
 
     const now = new Date();
+
     const doc = await Request.create({
       userId: req.user._id,
       resourceId,
@@ -95,9 +96,8 @@ export const createRequest = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      statusCode: 201,
       request: doc,
-      message: "Request submitted successfully",
+      message: "Request created successfully",
     });
   } catch (error) {
     console.error("Error creating request:", error);

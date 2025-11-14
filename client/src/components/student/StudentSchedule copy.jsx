@@ -38,15 +38,14 @@ const BOOKING_STATUS = {
   },
   booked: {
     style:
-      "bg-green-300/60 border-green-700/80 font-semibold text-green-900/90 dark:bg-green-950/80 dark:text-green-300/90 dark:border-green-500/60",
+      "bg-green-50 border-green-200 text-green-300/90 font-semibold dark:bg-green-950/80 dark:border-green-500/70",
     label: "Booked",
   },
   pendingMine: {
     style:
-      "bg-amber-300/60 border-amber-600 font-semibold text-amber-900/90 dark:bg-amber-950/90 dark:text-amber-300/90 dark:border-amber-500/60",
+      "bg-amber-50 border-amber-300 font-semibold text-amber-300/90 dark:bg-amber-950/90 dark:border-amber-500/60",
     label: "Pending",
   },
-
   rejected: {
     style:
       "bg-red-50 border-red-200 text-red-300/90 font-semibold dark:bg-red-950/80 dark:border-red-500/70",
@@ -402,7 +401,38 @@ export default function UserSchedule() {
         {/* SCHEDULE GRID */}
         <div className="lg:col-span-8 xl:col-span-8">
           <div className="border rounded-md overflow-hidden dark:border-gray-800">
-            {/* ⬇️ SCROLLABLE AREA (header moved inside) */}
+            {/* Header row (sticky day headers) */}
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: `${firstColPx}px repeat(${days.length}, ${otherColPx}px)`,
+              }}
+            >
+              <div
+                className="sticky left-0 z-30 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground border-b border-r"
+                style={{ width: firstColPx }}
+              >
+                Time
+              </div>
+
+              {days.map((d) => (
+                <div
+                  key={d.key}
+                  className={cn(
+                    "sticky top-0 z-20 px-3 py-2 text-xs font-medium text-center border-b",
+                    d.isToday
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+                      : "bg-muted/40 text-muted-foreground dark:bg-gray-800"
+                  )}
+                  style={{ width: otherColPx }}
+                >
+                  {d.label}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar body wrapper: relative so overlay aligns to it.
+                'overflow-auto' allows horizontal scroll; sticky left column will remain in flow but not be pushed */}
             <div
               className="relative"
               style={{
@@ -411,38 +441,7 @@ export default function UserSchedule() {
                 maxHeight: 600,
               }}
             >
-              {/* ⬇️ HEADER NOW INSIDE SCROLLABLE DIV */}
-              <div
-                className="grid sticky top-0 z-30"
-                style={{
-                  gridTemplateColumns: `${firstColPx}px repeat(${days.length}, ${otherColPx}px)`,
-                  width: `${calendarWidth}px`,
-                }}
-              >
-                <div
-                  className="sticky left-0 z-40 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground border-b border-r"
-                  style={{ width: firstColPx }}
-                >
-                  Time
-                </div>
-
-                {days.map((d) => (
-                  <div
-                    key={d.key}
-                    className={cn(
-                      "px-3 py-2 text-xs font-medium text-center border-b sticky top-0",
-                      d.isToday
-                        ? "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
-                        : "bg-muted/40 text-muted-foreground dark:bg-gray-800"
-                    )}
-                    style={{ width: otherColPx }}
-                  >
-                    {d.label}
-                  </div>
-                ))}
-              </div>
-
-              {/* BACKGROUND GRID */}
+              {/* Background grid (cells and left time column as grid items) */}
               <div
                 className="grid"
                 style={{
@@ -452,7 +451,7 @@ export default function UserSchedule() {
                   height: `${calendarHeight}px`,
                 }}
               >
-                {/* Time labels */}
+                {/* Time labels (first column) */}
                 {times.map((t, ti) => (
                   <div
                     key={`time-${t}`}
@@ -467,7 +466,7 @@ export default function UserSchedule() {
                   </div>
                 ))}
 
-                {/* Empty background cells */}
+                {/* background cells for each day/time (borders) */}
                 {days.map((d, di) =>
                   times.map((t, ti) => {
                     const baseKey = `${d.key}_${t}`;
@@ -479,14 +478,14 @@ export default function UserSchedule() {
                           gridRow: ti + 1,
                           width: otherColPx,
                         }}
-                        className="h-full border bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
+                        className="h-full border text-xs bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
                       />
                     );
                   })
                 )}
               </div>
 
-              {/* EVENT OVERLAY */}
+              {/* EVENT OVERLAY: absolutely positioned layer on top of the grid */}
               <div
                 className="absolute top-0 left-0 z-30 pointer-events-none"
                 style={{
@@ -494,6 +493,7 @@ export default function UserSchedule() {
                   height: `${calendarHeight}px`,
                 }}
               >
+                {/* Render booking blocks (pointer-events enabled on blocks themselves) */}
                 {days.map((d, di) => {
                   const blocks = dayBlocks[d.key] || [];
                   return blocks.map((b, bi) => {
@@ -507,29 +507,47 @@ export default function UserSchedule() {
                     }
 
                     const left = firstColPx + di * otherColPx;
-                    const top = b.startIndex * rowHeight + rowHeight;
+                    const top = b.startIndex * rowHeight;
                     const width = otherColPx;
-                    const height = b.span * rowHeight - 2;
+                    const height = b.span * rowHeight - 2; // slight tuck for borders
 
-                    const style = BOOKING_STATUS[entry.status]?.style;
+                    const statusStyle =
+                      BOOKING_STATUS[entry.status]?.style ??
+                      BOOKING_STATUS.unavailable.style;
 
                     return (
-                      <TooltipProvider key={`overlay-${d.key}-${bi}`}>
+                      <TooltipProvider
+                        key={`overlay-${d.key}-${bi}`}
+                        className="cursor-pointer"
+                      >
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div
+                              role="button"
+                              tabIndex={0}
                               className={cn(
-                                "absolute text-xs flex items-center justify-center px-2 py-1 border rounded-md pointer-events-auto overflow-hidden",
-                                style
+                                "absolute text-xs select-none flex items-center px-2 py-1 border overflow-hidden",
+                                // ensure pointer events for clicks
+                                "pointer-events-auto",
+                                statusStyle
                               )}
                               style={{
-                                left,
-                                top,
-                                width,
-                                height,
+                                left: `${left}px`,
+                                top: `${top}px`,
+                                width: `${width}px`,
+                                height: `${height}px`,
+                                borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                zIndex: 35,
+                                boxSizing: "border-box",
+                                whiteSpace: "nowrap",
+                                textOverflow: "ellipsis",
+                                overflow: "hidden",
                               }}
                             >
-                              <div className="truncate w-full text-center">
+                              <div className="w-full truncate text-center">
                                 {BOOKING_STATUS[entry.status]?.label}
                               </div>
                             </div>
@@ -606,12 +624,8 @@ function AgendaView({ schedule, agenda, filters }) {
 
     const startDate = dayjs(startIso).format("YYYY-MM-DD");
     const endDate = dayjs(endIso).format("YYYY-MM-DD");
-
-    // start of booking = start slot start
     const startTime = dayjs(startIso).format("HH:mm");
-
-    // end of booking = end slot start + 1 hour
-    const endTime = dayjs(endIso).add(1, "hour").format("HH:mm");
+    const endTime = dayjs(endIso).format("HH:mm");
 
     return {
       startDate,

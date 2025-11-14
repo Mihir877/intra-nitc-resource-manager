@@ -1,71 +1,67 @@
+import dayjs from "dayjs";
 import { Request } from "../models/request.model.js";
 import { Resource } from "../models/resource.model.js";
+import {
+  istTimeToUtc,
+  toIsoExactUTC,
+  addUtcHours,
+} from "../utils/timezone.util.js";
 
 /**
- * @desc    Get 14-day user booking schedule (ISO-hour map like getScheduleForResource)
- * @route   GET /api/v1/schedule/user
- * @access  Authenticated User
+ * @desc Get 14-day user booking schedule (IN PURE UTC — absolute)
+ * @route GET /api/v1/schedule/user
  */
 export const getUserSchedule = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Define the 14-day window
-    const windowStart = new Date();
-    windowStart.setUTCHours(0, 0, 0, 0);
+    // 14-day window in UTC
+    const windowStart = dayjs().utc().startOf("day");
+    const windowEnd = windowStart.add(14, "day");
 
-    const windowEnd = new Date(windowStart);
-    windowEnd.setUTCDate(windowEnd.getUTCDate() + 14);
-
-    // Fetch user’s approved and pending bookings
+    // Fetch bookings (already in UTC in DB)
     const requests = await Request.find({
       userId,
-      endTime: { $gte: windowStart },
-      startTime: { $lte: windowEnd },
+      endTime: { $gte: windowStart.toDate() },
+      startTime: { $lte: windowEnd.toDate() },
       status: { $in: ["approved", "pending"] },
     })
       .select("startTime endTime status resourceId purpose")
       .populate("resourceId", "name location type description")
       .lean();
 
-    // Build the hourly schedule map
     const schedule = {};
-    const timeRange = { startHour: 0, endHour: 24 }; // full day coverage
 
     for (const r of requests) {
-      const start = new Date(r.startTime);
-      const end = new Date(r.endTime);
+      const startUtc = dayjs.utc(r.startTime);
+      const endUtc = dayjs.utc(r.endTime);
 
-      const cursor = new Date(start);
-      cursor.setUTCMinutes(0, 0, 0);
+      // exact hourly stepping: 03:30 → 04:30 → …
+      let cursor = startUtc.clone();
 
-      const hourKeys = [];
-      while (cursor < end) {
-        const key = toIsoHour(cursor);
-        hourKeys.push(key);
-        cursor.setUTCHours(cursor.getUTCHours() + 1);
-      }
+      while (cursor.isBefore(endUtc)) {
+        const isoKey = toIsoExactUTC(cursor);
 
-      for (let i = 0; i < hourKeys.length; i++) {
-        const key = hourKeys[i];
-        schedule[key] = {
+        schedule[isoKey] = {
           status: r.status === "approved" ? "booked" : "pendingMine",
           resource: r.resourceId?.name || "Resource",
           location: r.resourceId?.location || "",
           type: r.resourceId?.type || "",
           purpose: r.purpose || "",
-          isStartSlot: i === 0,
-          isEndSlot: i === hourKeys.length - 1,
+          // detect boundaries
+          isStartSlot: cursor.isSame(startUtc),
+          isEndSlot: cursor.add(1, "hour").isSame(endUtc),
         };
+
+        cursor = cursor.add(1, "hour");
       }
     }
 
     return res.status(200).json({
       success: true,
       statusCode: 200,
-      schedule, // ISO-hour keyed map
-      timeRange, // consistent with getScheduleForResource
-      message: "User 14-day booking schedule fetched successfully",
+      schedule,
+      message: "User schedule fetched successfully (UTC precise)",
     });
   } catch (error) {
     console.error("Error fetching user schedule:", error);
@@ -82,7 +78,7 @@ function toIsoHour(date) {
   d.setUTCMinutes(0, 0, 0);
   return d.toISOString();
 }
-``
+``;
 // GET: 14-day schedule for a resource as ISO-hour keyed map
 export const getScheduleForResource = async (req, res) => {
   try {
@@ -148,29 +144,17 @@ function startOfDayUtc(d) {
   return x;
 }
 
-function buildIsoHourSchedule({
+/**
+ * Build UTC-keyed hourly schedule for 14 days.
+ * Availability in IST → converted EXACTLY to UTC (ex: 09:00 IST → 03:30 UTC)
+ */
+export function buildIsoHourSchedule({
   requests,
   availability,
   windowStart,
   windowEnd,
   currentUserId,
 }) {
-  // Determine min/max working hours across the week
-  let minHour = 24;
-  let maxHour = 0;
-  const dayAvailMap = {}; // sunday..saturday -> { startH, endH }
-  availability.forEach((a) => {
-    const [sH] = a.startTime.split(":").map(Number);
-    const [eH] = a.endTime.split(":").map(Number);
-    minHour = Math.min(minHour, sH);
-    maxHour = Math.max(maxHour, eH);
-    dayAvailMap[a.day.toLowerCase()] = { startH: sH, endH: eH };
-  });
-  if (minHour === 24) {
-    minHour = 0;
-    maxHour = 24;
-  }
-
   const dayNames = [
     "sunday",
     "monday",
@@ -181,101 +165,102 @@ function buildIsoHourSchedule({
     "saturday",
   ];
 
-  const schedule = {}; // isoHour -> entry
-  // Initialize by availability
+  // Map availability by day name
+  const availMap = {}; // { monday: { startIst, endIst }, ... }
+  availability.forEach((a) => {
+    availMap[a.day.toLowerCase()] = {
+      startIst: a.startTime,
+      endIst: a.endTime,
+    };
+  });
+
+  const schedule = {};
+
+  // Iterate across all days in the window
   for (
-    let day = new Date(windowStart);
-    day < windowEnd;
-    day.setUTCDate(day.getUTCDate() + 1)
+    let d = dayjs(windowStart).startOf("day");
+    d.isBefore(windowEnd);
+    d = d.add(1, "day")
   ) {
-    const dayName = dayNames[day.getUTCDay()];
-    const avail = dayAvailMap[dayName];
-    for (let h = minHour; h < maxHour; h++) {
-      const slot = new Date(day);
-      slot.setUTCHours(h, 0, 0, 0);
-      const key = isoHourKey(slot);
-      const inside = !!(avail && h >= avail.startH && h < avail.endH);
-      schedule[key] = {
-        status: inside ? "available" : "unavailable",
+    const dayName = dayNames[d.utc().day()];
+    const avail = availMap[dayName];
+
+    if (!avail) continue;
+
+    // Convert IST availability → exact UTC times
+    const startUtc = istTimeToUtc(d, avail.startIst); // exact minutes included
+    const endUtc = istTimeToUtc(d, avail.endIst);
+
+    // Generate hourly stepping: 03:30 → 04:30 → 05:30 → etc.
+    let cursor = startUtc.clone();
+
+    while (cursor.isBefore(endUtc)) {
+      const isoKey = toIsoExactUTC(cursor);
+
+      schedule[isoKey] = {
+        status: "available",
         user: "",
         purpose: "",
         isStartSlot: false,
         isEndSlot: false,
-        isRequestable: inside, // may be overridden by bookings/holds
+        isRequestable: true,
       };
+
+      cursor = cursor.add(1, "hour");
     }
   }
 
-  // Paint bookings and pendings across hours
+  // Apply bookings (pending + approved)
   for (const r of requests) {
-    const start = new Date(r.startTime);
-    const end = new Date(r.endTime);
-    // normalize to hour increments
-    const cursor = new Date(start);
-    cursor.setUTCMinutes(0, 0, 0);
+    const start = dayjs(r.startTime).utc();
+    const end = dayjs(r.endTime).utc();
 
-    const hoursKeys = [];
-    while (cursor < end) {
-      const key = isoHourKey(cursor);
-      hoursKeys.push(key);
-      cursor.setUTCHours(cursor.getUTCHours() + 1);
-    }
+    // Normalize stepping: exact hour stepping from real start
+    let cursor = start.clone();
 
-    if (!hoursKeys.length) continue;
+    while (cursor.isBefore(end)) {
+      const key = cursor.toISOString();
 
-    const owner =
-      typeof r.userId === "object" ? r.userId?._id?.toString?.() : r.userId;
-    const isSelf = currentUserId && owner === currentUserId;
+      // skip if slot is not in availability map
+      if (!schedule[key]) {
+        cursor = cursor.add(1, "hour");
+        continue;
+      }
 
-    for (let i = 0; i < hoursKeys.length; i++) {
-      const key = hoursKeys[i];
-      if (!schedule[key]) continue; // outside availability window hours
+      const owner =
+        typeof r.userId === "object" ? r.userId?._id?.toString() : r.userId;
+      const isSelf = currentUserId && owner === currentUserId;
 
       if (r.status === "approved") {
         schedule[key] = {
           status: "booked",
           user:
-            (typeof r.userId === "object" && r.userId?.username) || "Booked",
+            typeof r.userId === "object"
+              ? r.userId.username || "Booked"
+              : "Booked",
           purpose: r.purpose || "",
-          isStartSlot: i === 0,
-          isEndSlot: i === hoursKeys.length - 1,
+          isStartSlot: cursor.isSame(start),
+          isEndSlot: cursor.add(1, "hour").isSame(end),
           isRequestable: false,
         };
       } else if (r.status === "pending") {
-        const owner =
-          typeof r.userId === "object" ? r.userId?._id?.toString?.() : r.userId;
-        const isSelf = currentUserId && owner === currentUserId;
-        const displayStatus = isSelf ? "pendingMine" : "pendingOther";
-        const userName = isSelf
-          ? (typeof r.userId === "object" && r.userId?.username) || "You"
-          : "";
-
-        if (schedule[key].status !== "booked") {
-          const wasAvailable = schedule[key].status === "available";
-
-          schedule[key] = {
-            status: displayStatus,
-            user: userName,
-            purpose: isSelf ? r.purpose || "" : "",
-            isStartSlot: i === 0,
-            isEndSlot: i === hoursKeys.length - 1,
-            // own pending never requestable; others’ pending only if slot was free
-            isRequestable: isSelf ? false : wasAvailable,
-          };
-        }
+        const status = isSelf ? "pendingMine" : "pendingOther";
+        schedule[key] = {
+          status,
+          user: isSelf ? "You" : "",
+          purpose: isSelf ? r.purpose || "" : "",
+          isStartSlot: cursor.isSame(start),
+          isEndSlot: cursor.add(1, "hour").isSame(end),
+          isRequestable: !isSelf && schedule[key].status === "available",
+        };
       }
+
+      cursor = cursor.add(1, "hour");
     }
   }
 
-  // If you have maintenance/holds, add them here as softBlocked/cooldown.
-  // Example stub (disabled by default):
-  // const maintenanceIso = "2025-11-05T10:00:00.000Z";
-  // if (schedule[maintenanceIso]) {
-  //   schedule[maintenanceIso] = { ...schedule[maintenanceIso], status: "softBlocked", isRequestable: false };
-  // }
-
   return {
     schedule,
-    timeRange: { startHour: minHour, endHour: maxHour },
+    timeRange: { startHour: null, endHour: null }, // not needed anymore
   };
 }

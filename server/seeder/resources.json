@@ -6,7 +6,7 @@
         "description": "Portable projector kit with HDMI adapters for seminars and classes.",
         "location": "CSE Equipment Cage, CS-109",
         "status": "available",
-        "maxBookingDuration": "6h",
+        "maxBookingDuration": "3h",
         "requiresApproval": false,
         "usageRules": [
             "Handle the lens carefully and use a case when moving between rooms.",
@@ -38,7 +38,9 @@
         ],
         "createdBy": null,
         "isActive": true,
-        "images": [],
+        "images": [
+            "https://res.cloudinary.com/mihirupload123/image/upload/v1762790652/resources/yex4k1m4esm24dfp6u8m.jpg"
+        ],
         "capacity": 1
     },
     {
@@ -48,7 +50,7 @@
         "description": "Remote-access GPU node for queued training with reserved SSH windows.",
         "location": "Provisioning via CSE Systems Desk, CS-201 (account enabling only)",
         "status": "available",
-        "maxBookingDuration": "12h",
+        "maxBookingDuration": "6h",
         "requiresApproval": true,
         "usageRules": [
             "Access is permitted only during the booked window.",
@@ -91,7 +93,7 @@
         "location": "CSE Systems Desk, CS-201 (seat activation during slot)",
         "status": "available",
         "maxBookingDuration": "3h",
-        "requiresApproval": false,
+        "requiresApproval": true,
         "usageRules": [
             "Seat activates only for the booked time window.",
             "Do not share the licence or credentials.",
@@ -210,7 +212,7 @@
         "description": "RF spectrum analysis with marker/peak search; SMA adapters included.",
         "location": "ECE RF Lab Store, EC-302",
         "status": "available",
-        "maxBookingDuration": "2h",
+        "maxBookingDuration": "4h",
         "requiresApproval": true,
         "usageRules": [
             "Never exceed the maximum RF input power; use attenuators if needed.",
@@ -250,7 +252,7 @@
         "description": "S-parameter measurements; calibration required before session.",
         "location": "RF Bench Area, EC-303 (technician check-in)",
         "status": "available",
-        "maxBookingDuration": "2h",
+        "maxBookingDuration": "5h",
         "requiresApproval": true,
         "usageRules": [
             "Perform SOLT calibration at the start of the session using approved standards.",
@@ -271,7 +273,7 @@
         "location": "ECE Hardware Store, EC-210",
         "status": "available",
         "maxBookingDuration": "24h",
-        "requiresApproval": false,
+        "requiresApproval": true,
         "usageRules": [
             "Check board condition at issue and note serial number.",
             "Use only the supplied power adapter; do not use external PSUs.",
@@ -330,7 +332,7 @@
         "description": "PLA/ABS prints; provide STL; nozzle/material guidelines apply.",
         "location": "ME Maker Lab Desk, ME-105",
         "status": "available",
-        "maxBookingDuration": "8h",
+        "maxBookingDuration": "48h",
         "requiresApproval": true,
         "usageRules": [
             "Pre-slice and estimate print duration; include supports if required.",
@@ -410,7 +412,7 @@
         "description": "Tensile/compression testing with extensometer; technician-operated.",
         "location": "Materials Lab, ME-301",
         "status": "available",
-        "maxBookingDuration": "2h",
+        "maxBookingDuration": "6h",
         "requiresApproval": true,
         "usageRules": [
             "The technician operates the machine; users must not override controls.",
@@ -430,7 +432,7 @@
         "description": "Rockwell/Brinell hardness measurements; standard indenter sets.",
         "location": "Materials Lab, ME-302",
         "status": "available",
-        "maxBookingDuration": "1h",
+        "maxBookingDuration": "2h",
         "requiresApproval": false,
         "usageRules": [
             "Select the correct hardness scale and indenter.",
@@ -450,7 +452,7 @@
         "description": "Educational subsonic wind tunnel; setup/teardown buffer required.",
         "location": "Fluids Lab, ME-220",
         "status": "available",
-        "maxBookingDuration": "2h",
+        "maxBookingDuration": "4h",
         "requiresApproval": true,
         "usageRules": [
             "Attend the pre-run checklist with the supervisor.",
@@ -530,7 +532,7 @@
         "description": "A0/A1 plotting; queue-managed booking; paper at cost.",
         "location": "Print Room, AR-102",
         "status": "available",
-        "maxBookingDuration": "2h",
+        "maxBookingDuration": "4h",
         "requiresApproval": false,
         "usageRules": [
             "Load paper only as instructed by staff; verify print preview before printing.",
@@ -559,7 +561,9 @@
         ],
         "createdBy": null,
         "isActive": true,
-        "images": [],
+        "images": [
+            "https://res.cloudinary.com/mihirupload123/image/upload/v1762704417/resources/oan5o47mx3kve6dmsd2p.webp"
+        ],
         "capacity": 1
     },
     {
@@ -578,7 +582,9 @@
         ],
         "createdBy": null,
         "isActive": true,
-        "images": [],
+        "images": [
+            "https://res.cloudinary.com/mihirupload123/image/upload/v1762704224/resources/qqmchepqu09nitq1rf9h.jpg"
+        ],
         "capacity": 4
     },
     {
@@ -588,7 +594,7 @@
         "description": "Hot-wire foam cutter; material guidelines apply.",
         "location": "Model Lab, AR-111",
         "status": "available",
-        "maxBookingDuration": "1h",
+        "maxBookingDuration": "8h",
         "requiresApproval": true,
         "usageRules": [
             "Use only approved foam materials in a ventilated area.",
@@ -598,7 +604,9 @@
         ],
         "createdBy": null,
         "isActive": true,
-        "images": [],
+        "images": [
+            "https://res.cloudinary.com/mihirupload123/image/upload/v1762704350/resources/ix5bpijgbtlrpxnini8c.jpg"
+        ],
         "capacity": 1
     },
     {
@@ -618,7 +626,9 @@
         ],
         "createdBy": null,
         "isActive": true,
-        "images": [],
+        "images": [
+            "https://res.cloudinary.com/mihirupload123/image/upload/v1762704276/resources/bgfzt0xsy9f2n4oob5p9.jpg"
+        ],
         "capacity": 1
     },
     {
@@ -638,7 +648,9 @@
         ],
         "createdBy": null,
         "isActive": true,
-        "images": [],
+        "images": [
+            "https://res.cloudinary.com/mihirupload123/image/upload/v1762704251/resources/q3pfsxukdkutjjo4fwgc.jpg"
+        ],
         "capacity": 2
     }
 ]

@@ -32,10 +32,13 @@ export default function NotificationBell({
       if (res.data.success) setNotifs(res.data.notifications);
     });
 
-    const socket = io(import.meta.env.VITE_API_URL ?? "http://localhost:8080", {
-      withCredentials: true,
-      transports: ["websocket"],
-    });
+    const socket = io(
+      import.meta.env.VITE_SERVER_BASE_URI ?? "http://localhost:8080",
+      {
+        withCredentials: true,
+        transports: ["websocket"],
+      }
+    );
 
     socket.on("connect", () => {
       socket.emit("register", userId.toString());

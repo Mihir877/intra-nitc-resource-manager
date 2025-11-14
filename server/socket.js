@@ -15,7 +15,7 @@ export const initSocket = (httpServer) => {
 
     socket.on("register", (userId) => {
       onlineUsers.set(userId, socket.id);
-      console.log(`✅ Registered user ${userId} with socket ${socket.id}`);
+      // console.log(`✅ Registered user ${userId} with socket ${socket.id}`);
     });
 
     socket.on("disconnect", () => {

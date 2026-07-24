@@ -23,6 +23,7 @@ import Profile from "./components/common/Profile";
 import Preferences from "./components/admin/Preferences";
 import ResourceDetailPage from "./components/common/resource/ResourceDetailPage";
 import StudentSchdeule from "./components/student/StudentSchedule";
+import SeederPage from "./components/admin/SeederPage";
 import { Toaster } from "./components/ui/sonner";
 
 // Newly added auth pages
@@ -111,6 +112,7 @@ function AppRoutes() {
             { path: "users/:id", element: <Profile /> },
             { path: "profile/me", element: <Profile /> },
             { path: "preferences", element: <Preferences /> },
+            { path: "seeder", element: <SeederPage /> },
           ],
         },
       ],

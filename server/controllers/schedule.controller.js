@@ -26,7 +26,7 @@ export const getUserSchedule = async (req, res) => {
       startTime: { $lte: windowEnd.toDate() },
       status: { $in: ["approved", "pending"] },
     })
-      .select("startTime endTime status resourceId purpose")
+      .select("_id startTime endTime status resourceId purpose")
       .populate("resourceId", "name location type description")
       .lean();
 
@@ -43,6 +43,7 @@ export const getUserSchedule = async (req, res) => {
         const isoKey = toIsoExactUTC(cursor);
 
         schedule[isoKey] = {
+          requestId: r._id,
           status: r.status === "approved" ? "booked" : "pendingMine",
           resource: r.resourceId?.name || "Resource",
           location: r.resourceId?.location || "",
@@ -124,7 +125,7 @@ export const getScheduleForResource = async (req, res) => {
       startTime: { $lte: endDate },
       status: { $in: ["approved", "pending"] },
     })
-      .select("startTime endTime status userId purpose")
+      .select("_id startTime endTime status userId purpose")
       .populate("userId", "username email")
       .lean();
 
@@ -263,6 +264,7 @@ export function buildIsoHourSchedule({
 
       if (r.status === "approved") {
         schedule[key] = {
+          requestId: r._id,
           status: "booked",
           user:
             typeof r.userId === "object"
@@ -277,6 +279,7 @@ export function buildIsoHourSchedule({
         const status = isSelf ? "pendingMine" : "pendingOther";
 
         schedule[key] = {
+          requestId: r._id,
           status,
           user: isSelf ? "You" : "",
           purpose: isSelf ? r.purpose || "" : "",

@@ -11,6 +11,7 @@ import {
   Plus,
   FileCheck,
   User,
+  Database,
 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
@@ -36,7 +37,11 @@ const adminNavItems = [
 export function Navigation({ setOpen }) {
   const { user } = useAuth();
   const location = useLocation();
-  const navItems = user?.role === "admin" ? adminNavItems : studentNavItems;
+  const isSuperAdmin = user?.email?.toLowerCase() === "admin_m25cse@nitc.ac.in";
+  
+  const navItems = user?.role === "admin"
+    ? (isSuperAdmin ? [...adminNavItems, { icon: Database, label: "Database Seeder", href: "/admin/seeder" }] : adminNavItems)
+    : studentNavItems;
 
   const handleClose = () => {
     if (setOpen) {

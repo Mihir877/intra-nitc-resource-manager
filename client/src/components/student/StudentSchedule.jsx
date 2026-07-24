@@ -26,6 +26,8 @@ import { isoUtcToSlotKey, utcToIst } from "@/utils/timezone";
 import { buildUpcomingDays } from "@/utils/dateUtils";
 
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
+import useAuth from "@/hooks/useAuth";
 
 /* --------------------------
    Booking status styles
@@ -224,6 +226,8 @@ function slotKeyToUtcIso(slotKey) {
    MAIN COMPONENT
    ----------------------------------------- */
 export default function UserSchedule() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [scheduleData, setScheduleData] = useState(null);
   const [error, setError] = useState("");
   const abortRef = useRef(null);
@@ -522,8 +526,14 @@ export default function UserSchedule() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (entry.requestId) {
+                                  navigate(`/requests/${entry.requestId}`);
+                                }
+                              }}
                               className={cn(
-                                "absolute text-xs flex items-center justify-center px-2 py-1 border rounded-md pointer-events-auto overflow-hidden",
+                                "absolute text-xs flex items-center justify-center px-2 py-1 border rounded-md pointer-events-auto cursor-pointer overflow-hidden",
                                 style, "-mt-0.5"
                               )}
                               style={{
@@ -573,7 +583,7 @@ export default function UserSchedule() {
           </div>
 
           {/* Legend below the schedule grid */}
-          <div className="flex flex-wrap items-center gap-6 p-3 rounded-md bg-background/50 dark:bg-slate-900/50 mt-4 text-xs font-medium">
+          <div className="flex flex-wrap items-center gap-6 p-3 rounded-md bg-gray-100 dark:bg-slate-900/50 mt-4 text-xs font-medium">
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full bg-green-500 dark:bg-emerald-500" />
               <span className="text-muted-foreground dark:text-gray-300">Booked</span>
@@ -609,6 +619,9 @@ export default function UserSchedule() {
    into single agenda entries using schedule.__utcIso when available.
    ----------------------------------------------------------------- */
 function AgendaView({ schedule, agenda, filters }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const normalizeStatus = (s) => {
     if (!s) return "";
     const lower = s.toLowerCase();
@@ -652,8 +665,8 @@ function AgendaView({ schedule, agenda, filters }) {
     let startIso = startEntry?.__utcIso ?? slotKeyToUtcIso(startSlotKey);
     let endIso = endEntry?.__utcIso ?? slotKeyToUtcIso(endSlotKey);
 
-    const startDate = dayjs(startIso).format("YYYY-MM-DD");
-    const endDate = dayjs(endIso).format("YYYY-MM-DD");
+    const startDate = dayjs(startIso).format("DD-MM-YYYY");
+    const endDate = dayjs(endIso).format("DD-MM-YYYY");
 
     // start of booking = start slot start
     const startTime = dayjs(startIso).format("HH:mm");
@@ -703,7 +716,7 @@ function AgendaView({ schedule, agenda, filters }) {
           No upcoming bookings
         </div>
       ) : (
-        <div className="max-h-[455px] overflow-y-auto pr-1">
+        <div className="max-h-[455px] overflow-y-auto pr-3">
           <ul className="divide-y divide-gray-100 dark:divide-gray-700/80">
             {items.map((block, idx) => {
               const entry = block.entry;
@@ -713,7 +726,13 @@ function AgendaView({ schedule, agenda, filters }) {
               return (
                 <li
                   key={idx}
-                  className="text-xs flex items-start justify-between py-3 gap-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (entry.requestId) {
+                      navigate(`/requests/${entry.requestId}`);
+                    }
+                  }}
+                  className="text-xs flex items-start justify-between py-3 gap-3 cursor-pointer hover:bg-gray-100/60 dark:hover:bg-slate-800/35 px-2 rounded-md transition-colors"
                 >
                   {/* Left Side: Dot & Line Indicator */}
                   <div className="flex flex-col items-center flex-shrink-0 mt-0">

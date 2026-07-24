@@ -33,28 +33,32 @@ import dayjs from "dayjs";
 const BOOKING_STATUS = {
   available: {
     style:
-      "bg-white border-green-500/20 text-gray-600 hover:bg-green-50 dark:bg-gray-900 dark:border-green-900/80 dark:text-gray-300",
+      "bg-white border-green-500/20 text-gray-600 hover:bg-green-50/30 dark:bg-gray-900 dark:border-green-900/80 dark:text-gray-400 dark:hover:bg-slate-800/80",
     label: "",
   },
   booked: {
     style:
-      "bg-green-300/60 border-green-700/80 font-semibold text-green-900/90 dark:bg-green-950/80 dark:text-green-300/90 dark:border-green-500/60",
+      "bg-green-300/60 border-green-700/80 font-semibold text-green-900/90 dark:bg-emerald-900/80 dark:border-green-500/60 dark:text-emerald-100 dark:font-semibold",
     label: "Booked",
   },
   pendingMine: {
     style:
-      "bg-amber-300/60 border-amber-600 font-semibold text-amber-900/90 dark:bg-amber-950/90 dark:text-amber-300/90 dark:border-amber-500/60",
+      "bg-amber-300/60 border-amber-600 font-semibold text-amber-900/90 dark:bg-amber-900/80 dark:border-amber-500/60 dark:text-amber-100 dark:font-semibold",
     label: "Pending",
   },
-
+  pendingOther: {
+    style:
+      "bg-purple-300/60 border-purple-700/80 font-semibold text-purple-900/90 dark:bg-purple-900/80 dark:border-purple-500/60 dark:text-purple-100 dark:font-semibold",
+    label: "Pending (Partial)",
+  },
   rejected: {
     style:
-      "bg-red-50 border-red-200 text-red-300/90 font-semibold dark:bg-red-950/80 dark:border-red-500/70",
+      "bg-red-50 border-red-200 text-red-300/90 font-semibold dark:bg-red-900/80 dark:border-red-500/70 dark:text-red-100 dark:font-semibold",
     label: "Rejected",
   },
   unavailable: {
     style:
-      "bg-gray-50 border-gray-100 dark:bg-gray-900 dark:border-gray-800 text-gray-500",
+      "bg-gray-50 border-gray-100 text-gray-500 dark:bg-gray-900 dark:border-gray-800 dark:text-slate-500",
     label: "",
   },
 };
@@ -401,7 +405,7 @@ export default function UserSchedule() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* SCHEDULE GRID */}
         <div className="lg:col-span-8 xl:col-span-8">
-          <div className="border rounded-md overflow-hidden dark:border-gray-800">
+          <div className="border rounded-md overflow-hidden dark:border-gray-700">
             {/* ⬇️ SCROLLABLE AREA (header moved inside) */}
             <div
               className="relative"
@@ -420,7 +424,7 @@ export default function UserSchedule() {
                 }}
               >
                 <div
-                  className="sticky left-0 z-40 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground border-b border-r"
+                  className="sticky left-0 z-40 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground border-b border-r dark:border-gray-700"
                   style={{ width: firstColPx }}
                 >
                   Time
@@ -430,7 +434,7 @@ export default function UserSchedule() {
                   <div
                     key={d.key}
                     className={cn(
-                      "px-3 py-2 text-xs font-medium text-center border-b sticky top-0",
+                      "px-3 py-2 text-xs font-medium text-center border-b sticky top-0 dark:border-gray-700",
                       d.isToday
                         ? "bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
                         : "bg-muted/40 text-muted-foreground dark:bg-gray-800"
@@ -461,7 +465,7 @@ export default function UserSchedule() {
                       gridRow: ti + 1,
                       width: firstColPx,
                     }}
-                    className="sticky left-0 z-40 px-3 py-2 text-xs border-r border-b bg-background dark:bg-gray-900"
+                    className="sticky left-0 z-40 px-3 py-2 text-xs border-r border-b bg-background dark:bg-gray-900 dark:border-gray-700"
                   >
                     {t}
                   </div>
@@ -567,6 +571,22 @@ export default function UserSchedule() {
               </div>
             </div>
           </div>
+
+          {/* Legend below the schedule grid */}
+          <div className="flex flex-wrap items-center gap-6 p-3 rounded-md bg-background/50 dark:bg-slate-900/50 mt-4 text-xs font-medium">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-green-500 dark:bg-emerald-500" />
+              <span className="text-muted-foreground dark:text-gray-300">Booked</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-yellow-500 dark:bg-amber-500" />
+              <span className="text-muted-foreground dark:text-gray-300">Pending</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-gray-400 dark:bg-gray-600" />
+              <span className="text-muted-foreground dark:text-gray-300">Unavailable</span>
+            </div>
+          </div>
         </div>
 
         {/* AGENDA VIEW */}
@@ -595,6 +615,34 @@ function AgendaView({ schedule, agenda, filters }) {
     if (lower.startsWith("pending")) return "pending";
     if (lower === "booked" || lower === "approved") return "approved";
     return lower;
+  };
+
+  const getStatusColors = (status) => {
+    if (status === "booked") {
+      return {
+        dot: "bg-emerald-500",
+        bar: "bg-emerald-500/30 dark:bg-emerald-500/20"
+      };
+    } else if (status === "pendingMine") {
+      return {
+        dot: "bg-amber-500",
+        bar: "bg-amber-500/30 dark:bg-amber-500/20"
+      };
+    } else if (status === "pendingOther") {
+      return {
+        dot: "bg-purple-500",
+        bar: "bg-purple-500/30 dark:bg-purple-500/20"
+      };
+    } else if (status === "rejected") {
+      return {
+        dot: "bg-red-500",
+        bar: "bg-red-500/30 dark:bg-red-500/20"
+      };
+    }
+    return {
+      dot: "bg-gray-400 dark:bg-slate-600",
+      bar: "bg-gray-300/30 dark:bg-slate-700/20"
+    };
   };
 
   const formatRangeFromSlots = (startSlotKey, endSlotKey, entry, schedule) => {
@@ -647,7 +695,7 @@ function AgendaView({ schedule, agenda, filters }) {
   }, [agenda, filters, schedule]);
 
   return (
-    <div className="border rounded-md p-3 space-y-2 dark:border-gray-800">
+    <div className="border rounded-md p-3 pb-0 pr-0 space-y-2 dark:border-gray-700">
       <div className="text-sm font-medium">Agenda (14 days)</div>
 
       {items.length === 0 ? (
@@ -655,44 +703,61 @@ function AgendaView({ schedule, agenda, filters }) {
           No upcoming bookings
         </div>
       ) : (
-        <ul className="space-y-2">
-          {items.map((block, idx) => {
-            const entry = block.entry;
-            const range = block.range;
+        <div className="max-h-[455px] overflow-y-auto pr-1">
+          <ul className="divide-y divide-gray-100 dark:divide-gray-700/80">
+            {items.map((block, idx) => {
+              const entry = block.entry;
+              const range = block.range;
+              const colors = getStatusColors(entry.status);
 
-            return (
-              <li
-                key={idx}
-                className="text-xs flex items-center justify-between p-2 border rounded dark:border-gray-700"
-              >
-                <div>
-                  <div className="font-medium">{entry.resource}</div>
-                  <div className="text-muted-foreground">{entry.purpose}</div>
-                </div>
+              return (
+                <li
+                  key={idx}
+                  className="text-xs flex items-start justify-between py-3 gap-3"
+                >
+                  {/* Left Side: Dot & Line Indicator */}
+                  <div className="flex flex-col items-center flex-shrink-0 mt-0">
+                    <span className={cn("h-2.5 w-2.5 rounded-full", colors.dot)} />
+                    <span className={cn("w-[2px] h-5 mt-1 rounded-sm", colors.bar)} />
+                  </div>
 
-                <div className="text-muted-foreground text-right">
-                  {range.isSameDay ? (
-                    <>
-                      <div>{range.startDate}</div>
-                      <div>
-                        {range.startTime} – {range.endTime}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        {range.startDate} • {range.startTime}
-                      </div>
-                      <div>
-                        {range.endDate} • {range.endTime}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                  {/* Middle Column: Resource Title and Purpose */}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {entry.resource}
+                    </div>
+                    <div className="text-muted-foreground truncate mt-0.5">
+                      {entry.purpose}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Date and Time */}
+                  <div className="text-muted-foreground text-right flex-shrink-0 min-w-[90px]">
+                    {range.isSameDay ? (
+                      <>
+                        <div className="font-medium text-gray-800 dark:text-gray-200">
+                          {range.startDate}
+                        </div>
+                        <div className="text-[10px] mt-0.5">
+                          {range.startTime} – {range.endTime}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="font-medium text-gray-800 dark:text-gray-200">
+                          {range.startDate} • {range.startTime}
+                        </div>
+                        <div className="text-[10px] mt-0.5">
+                          {range.endDate} • {range.endTime}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </div>
   );

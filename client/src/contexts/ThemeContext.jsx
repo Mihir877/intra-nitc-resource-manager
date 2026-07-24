@@ -9,7 +9,8 @@ export const ThemeProvider = ({ children }) => {
       const stored = localStorage.getItem("theme");
       if (stored) return stored === "dark";
       // fallback to system preference
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+      // return window.matchMedia("(prefers-color-scheme: dark)").matches;
+      return false;
     }
     return false;
   });
@@ -25,6 +26,7 @@ export const ThemeProvider = ({ children }) => {
   }, [isDark]);
 
   // Optional: listen to system theme changes if user never picked one
+  /*
   useEffect(() => {
     const stored = localStorage.getItem("theme");
     if (stored) return; // if user already chose, ignore system
@@ -33,6 +35,7 @@ export const ThemeProvider = ({ children }) => {
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
   }, []);
+  */
 
   const toggleTheme = () => setIsDark((prev) => !prev);
 

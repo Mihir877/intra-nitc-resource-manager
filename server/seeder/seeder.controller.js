@@ -242,172 +242,287 @@ export const seedResourcesJson = async (req, res) => {
 };
 
 /* =======================
-   REQUESTS SEEDER
+   DEMO DATA SEEDER
 ======================= */
-export const seedRequestsRandom = async (req, res) => {
+export const seedDemoData = async (req, res) => {
   try {
-    const {
-      count = 120, // number of bookings to create
-      workingHours = { start: 9, end: 17 }, // 9 AM – 5 PM
-      windowDays = 14, // next 14 calendar days
-    } = req.body || {};
-
-    // Fetch users & active resources
-    const users = await User.find({
-      role: { $in: ["student", "faculty"] },
-    }).select("_id role");
+    // 1. Fetch users & resources
+    const users = await User.find({ role: { $in: ["student", "faculty"] } });
+    const admins = await User.find({ role: "admin" });
     const resources = await Resource.find({
       isActive: true,
       status: { $ne: "disabled" },
-    }).select("_id name maxBookingDuration requiresApproval availability");
+    });
 
     if (users.length === 0 || resources.length === 0) {
       return fail(res, 400, "No eligible users or active resources found");
     }
 
+    // 2. Clear existing requests
+    await Request.deleteMany({});
+
+    // Group students/faculty by department (normalize to uppercase)
+    const usersByDept = {};
+    for (const u of users) {
+      const dept = (u.department || "Other").toUpperCase();
+      if (!usersByDept[dept]) usersByDept[dept] = [];
+      usersByDept[dept].push(u);
+    }
+
+    // Group admins by department
+    const adminsByDept = {};
+    for (const a of admins) {
+      const dept = (a.department || "Other").toUpperCase();
+      if (!adminsByDept[dept]) adminsByDept[dept] = [];
+      adminsByDept[dept].push(a);
+    }
+
     const requests = [];
-    const createdIds = [];
 
-    // Helper — generates a random valid slot in IST & ensures no conflict
-    const getRandomValidSlot = async (resource) => {
-      const maxHrs = Math.max(1, Number(resource.maxBookingDuration) || 1);
-      const startDayOffset = Math.floor(Math.random() * windowDays);
+    // Realistic purpose generator
+    const getPurpose = (resource) => {
+      const csePurposes = [
+        "Deep Learning Model Training",
+        "CUDA Assignment",
+        "Research Experiment",
+        "Lab Session",
+        "Final Year Project",
+        "Natural Language Processing Lab",
+        "Compiler Design Assignment",
+        "Big Data Preprocessing"
+      ];
+      const ecePurposes = [
+        "Hardware Testing",
+        "PCB Design & Fabrication",
+        "VLSI Simulation",
+        "Embedded Systems Lab",
+        "Digital Signal Processing Project",
+        "Microcontroller Programming"
+      ];
+      const mePurposes = [
+        "3D Printing Prototype",
+        "CAD Modeling Workstation Lab",
+        "Fluid Dynamics Analysis",
+        "Finite Element Analysis",
+        "CNC Machining Lab"
+      ];
+      const archPurposes = [
+        "Architectural Model Plotting",
+        "3D Rendering Lab",
+        "Landscape Design Workshop",
+        "Thesis Drafting Session"
+      ];
+      const generalPurposes = [
+        "Seminar Presentation",
+        "Faculty Workshop",
+        "Thesis Defense Dry Run",
+        "Guest Lecture Setup",
+        "Academic Club Activity"
+      ];
 
-      // Pick random future day
-      const baseDay = dayjs().add(startDayOffset, "day").tz("Asia/Kolkata");
+      const dept = (resource.department || "").toUpperCase();
+      let list = generalPurposes;
+      if (dept === "CSE") list = csePurposes;
+      else if (dept === "ECE") list = ecePurposes;
+      else if (dept === "ME") list = mePurposes;
+      else if (dept === "ARCH") list = archPurposes;
 
-      // Random whole-hour start between 9–16
-      const randomStartHr =
-        workingHours.start +
-        Math.floor(Math.random() * (workingHours.end - workingHours.start));
-
-      // Construct start time (Day.js object in IST)
-      const startIst = dayjs
-        .tz(
-          `${baseDay.format("YYYY-MM-DD")} ${randomStartHr}:00`,
-          "YYYY-MM-DD HH:mm",
-          "Asia/Kolkata"
-        )
-        .minute(0)
-        .second(0)
-        .millisecond(0);
-
-      // Random duration (1 → maxBookingDuration hours)
-      const durationHrs = 1 + Math.floor(Math.random() * maxHrs);
-      const endIst = startIst.add(durationHrs, "hour");
-
-      // ensure within working hours
-      if (endIst.hour() > workingHours.end || endIst.isBefore(startIst))
-        return null;
-
-      // Convert to UTC Date objects for Mongo
-      const startUtc = startIst.utc().toDate();
-      const endUtc = endIst.utc().toDate();
-
-      // Conflict check
-      const overlap = await Request.exists({
-        resourceId: resource._id,
-        $or: [{ startTime: { $lt: endUtc }, endTime: { $gt: startUtc } }],
-      });
-      if (overlap) return null;
-
-      return { start: startUtc, end: endUtc };
+      if (Math.random() < 0.2) {
+        list = generalPurposes;
+      }
+      return list[getRandomInt(list.length)];
     };
 
-    // Generate random requests
-    while (requests.length < count) {
-      const user = users[getRandomInt(users.length)];
-      const resource = resources[getRandomInt(resources.length)];
+    const rejectionRemarks = [
+      "Resource is reserved for scheduled academic classes during this slot.",
+      "Departmental event scheduled at the same location.",
+      "Required pre-requisite safety training not completed by user.",
+      "Prioritized booking for senior research scholars and faculty.",
+      "System undergoing routine maintenance and software updates.",
+      "Incomplete request details: project description insufficient."
+    ];
 
-      const slot = await getRandomValidSlot(resource);
-      if (!slot) continue;
+    const getRejectionRemark = () => rejectionRemarks[getRandomInt(rejectionRemarks.length)];
 
-      const { start, end } = slot;
+    // Target: Generate 5 requests per resource
+    const targetBookingsPerResource = 5;
+    const now = dayjs().tz("Asia/Kolkata");
+    const demoUser = users.find(u => u.email.toLowerCase() === "demo@user.com");
 
-      // Determine booking status based on approval rule
-      let status = "approved";
-      let approvedBy = null;
-      let approvedAt = null;
-      if (resource.requiresApproval) {
-        status = Math.random() < 0.5 ? "pending" : "approved";
+    for (const resource of resources) {
+      // Find admin for resource's department
+      const deptUpper = (resource.department || "").toUpperCase();
+      const deptAdmins = adminsByDept[deptUpper] || [];
+      const admin = deptAdmins.length > 0 
+        ? deptAdmins[getRandomInt(deptAdmins.length)] 
+        : (admins.length > 0 ? admins[getRandomInt(admins.length)] : null);
+
+      // Find user from the resource's department
+      const deptUsers = usersByDept[deptUpper] || [];
+      const resourceUsers = deptUsers.length > 0 ? deptUsers : users;
+
+      // Keep track of this resource's generated slots to check for overlaps
+      const generatedSlots = [];
+
+      let attempts = 0;
+      let bookingsCreated = 0;
+
+      while (bookingsCreated < targetBookingsPerResource && attempts < 40) {
+        attempts++;
+
+        // Pick a random day offset in [-5, 10]
+        const offset = -5 + getRandomInt(16); // -5 to 10
+        const date = now.add(offset, "day");
+        const dayName = date.format("dddd"); // "Monday", "Tuesday", etc.
+
+        // Get availability slots for this day of week
+        const availSlots = (resource.availability || []).filter(
+          (a) => a.day.toLowerCase() === dayName.toLowerCase()
+        );
+
+        if (availSlots.length === 0) continue;
+
+        // Choose one random availability slot
+        const slot = availSlots[getRandomInt(availSlots.length)];
+        const { startTime, endTime } = slot;
+        if (!startTime || !endTime) continue;
+
+        const [startHr, startMin] = startTime.split(":").map(Number);
+        const [endHr, endMin] = endTime.split(":").map(Number);
+
+        const availStart = dayjs.tz(
+          `${date.format("YYYY-MM-DD")} ${startTime}`,
+          "YYYY-MM-DD HH:mm",
+          "Asia/Kolkata"
+        );
+        const availEnd = dayjs.tz(
+          `${date.format("YYYY-MM-DD")} ${endTime}`,
+          "YYYY-MM-DD HH:mm",
+          "Asia/Kolkata"
+        );
+
+        // Decide a duration that is more than 60% of maxBookingDuration
+        const maxDuration = Math.max(1, resource.maxBookingDuration || 2);
+        const minDuration = 0.6 * maxDuration;
+        const possibleDurations = [];
+        for (let h = 0.5; h <= maxDuration; h += 0.5) {
+          if (h >= minDuration) {
+            possibleDurations.push(h);
+          }
+        }
+        if (possibleDurations.length === 0) {
+          possibleDurations.push(maxDuration);
+        }
+        const durationHrs = possibleDurations[getRandomInt(possibleDurations.length)];
+
+        // Booking start time must be between availStart and availEnd - durationHrs
+        const maxOffsetMinutes = availEnd.diff(availStart, "minute") - (durationHrs * 60);
+        if (maxOffsetMinutes <= 0) continue;
+
+        // Align starting offset to 30 minutes
+        const possibleOffsets = [];
+        for (let offsetMins = 0; offsetMins <= maxOffsetMinutes; offsetMins += 30) {
+          possibleOffsets.push(offsetMins);
+        }
+        if (possibleOffsets.length === 0) continue;
+        const offsetMinutes = possibleOffsets[getRandomInt(possibleOffsets.length)];
+
+        const bookingStart = availStart.add(offsetMinutes, "minute");
+        const bookingEnd = bookingStart.add(durationHrs, "hour");
+
+        // Convert to UTC dates for Mongoose saving
+        const startUtc = bookingStart.utc().toDate();
+        const endUtc = bookingEnd.utc().toDate();
+
+        // Check for overlap against previously generated slots for this resource
+        const hasOverlap = generatedSlots.some(
+          (s) => startUtc < s.end && endUtc > s.start
+        );
+        if (hasOverlap) continue;
+
+        // No overlap! Generate request
+        let user;
+        if (demoUser && Math.random() < 0.65) {
+          user = demoUser;
+        } else {
+          user = resourceUsers[getRandomInt(resourceUsers.length)];
+        }
+
+        const isPast = bookingEnd.isBefore(now);
+
+        let status = "approved";
+        let approvedBy = null;
+        let approvedAt = null;
+        let remarks = undefined;
+
+        if (isPast) {
+          // Past bookings are either approved or rejected (no pending)
+          const approved = Math.random() < 0.85;
+          if (approved) {
+            status = "approved";
+            approvedBy = admin ? admin._id : null;
+            approvedAt = bookingStart.subtract(getRandomInt(60) + 10, "minute").utc().toDate();
+          } else {
+            status = "rejected";
+            approvedBy = admin ? admin._id : null;
+            approvedAt = bookingStart.subtract(getRandomInt(60) + 10, "minute").utc().toDate();
+            remarks = getRejectionRemark();
+          }
+        } else {
+          // Present/Future bookings
+          if (!resource.requiresApproval) {
+            status = "approved";
+            approvedBy = null;
+            approvedAt = null;
+          } else {
+            // requires approval: 30% approved, 60% pending, 10% rejected
+            const rand = Math.random();
+            if (rand < 0.3) {
+              status = "approved";
+              approvedBy = admin ? admin._id : null;
+              approvedAt = bookingStart.subtract(getRandomInt(120) + 30, "minute").utc().toDate();
+            } else if (rand < 0.9) {
+              status = "pending";
+              approvedBy = null;
+              approvedAt = null;
+            } else {
+              status = "rejected";
+              approvedBy = admin ? admin._id : null;
+              approvedAt = bookingStart.subtract(getRandomInt(120) + 30, "minute").utc().toDate();
+              remarks = getRejectionRemark();
+            }
+          }
+        }
+
+        generatedSlots.push({ start: startUtc, end: endUtc });
+        requests.push({
+          userId: user._id,
+          resourceId: resource._id,
+          startTime: startUtc,
+          endTime: endUtc,
+          purpose: getPurpose(resource),
+          status,
+          approvedBy,
+          approvedAt,
+          remarks,
+        });
+
+        bookingsCreated++;
       }
-      if (status === "approved") {
-        approvedAt = new Date();
-      }
-
-      requests.push({
-        userId: user._id,
-        resourceId: resource._id,
-        startTime: start,
-        endTime: end,
-        purpose: `Demo booking for ${resource.name}`,
-        status,
-        approvedBy,
-        approvedAt,
-      });
     }
 
-    // Insert all at once
-    const inserted = await Request.insertMany(requests, { ordered: false });
-    inserted.forEach((r) => createdIds.push(r._id));
+    let insertedCount = 0;
+    if (requests.length > 0) {
+      const inserted = await Request.insertMany(requests, { ordered: false });
+      insertedCount = inserted.length;
+    }
 
     return created(res, {
-      message: "Random booking requests seeded successfully (IST 9AM–5PM)",
-      totalCreated: inserted.length,
-      ids: createdIds,
+      message: "Realistic demo data seeded successfully",
+      insertedCount,
     });
   } catch (err) {
-    console.error("Seed requests error:", err);
-    return fail(res, 500, err.message || "Internal Server Error");
-  }
-};
-
-/* =======================
-   DECISIONS SEEDER
-======================= */
-export const seedDecisionsRandom = async (req, res) => {
-  try {
-    const { approveRatio = 0.7, count = 10 } = req.body || {};
-    const ratio = Math.min(1, Math.max(0, approveRatio));
-    const limit = Math.max(1, Number(count) || 1);
-
-    const pending = await Request.find({ status: "pending" }).populate(
-      "resourceId",
-      "name"
-    );
-
-    if (pending.length === 0)
-      return ok(res, {
-        message: "No pending requests to decide",
-        decidedCount: 0,
-      });
-
-    const shuffled = pending.sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, Math.min(limit, pending.length));
-
-    let decidedCount = 0;
-    for (const r of selected) {
-      const approve = Math.random() < ratio;
-      r.status = approve ? "approved" : "rejected";
-      r.approvedBy = req.user?.id || null;
-      r.approvedAt = new Date();
-      if (!approve)
-        r.remarks = `Rejected: ${
-          r.resourceId?.name || "resource"
-        } not available`;
-      await r.save();
-      decidedCount++;
-    }
-
-    return ok(res, {
-      message: "Random decisions applied",
-      decidedCount,
-      totalPending: pending.length,
-      processed: selected.length,
-      approveRatio: ratio,
-    });
-  } catch (err) {
-    console.error("Seed decisions error:", err);
+    console.error("Seed demo data error:", err);
     return fail(res, 500, err.message || "Internal Server Error");
   }
 };

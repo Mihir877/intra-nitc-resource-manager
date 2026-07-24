@@ -21,6 +21,13 @@
         "department": "CSE"
     },
     {
+        "username": "Demo User",
+        "email": "demo@user.com",
+        "password": "demo@user.com",
+        "role": "student",
+        "department": "CSE"
+    },
+    {
         "username": "Rahul Mehta",
         "email": "rahul_m25CSE@nitc.ac.in",
         "password": "rahul_m25CSE@nitc.ac.in",
